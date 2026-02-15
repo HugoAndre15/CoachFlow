@@ -1,6 +1,9 @@
 'use client';
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import HeaderBar from "@/components/globals/headerBar";
 
 export default function Home() {
   const { user, logout, isLoading } = useAuth();
@@ -10,24 +13,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">CoachFlow</h1>
-          <div className="flex items-center gap-4">
-            {user && (
-              <span className="text-sm text-gray-600">
-                {user.first_name} {user.last_name}
-              </span>
-            )}
-          <button
-            onClick={logout}
-            className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
-          >
-            Déconnexion
-          </button>
-          </div>
-        </div>
-      </header>
+      <HeaderBar />
 
       {/* Main */}
       <main className="max-w-7xl mx-auto px-6 py-12">
