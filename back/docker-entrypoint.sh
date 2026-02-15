@@ -1,9 +1,6 @@
 #!/bin/sh
 set -e
 
-# Déterminer le host et port de la DB
-# Railway : postgres.railway.internal:5432
-# Docker Compose : db:5432
 DB_HOST="${DB_HOST:-db}"
 DB_PORT="${DB_PORT:-5432}"
 
@@ -20,4 +17,4 @@ echo "🔄 Running Prisma migrations..."
 npx prisma migrate deploy
 
 echo "🚀 Starting application..."
-exec node dist/main
+exec node dist/src/main.js

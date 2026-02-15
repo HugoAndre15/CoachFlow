@@ -14,11 +14,9 @@ COPY prisma/ ./prisma/
 
 RUN npx prisma generate
 
-COPY . .
+COPY src/ ./src/
 
-# Force rebuild - cache buster
-ARG CACHEBUST=1
-RUN npm run build && ls -la dist/
+RUN npm run build
 
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
