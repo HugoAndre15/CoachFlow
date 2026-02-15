@@ -21,7 +21,7 @@ export default function CheckboxForm({ label, checked, onChange }: CheckboxFormP
                     "               
             />
             <label 
-                className="text-xs font-small cursor-pointer select-none" 
+                className="text-xs font-small cursor-pointer select-none text-dark-lighter dark:text-neutral-lightest" 
                 htmlFor={label}
             >
                 {label}

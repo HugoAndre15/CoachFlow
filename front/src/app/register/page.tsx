@@ -54,14 +54,23 @@ export default function Register() {
     };
 
   return (
-    <div className="h-screen flex items-center bg-gradient-to-br from-white-100 to-white-200">
-        <div className="text-left items-center md:items-start flex flex-col gap-16 w-full md:w-1/2 h-full py-8 px-8 md:px-2 items-center justify-center">
+    <div className="h-screen flex items-center bg-gradient-to-br dark:from-dark dark:to-dark-lighter from-white-100 to-white-200 relative overflow-hidden">
+        {/* Formes décoratives avec effet blur */}
+        <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
+          {/* Forme bleue */}
+          <div className="absolute -top-10 -left-32 w-80 h-80 md:w-96 md:h-96 bg-[#3B82F6] rounded-full blur-3xl opacity-20"></div>
+          
+          {/* Forme verte */}
+          <div className="absolute bottom-10 left-1/3 w-90 h-90 md:w-120 md:h-120 bg-[#10B981] rounded-full blur-xl opacity-20"></div>
+        </div>
+
+        <div className="text-left items-center md:items-start flex flex-col gap-16 w-full md:w-1/2 h-full py-8 px-8 md:px-2 items-center justify-center relative z-10">
             <form onSubmit={handleSubmit} className="min-w-1/2 flex flex-col items-start justify-center gap-8 mx-auto">
                 <div className="">
-                    <h1 className="text-3xl font-medium text-gray-900">
+                    <h1 className="text-3xl font-medium text-dark dark:text-neutral-lightest">
                         Commencez dès maintenant
                     </h1>
-                    <h2 className="text-base font-medium text-gray-700">
+                    <h2 className="text-base font-medium text-dark-lighter dark:text-neutral">
                         Entrez vos informations pour créer votre compte
                     </h2>
                 </div>
@@ -122,17 +131,17 @@ export default function Register() {
                         type="submit"
                         colorClass="bg-blue-500 hover:bg-blue-600 focus:ring-blue-400/20"
                     />
-                    <div className="h-0.5 w-2/3 bg-gray-800 mx-auto my-4"></div>
+                    <div className="h-0.5 w-2/3 bg-dark-lighter dark:bg-neutral mx-auto my-4"></div>
                     <div>
 
                     </div>
-                    <div className="text-sm mx-auto">
-                        <p>Déjà un compte ? <a className="text-green-500 hover:text-green-600" href="/login">Se connecter</a></p>
+                    <div className="text-sm mx-auto text-dark-lighter dark:text-neutral">
+                        <p>Déjà un compte ? <a className="text-accent-green hover:text-accent-green-dark" href="/login">Se connecter</a></p>
                     </div>
                 </div>
             </form>
         </div>
-        <div className="w-1/2 h-full hidden md:block">
+        <div className="w-1/2 h-full hidden md:block relative z-10">
             <img src="/assets/img/fond-stade-auth.jpg" alt="Description" className="rounded-l-[45px] object-cover object-right h-full w-full" />
         </div>
     </div>
