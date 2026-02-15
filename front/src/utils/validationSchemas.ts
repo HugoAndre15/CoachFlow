@@ -14,7 +14,13 @@ export const registerSchema = z.object({
         .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
         .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
         .regex(/[a-z]/, 'Le mot de passe doit contenir au moins une minuscule')
-        .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre'),
+        .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre')
+        .regex(/[@$!%*?&_-]/, 'Le mot de passe doit contenir au moins un caractère spécial'),
+    passwordConfirmation: z.string()
+        .min(1, 'La confirmation du mot de passe est requise'),
+}).refine((data) => data.password === data.passwordConfirmation, {
+    message: 'Les mots de passe ne correspondent pas',
+    path: ['passwordConfirmation'],
 });
 
 // Schéma de validation pour la connexion

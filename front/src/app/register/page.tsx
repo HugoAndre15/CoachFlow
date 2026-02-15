@@ -15,6 +15,7 @@ export default function Register() {
     lastName: "",
     email: "",
     password: "",
+    passwordConfirmation: "",
   });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
@@ -119,6 +120,13 @@ export default function Register() {
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
                         error={fieldErrors.password}
+                    />
+                    <InputForm 
+                        label="Confirmer le mot de passe" 
+                        type="password"
+                        value={formData.passwordConfirmation || ''}
+                        onChange={(e) => setFormData({...formData, passwordConfirmation: e.target.value})}
+                        error={fieldErrors.passwordConfirmation}
                     />
                     <CheckboxForm 
                         label="J'accepte les CGV et CGU" 
