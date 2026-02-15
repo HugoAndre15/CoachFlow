@@ -7,7 +7,8 @@
   --color-dark-light: #334155; /* Gris-bleu */
 
   --color-accent-green: #10B981; /* Vert clair - Accents et éléments interactifs */
-  --color-accent-blue: #60A5FA; /* Bleu clair - Accents
+  --color-accent-blue: #60A5FA; /* Bleu clair - Accents */
+  --color-accent-red: #EF4444; /* Rouge clair - Accents et erreurs */
   
   /* Tons clairs - Fonds et surfaces */
   --color-neutral: #E2E8F0; /* Gris clair */
