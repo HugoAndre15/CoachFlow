@@ -17,12 +17,12 @@ export default function InputForm({ label, type, placeholder, value, onChange, e
     const inputType = isPassword && showPassword ? "text" : type;
 
     const inputClasses = error
-        ? "border border-red-400 bg-red-50/50 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 text-red-900"
-        : "border border-gray-300 bg-white hover:border-gray-400 focus:border-green-500 focus:ring-4 focus:ring-green-500/10";
+        ? "border border-red-600 bg-red-200 focus:border-red-700 focus:ring-4 focus:ring-red-500/10 text-red-900"
+        : "";
 
     return (
-        <div className="w-full flex flex-col gap-1 items-center text-left">
-            <label className="text-left text-sm w-full font-medium" htmlFor={label}>{label}</label>
+        <div className="w-full flex flex-col gap-1 text-left">
+            <label className="text-left text-sm w-full font-medium text-dark-lighter dark:text-neutral-lightest" htmlFor={label}>{label}</label>
             <div className="relative w-full">
                 <input
                     id={label}
@@ -30,13 +30,13 @@ export default function InputForm({ label, type, placeholder, value, onChange, e
                     placeholder={placeholder ?? `Entrez votre ${label}`}
                     value={value}
                     onChange={onChange}
-                    className={`w-full py-2.5 px-3 rounded-lg outline-none transition-all duration-300 ease-in-out placeholder:text-gray-400 placeholder:text-sm placeholder:font-medium selection:bg-green-100 selection:text-green-900 ${inputClasses}`}
+                    className={`w-full py-2.5 px-3 bg-white border border-neutral rounded-lg outline-none transition-all duration-300 ease-in-out placeholder:text-dark-lighter placeholder:text-sm placeholder:font-medium selection:bg-green-100 selection:text-green-900 ${inputClasses}`}
                 />
                 {isPassword && (
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                     >
                         {showPassword ? (
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -52,7 +52,7 @@ export default function InputForm({ label, type, placeholder, value, onChange, e
                 )}
             </div>
             {error && (
-                <div className="flex items-start gap-1.5 w-full animate-in slide-in-from-top-1 duration-300">
+                <div className="flex items-start gap-1 w-full animate-in slide-in-from-top-1 duration-300 overflow-hidden">
                     <svg 
                         xmlns="http://www.w3.org/2000/svg" 
                         viewBox="0 0 20 20" 
@@ -65,7 +65,7 @@ export default function InputForm({ label, type, placeholder, value, onChange, e
                             clipRule="evenodd" 
                         />
                     </svg>
-                    <p className="text-red-600 text-xs font-medium leading-relaxed">{error}</p>
+                    <p className="text-red-600 text-xs font-medium leading-relaxed break-all min-w-0 flex-1">{error}</p>
                 </div>
             )}
         </div>

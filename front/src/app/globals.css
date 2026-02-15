@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@theme {
+  /* Tons foncés - Textes et fonds sombres */
+  --color-dark: #0F172A; /* Bleu très foncé */
+  --color-dark-lighter: #1E293B; /* Bleu foncé moyen */
+  --color-dark-light: #334155; /* Gris-bleu */
+
+  --color-accent-green: #10B981; /* Vert clair - Accents et éléments interactifs */
+  --color-accent-blue: #60A5FA; /* Bleu clair - Accents */
+  --color-accent-red: #EF4444; /* Rouge clair - Accents et erreurs */
+  
+  /* Tons clairs - Fonds et surfaces */
+  --color-neutral: #E2E8F0; /* Gris clair */
+  --color-neutral-lighter: #EBE6E7; /* Gris rosé clair */
+  --color-neutral-lightest: #F6F3F4; /* Blanc cassé */
+}
+
 @layer base {
   * {
     box-sizing: border-box;
