@@ -55,14 +55,17 @@ export default function Register() {
     };
 
   return (
-    <div className="h-screen flex items-center bg-gradient-to-br dark:from-dark dark:to-dark-lighter from-white-100 to-white-200 relative overflow-hidden">
+    <div className="h-screen flex items-center bg-gradient-to-br dark:from-dark-lighter dark:to-dark from-white-100 to-white-200 relative overflow-hidden">
         {/* Formes décoratives avec effet blur */}
-        <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
-          {/* Forme bleue */}
-          <div className="absolute -top-10 -left-32 w-80 h-80 md:w-96 md:h-96 bg-[#3B82F6] rounded-full blur-3xl opacity-20"></div>
-          
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden md:w-1/2">
           {/* Forme verte */}
-          <div className="absolute bottom-10 left-1/3 w-90 h-90 md:w-120 md:h-120 bg-[#10B981] rounded-full blur-xl opacity-20"></div>
+          <div className="absolute -top-60 right-20 w-96 h-96 bg-accent-green rounded-full blur-3xl opacity-20 dark:opacity-30"></div>
+          
+          {/* Forme bleue */}
+          <div className="absolute bottom-50 -left-40 w-110 h-110 bg-accent-blue rounded-full blur-3xl opacity-20 dark:opacity-30"></div>
+
+          {/* Forme rouge */}
+          <div className="absolute -bottom-10 -right-50 w-120 h-120 bg-accent-red rounded-full blur-3xl opacity-20 dark:opacity-30"></div>
         </div>
 
         <div className="text-left items-center md:items-start flex flex-col gap-16 w-full md:w-1/2 h-full py-8 px-8 md:px-2 items-center justify-center relative z-10">

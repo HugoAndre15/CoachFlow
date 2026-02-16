@@ -27,12 +27,20 @@ const PUBLIC_ROUTES = ['/login', '/register', '/'];
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
 
+  // S'assurer qu'on est bien côté client
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
     // Vérifier si l'utilisateur est connecté au chargement
     const token = localStorage.getItem('token');
     const storedUser = authService.getUser();
@@ -52,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setIsLoading(false);
-  }, [pathname, router, isPublicRoute]);
+  }, [pathname, router, isPublicRoute, isMounted]);
 
     const login = async (email: string, password: string) => {
         const response = await authService.login({ email, password });
@@ -79,6 +87,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     router.push('/login');
   };
+
+  // Afficher un loader pendant la vérification de l'authentification
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-lightest dark:bg-dark">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-accent-green"></div>
+          <p className="text-dark-lighter dark:text-neutral text-sm">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider
