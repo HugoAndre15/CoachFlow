@@ -102,10 +102,31 @@ export class UsersService {
     });
   }
 
-    findByEmailWithPassword(email: string) {
+  findByEmailWithPassword(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
     });
+  }
+
+  async getUserClubs(userId: string) {
+    const clubUsers = await this.prisma.clubUser.findMany({
+      where: { user_id: userId },
+      select: {
+        role: true,
+        club: {
+          select: {
+            id: true,
+            name: true,
+            created_at: true,
+          },
+        },
+      },
+    });
+
+    return clubUsers.map(cu => ({
+      ...cu.club,
+      role: cu.role,
+    }));
   }
 
   update(id: string, updateUserDto: UpdateUserDto) {

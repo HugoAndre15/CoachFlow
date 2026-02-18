@@ -21,6 +21,13 @@ export class UsersController {
     return user;
   }
 
+  @Get('me/clubs')
+  @ApiOperation({ summary: 'Mes clubs', description: 'Récupérer les clubs de l\'utilisateur connecté' })
+  @ApiResponse({ status: 200, description: 'Liste des clubs retournée' })
+  getMyClubs(@CurrentUser() user: any) {
+    return this.usersService.getUserClubs(user.id);
+  }
+
   @Patch('me')
   @ApiOperation({ summary: 'Modifier mon profil', description: 'Modifier son propre profil (email, nom, prénom)' })
   @ApiResponse({ status: 200, description: 'Profil mis à jour' })
