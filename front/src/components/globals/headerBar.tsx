@@ -1,77 +1,57 @@
 'use client';
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserClub } from "@/hooks/useUserClub";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { Logo, NavTabs, TeamSelector, UserMenu, MobileMenu } from "./header/parts";
 
 export default function HeaderBar() {
     const { user, logout, isLoading } = useAuth();
+    const { club } = useUserClub();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const pathname = usePathname();
+    const isDashboard = pathname?.startsWith('/dashboard');
+    const hasClub = !!club;
 
     if (isLoading) return null;
 
     return (
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-dark/90 backdrop-blur-lg border-b border-neutral/30 dark:border-dark-light/30 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <header className="sticky top-0 z-50 bg-white dark:bg-dark border-b border-neutral/20 dark:border-dark-light transition-all duration-300">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14">
             {/* Logo */}
-            <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-2xl font-semibold text-dark dark:text-white hover:scale-105 transition-transform cursor-pointer">
-                CoachFlow
-              </h1>
-            </div>
+            <Logo />
 
             {/* Navigation Desktop */}
-            <nav className="hidden md:flex items-center space-x-1">
-              <a href="#" className="px-3 py-2 rounded-lg text-sm font-medium text-dark-lighter dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-lighter hover:text-dark dark:hover:text-white transition-all duration-200">
-                Fonctionnalités
-              </a>
-              <a href="#" className="px-3 py-2 rounded-lg text-sm font-medium text-dark-lighter dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-lighter hover:text-dark dark:hover:text-white transition-all duration-200">
-                Tarifs
-              </a>
-              <a href="#" className="px-3 py-2 rounded-lg text-sm font-medium text-dark-lighter dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-lighter hover:text-dark dark:hover:text-white transition-all duration-200">
-                Abonnements
-              </a>
-              <a href="#" className="px-3 py-2 rounded-lg text-sm font-medium text-dark-lighter dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-lighter hover:text-dark dark:hover:text-white transition-all duration-200">
-                Contact
-              </a>
-            </nav>
+            <NavTabs isDashboard={!!isDashboard && !!user} hasClub={hasClub} />
 
             {/* Actions Desktop */}
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-6">
               {user ? (
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-neutral-lighter/50 dark:bg-dark-lighter">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-green to-accent-blue flex items-center justify-center text-white text-sm font-bold">
-                      {user.first_name[0]}{user.last_name[0]}
-                    </div>
-                    <span className="text-sm font-medium text-dark dark:text-neutral-lighter">
-                      {user.first_name} {user.last_name}
-                    </span>
-                  </div>
-                  <button
-                    onClick={logout}
-                    className="px-4 py-2 text-sm font-medium text-white bg-accent-red rounded-lg hover:bg-accent-red/90 hover:shadow-lg hover:shadow-accent-red/25 transition-all duration-200 cursor-pointer"
-                  >
-                    Déconnexion
-                  </button>
-                </div>
+                <>
+                  {/* Sélecteur d'équipe (si club disponible et dans dashboard) */}
+                  {isDashboard && hasClub && club && (
+                    <>
+                      <TeamSelector clubId={club.id} />
+                      <div className="h-8 w-px bg-neutral/20 dark:bg-dark-light" />
+                    </>
+                  )}
+
+                  {/* Menu utilisateur */}
+                  <UserMenu user={user} onLogout={logout} />
+                </>
               ) : (
                 <div className="flex items-center gap-3">
-                  <a 
-                    href="/login" 
-                    className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 
-                    bg-neutral-lighter text-dark shadow-md hover:shadow-lg hover:scale-[1.02]
-                    dark:text-white dark:bg-white/2.5 dark:border dark:border-white/50 dark:backdrop-blur-sm 
-                    dark:shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15),0_4px_12px_rgba(0,0,0,0.25)]
-                    dark:hover:bg-white/30 dark:hover:shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15),0_6px_16px_rgba(0,0,0,0.3)]
-                    dark:before:absolute dark:before:inset-0 dark:before:rounded-lg dark:before:bg-gradient-to-br dark:before:from-white/60 dark:before:via-transparent dark:before:to-transparent dark:before:opacity-70 dark:before:pointer-events-none
-                    dark:after:absolute dark:after:inset-0 dark:after:rounded-lg dark:after:bg-gradient-to-tl dark:after:from-white/30 dark:after:via-transparent dark:after:to-transparent dark:after:opacity-50 dark:after:pointer-events-none"
+                  <a
+                    href="/login"
+                    className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 text-white bg-dark-light border border-dark-light hover:bg-dark hover:scale-[1.02] dark:bg-white/5 dark:border-white/20 dark:backdrop-blur-sm dark:shadow-[inset_0_1px_0px_rgba(255,255,255,0.15),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15),0_4px_12px_rgba(0,0,0,0.25)] dark:hover:bg-white/10 dark:hover:shadow-[inset_0_1px_0px_rgba(255,255,255,0.2),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15),0_6px_16px_rgba(0,0,0,0.3)] dark:before:absolute dark:before:inset-0 dark:before:rounded-lg dark:before:bg-gradient-to-br dark:before:from-white/10 dark:before:via-transparent dark:before:to-transparent dark:before:pointer-events-none dark:after:absolute dark:after:inset-0 dark:after:rounded-lg dark:after:bg-gradient-to-tl dark:after:from-white/5 dark:after:via-transparent dark:after:to-transparent dark:after:pointer-events-none"
                   >
                     <span className="relative z-10">Connexion</span>
                   </a>
-                  <a 
-                    href="/register" 
-                    className="px-4 py-2 text-sm font-medium text-white bg-accent-green rounded-lg shadow-md hover:shadow-lg hover:shadow-accent-green/30 hover:scale-105 transition-all duration-200"
+                  <a
+                    href="/register"
+                    className="px-4 py-2 text-sm font-medium text-white bg-accent-green rounded-lg hover:bg-accent-green/90 transition-colors"
                   >
                     Créer un compte
                   </a>
@@ -83,7 +63,7 @@ export default function HeaderBar() {
             <div className="flex md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-lg text-dark-lighter dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-lighter transition-all duration-200"
+                className="p-2 rounded-lg text-dark-light dark:text-neutral hover:bg-neutral-lighter dark:hover:bg-dark-light transition-all duration-200"
                 aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? (
@@ -101,66 +81,13 @@ export default function HeaderBar() {
         </div>
 
         {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-neutral/30 dark:border-dark-light/30 bg-white/95 dark:bg-dark/95 backdrop-blur-lg animate-in slide-in-from-top-4 duration-300">
-            <div className="px-4 py-4 space-y-3">
-              <a href="#" className="block px-3 py-2 rounded-lg text-sm font-medium text-dark-lighter dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-lighter transition-all duration-200">
-                Fonctionnalités
-              </a>
-              <a href="#" className="block px-3 py-2 rounded-lg text-sm font-medium text-dark-lighter dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-lighter transition-all duration-200">
-                Tarifs
-              </a>
-              <a href="#" className="block px-3 py-2 rounded-lg text-sm font-medium text-dark-lighter dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-lighter transition-all duration-200">
-                Abonnements
-              </a>
-              <a href="#" className="block px-3 py-2 rounded-lg text-sm font-medium text-dark-lighter dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-lighter transition-all duration-200">
-                Contact
-              </a>
-              
-              <div className="pt-4 border-t border-neutral/30 dark:border-dark-light/30 space-y-3">
-                {user ? (
-                  <>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-neutral-lighter/50 dark:bg-dark-lighter">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-green to-accent-blue flex items-center justify-center text-white text-sm font-bold">
-                        {user.first_name[0]}{user.last_name[0]}
-                      </div>
-                      <span className="text-sm font-medium text-dark dark:text-neutral-lighter">
-                        {user.first_name} {user.last_name}
-                      </span>
-                    </div>
-                    <button
-                      onClick={logout}
-                      className="w-full px-4 py-2 text-sm font-medium text-white bg-accent-red rounded-lg hover:bg-accent-red/90 transition-all duration-200 cursor-pointer"
-                    >
-                      Déconnexion
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <a 
-                      href="/login" 
-                      className="relative block w-full px-4 py-2 text-sm font-medium text-center rounded-lg transition-all duration-300
-                      bg-neutral-lighter text-dark shadow-md hover:shadow-lg hover:scale-[1.02]
-                      dark:text-white dark:bg-white/2.5 dark:border dark:border-white/50 dark:backdrop-blur-sm 
-                      dark:shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15),0_4px_12px_rgba(0,0,0,0.25)]
-                      dark:hover:bg-white/30 dark:hover:shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15),0_6px_16px_rgba(0,0,0,0.3)]
-                      dark:before:absolute dark:before:inset-0 dark:before:rounded-lg dark:before:bg-gradient-to-br dark:before:from-white/60 dark:before:via-transparent dark:before:to-transparent dark:before:opacity-70 dark:before:pointer-events-none
-                      dark:after:absolute dark:after:inset-0 dark:after:rounded-lg dark:after:bg-gradient-to-tl dark:after:from-white/30 dark:after:via-transparent dark:after:to-transparent dark:after:opacity-50 dark:after:pointer-events-none"
-                    >
-                      <span className="relative z-10">Connexion</span>
-                    </a>
-                    <a 
-                      href="/register" 
-                      className="block w-full px-4 py-2 text-sm font-medium text-center text-white bg-accent-green rounded-lg shadow-md hover:shadow-lg hover:shadow-accent-green/30 transition-all duration-200"
-                    >
-                      Créer un compte
-                    </a>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <MobileMenu
+          isOpen={isMobileMenuOpen}
+          isDashboard={!!isDashboard && !!user}
+          hasClub={hasClub}
+          user={user}
+          onLogout={logout}
+        />
       </header>
     );
 }

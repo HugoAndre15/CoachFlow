@@ -23,4 +23,4 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3001
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/docker-entrypoint.sh"]
