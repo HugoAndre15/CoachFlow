@@ -22,45 +22,31 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PUBLIC_ROUTES = ['/login', '/register', '/'];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-
-  // S'assurer qu'on est bien côté client
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isMounted) return;
-
-    // Vérifier si l'utilisateur est connecté au chargement
     const token = localStorage.getItem('token');
     const storedUser = authService.getUser();
 
     if (token && storedUser) {
       setUser(storedUser);
-      // Si connecté et sur une route publique, rediriger vers /
-      if (isPublicRoute) {
-        router.push('/');
+      // Rediriger depuis login/register vers dashboard uniquement
+      if (pathname === '/login' || pathname === '/register') {
+        router.replace('/dashboard');
       }
     } else {
-      // Si pas connecté et sur une route protégée, rediriger vers /login
-      if (!token && !isPublicRoute) {
-        const returnUrl = encodeURIComponent(pathname);
-        router.push(`/login?returnUrl=${returnUrl}`);
+      // Rediriger uniquement les routes /dashboard/* vers login si pas connecté
+      if (pathname.startsWith('/dashboard')) {
+        router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
       }
     }
 
     setIsLoading(false);
-  }, [pathname, router, isPublicRoute, isMounted]);
+  }, [pathname, router]);
 
     const login = async (email: string, password: string) => {
         const response = await authService.login({ email, password });
@@ -85,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     authService.logout();
     setUser(null);
-    router.push('/login');
+    router.push('/');
   };
 
   // Afficher un loader pendant la vérification de l'authentification

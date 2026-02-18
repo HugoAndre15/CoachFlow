@@ -2,9 +2,9 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserClub } from "@/hooks/useUserClub";
-import LoadingState from "./components/LoadingState";
-import NoClubState from "./components/NoClubState";
-import ClubDashboard from "./components/ClubDashboard";
+import LoadingState from "./parts/LoadingState";
+import NoClubState from "./parts/NoClubState";
+import ClubDashboard from "./parts/ClubDashboard";
 
 export default function Dashboard() {
   const { user } = useAuth();
