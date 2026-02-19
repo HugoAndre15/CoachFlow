@@ -21,4 +21,13 @@ export const clubService = {
         const response = await api.post('/clubs', { name });
         return response.data;
     },
+
+    updateClub: async (id: string, name: string): Promise<Club> => {
+        const response = await api.patch(`/clubs/${id}`, { name });
+        return response.data;
+    },
+
+    deleteClub: async (id: string): Promise<void> => {
+        await api.delete(`/clubs/${id}`);
+    },
 };

@@ -53,13 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(response.user);
         
         const searchParams = new URLSearchParams(window.location.search);
-        const returnUrl = searchParams.get('returnUrl') || '/';
+        const returnUrl = searchParams.get('returnUrl') || '/dashboard'; // Changez '/' par '/dashboard'
         
         // Validation de sécurité
         if (returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
             router.push(decodeURIComponent(returnUrl));
         } else {
-            router.push('/');
+            router.push('/dashboard'); // Changez '/' par '/dashboard'
         }
     };
 

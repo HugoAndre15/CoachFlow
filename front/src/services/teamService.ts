@@ -22,6 +22,12 @@ export interface TeamsResponse {
     };
 }
 
+export interface CreateTeamPayload {
+    name: string;
+    category: string;
+    club_id: string;
+}
+
 export const teamService = {
     getTeamsByClub: async (clubId: string): Promise<Team[]> => {
         const response = await api.get<TeamsResponse>(`/teams?clubId=${clubId}&limit=50`);
@@ -31,5 +37,19 @@ export const teamService = {
     getTeam: async (teamId: string): Promise<Team> => {
         const response = await api.get(`/teams/${teamId}`);
         return response.data;
+    },
+
+    createTeam: async (payload: CreateTeamPayload): Promise<Team> => {
+        const response = await api.post<Team>('/teams', payload);
+        return response.data;
+    },
+
+    updateTeam: async (teamId: string, payload: Partial<CreateTeamPayload>): Promise<Team> => {
+        const response = await api.patch<Team>(`/teams/${teamId}`, payload);
+        return response.data;
+    },
+
+    deleteTeam: async (teamId: string): Promise<void> => {
+        await api.delete(`/teams/${teamId}`);
     },
 };
