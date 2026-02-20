@@ -18,8 +18,16 @@ export default function TeamSelector({ clubId }: TeamSelectorProps) {
       try {
         const data = await teamService.getTeamsByClub(clubId);
         setTeams(data);
-        if (data.length > 0) {
-          setSelectedTeam(data[0]);
+        // Restaurer l'équipe active depuis localStorage
+        const savedTeamId = localStorage.getItem('activeTeamId');
+        const saved = savedTeamId ? data.find(t => t.id === savedTeamId) : null;
+        const resolved = saved || data[0] || null;
+        setSelectedTeam(resolved);
+        if (resolved) {
+          localStorage.setItem('activeTeamId', resolved.id);
+          localStorage.setItem('activeTeamName', resolved.name);
+          localStorage.setItem('activeTeamCategory', resolved.category);
+          window.dispatchEvent(new CustomEvent('activeTeamChanged', { detail: resolved }));
         }
       } catch (error) {
         console.error('Erreur lors du chargement des équipes:', error);
@@ -78,6 +86,10 @@ export default function TeamSelector({ clubId }: TeamSelectorProps) {
               key={team.id}
               onClick={() => {
                 setSelectedTeam(team);
+                localStorage.setItem('activeTeamId', team.id);
+                localStorage.setItem('activeTeamName', team.name);
+                localStorage.setItem('activeTeamCategory', team.category);
+                window.dispatchEvent(new CustomEvent('activeTeamChanged', { detail: team }));
                 setIsOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all duration-150 cursor-pointer ${
