@@ -92,18 +92,23 @@ export default function TeamsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-dark dark:text-white">Mes Équipes</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-dark dark:text-white leading-tight">Mes Équipes</h1>
           {activeClub && (
-            <p className="text-sm text-dark-light/70 dark:text-neutral mt-0.5">
+            <p className="text-sm text-dark-light/70 dark:text-neutral mt-1">
               {activeClub.name}
+              {activeClub.role && (
+                <span className="ml-2 text-[11px] font-medium px-2 py-0.5 rounded-full bg-neutral/10 dark:bg-dark-light text-dark-light dark:text-neutral">
+                  {mapRole(activeClub.role)}
+                </span>
+              )}
             </p>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Sélecteur de club */}
+        <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
+          {/* Club selector */}
           {clubs.length > 1 && (
             <select
               value={activeClub?.id || ''}
@@ -125,7 +130,7 @@ export default function TeamsPage() {
           <button
             onClick={() => setIsModalOpen(true)}
             disabled={!activeClub}
-            className="flex items-center gap-2 px-4 py-2 bg-accent-green text-white rounded-lg text-sm font-medium hover:bg-accent-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent-green text-white rounded-lg text-sm font-medium hover:bg-accent-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             Nouvelle équipe
@@ -181,14 +186,14 @@ export default function TeamsPage() {
           {teams.map((team) => (
             <div
               key={team.id}
-              className="group bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-xl p-5 hover:border-accent-green/40 dark:hover:border-accent-green/40 transition-colors"
+              className="group bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-2xl p-5 hover:border-accent-green/50 dark:hover:border-accent-green/40 hover:shadow-sm transition-all cursor-pointer"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-lg bg-accent-green/10 dark:bg-accent-green/20 flex items-center justify-center">
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-10 h-10 rounded-xl bg-accent-green/10 dark:bg-accent-green/20 flex items-center justify-center">
                   <Shield className="w-5 h-5 text-accent-green" />
                 </div>
                 {team.myRole && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-lighter dark:bg-dark-light text-dark-light dark:text-neutral">
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-neutral/10 dark:bg-dark-light text-dark-light dark:text-neutral">
                     {mapRole(team.myRole)}
                   </span>
                 )}
@@ -197,27 +202,29 @@ export default function TeamsPage() {
               <h3 className="font-semibold text-dark dark:text-white text-base leading-tight">
                 {team.name}
               </h3>
-              <p className="text-sm text-dark-light/70 dark:text-neutral mt-0.5">
-                {team.category}
-              </p>
+              {team.category && (
+                <span className="inline-block mt-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-green/10 text-accent-green">
+                  {team.category}
+                </span>
+              )}
 
               <div className="flex items-center gap-4 mt-4 pt-4 border-t border-neutral/10 dark:border-dark-light">
                 {team._count && (
                   <>
-                    <span className="flex items-center gap-1 text-xs text-dark-light/70 dark:text-neutral">
+                    <span className="flex items-center gap-1.5 text-xs text-dark-light/70 dark:text-neutral">
                       <Users className="w-3.5 h-3.5" />
                       {team._count.players} joueur{team._count.players !== 1 ? 's' : ''}
                     </span>
-                    <span className="flex items-center gap-1 text-xs text-dark-light/70 dark:text-neutral">
+                    <span className="flex items-center gap-1.5 text-xs text-dark-light/70 dark:text-neutral">
                       <Shield className="w-3.5 h-3.5" />
                       {team._count.teamUsers} staff
                     </span>
                   </>
                 )}
-                <button className="ml-auto flex items-center gap-1 text-xs text-accent-green opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="ml-auto flex items-center gap-1 text-xs text-accent-green opacity-0 group-hover:opacity-100 transition-opacity font-medium">
                   Voir
                   <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                </span>
               </div>
             </div>
           ))}
