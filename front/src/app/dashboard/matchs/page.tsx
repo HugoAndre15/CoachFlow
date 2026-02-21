@@ -139,9 +139,15 @@ function MatchCard({
             )}
           </div>
 
-          {/* VS */}
+          {/* VS / Score */}
           <div className="flex flex-col items-center gap-1">
-            <span className="text-lg font-black text-dark-light/30 dark:text-neutral/30">VS</span>
+            {(match.status === 'LIVE' || match.status === 'FINISHED') && match.score != null ? (
+              <span className="text-2xl font-black text-dark dark:text-white">
+                {match.score.home} - {match.score.away}
+              </span>
+            ) : (
+              <span className="text-lg font-black text-dark-light/30 dark:text-neutral/30">VS</span>
+            )}
           </div>
 
           {/* Opponent */}
@@ -190,13 +196,23 @@ function MatchCard({
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={onComposition}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-neutral/20 dark:border-dark-light text-dark-light dark:text-neutral hover:bg-neutral/5 dark:hover:bg-dark-secondary/30 transition-colors"
-          >
-            <Users className="w-3.5 h-3.5" />
-            Composition
-          </button>
+          {match.status === 'UPCOMING' ? (
+            <button
+              onClick={onComposition}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-neutral/20 dark:border-dark-light text-dark-light dark:text-neutral hover:bg-neutral/5 dark:hover:bg-dark-secondary/30 transition-colors"
+            >
+              <Users className="w-3.5 h-3.5" />
+              Composition
+            </button>
+          ) : (
+            <span
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-neutral/10 dark:border-dark-light/30 text-dark-light/40 dark:text-neutral/30 cursor-not-allowed"
+              title="Composition verrouillée — match en cours ou terminé"
+            >
+              <Users className="w-3.5 h-3.5" />
+              Composition 🔒
+            </span>
+          )}
 
           {isUpcoming && (
             <button

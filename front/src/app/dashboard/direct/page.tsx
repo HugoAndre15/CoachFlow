@@ -5,7 +5,7 @@ import {
   Play, Pause, RotateCcw, Square, Shield, Radio, Clock,
   Target, AlertTriangle, CircleDot,
   Trash2, ChevronLeft, Check, X, Timer,
-  ShieldAlert, Crosshair, TrendingDown, Users,
+  ShieldAlert, Crosshair, TrendingDown, Users, ArrowLeftRight,
 } from 'lucide-react';
 import {
   matchService,
@@ -92,9 +92,17 @@ const EVENT_CONFIG: Record<MatchEventType, {
     bg: 'bg-orange-500/10',
     border: 'border-orange-500/30',
   },
+  SUBSTITUTION: {
+    label: 'Changement',
+    shortLabel: 'Chang.',
+    icon: <ArrowLeftRight className="w-4 h-4" />,
+    color: 'text-purple-500',
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/30',
+  },
 };
 
-const QUICK_EVENTS: MatchEventType[] = ['GOAL', 'YELLOW_CARD', 'RED_CARD', 'RECOVERY', 'BALL_LOSS'];
+const QUICK_EVENTS: MatchEventType[] = ['GOAL', 'YELLOW_CARD', 'RED_CARD', 'RECOVERY', 'BALL_LOSS', 'SUBSTITUTION'];
 const OPPONENT_EVENTS: ('GOAL' | 'YELLOW_CARD' | 'RED_CARD')[] = ['GOAL', 'YELLOW_CARD', 'RED_CARD'];
 
 const ZONE_CONFIG: { key: FieldZone; label: string }[] = [
@@ -254,10 +262,16 @@ function PlayerPickerOverlay({
   players,
   onSelect,
   onClose,
+  disabledPlayerIds = new Set(),
+  onlyStarters = false,
+  title = 'Choisir un joueur',
 }: {
   players: MatchPlayerEntry[];
   onSelect: (playerId: string) => void;
   onClose: () => void;
+  disabledPlayerIds?: Set<string>;
+  onlyStarters?: boolean;
+  title?: string;
 }) {
   const [search, setSearch] = useState('');
 
@@ -285,33 +299,45 @@ function PlayerPickerOverlay({
     }
   };
 
-  const PlayerButton = ({ mp }: { mp: MatchPlayerEntry }) => (
-    <button
-      onClick={() => onSelect(mp.player_id)}
-      className="flex items-center gap-3 p-3 bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-xl hover:border-accent-green/40 hover:shadow-sm transition-all text-left group"
-    >
-      <div className="w-9 h-9 rounded-lg bg-accent-green/10 flex items-center justify-center text-accent-green font-bold text-sm shrink-0">
-        {mp.player.jersey_number ?? '–'}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-dark dark:text-white truncate">
-          {mp.player.first_name} {mp.player.last_name}
-        </p>
-        {mp.player.position && (
-          <span className="text-[10px] text-dark-light/50 dark:text-neutral/50 uppercase">
-            {positionLabel(mp.player.position)}
-          </span>
-        )}
-      </div>
-    </button>
-  );
+  const PlayerButton = ({ mp }: { mp: MatchPlayerEntry }) => {
+    const isExpelled = disabledPlayerIds.has(mp.player_id);
+    return (
+      <button
+        onClick={() => !isExpelled && onSelect(mp.player_id)}
+        disabled={isExpelled}
+        className={`flex items-center gap-3 p-3 border rounded-xl text-left group transition-all ${
+          isExpelled
+            ? 'bg-neutral/10 dark:bg-dark-light/30 border-neutral/10 dark:border-dark-light/20 opacity-50 cursor-not-allowed'
+            : 'bg-white dark:bg-dark-lighter border-neutral/20 dark:border-dark-light hover:border-accent-green/40 hover:shadow-sm'
+        }`}
+      >
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
+          isExpelled ? 'bg-red-100 dark:bg-red-900/30 text-red-500' : 'bg-accent-green/10 text-accent-green'
+        }`}>
+          {mp.player.jersey_number ?? '–'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-dark dark:text-white truncate">
+            {mp.player.first_name} {mp.player.last_name}
+          </p>
+          {isExpelled ? (
+            <span className="text-[10px] text-red-500 font-semibold uppercase">Expulsé</span>
+          ) : mp.player.position ? (
+            <span className="text-[10px] text-dark-light/50 dark:text-neutral/50 uppercase">
+              {positionLabel(mp.player.position)}
+            </span>
+          ) : null}
+        </div>
+      </button>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-neutral-lightest dark:bg-dark-secondary rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-neutral/20 dark:border-dark-light">
-          <h3 className="text-base font-bold text-dark dark:text-white">Choisir un joueur</h3>
+          <h3 className="text-base font-bold text-dark dark:text-white">{title}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-neutral/10 dark:hover:bg-dark-light transition-colors">
             <X className="w-4 h-4 text-dark-light dark:text-neutral" />
           </button>
@@ -335,7 +361,7 @@ function PlayerPickerOverlay({
               </div>
             </div>
           )}
-          {filterBySearch(substitutes).length > 0 && (
+          {!onlyStarters && filterBySearch(substitutes).length > 0 && (
             <div>
               <p className="text-[11px] font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide mb-2">Remplaçants</p>
               <div className="grid grid-cols-2 gap-2">
@@ -343,7 +369,7 @@ function PlayerPickerOverlay({
               </div>
             </div>
           )}
-          {filterBySearch(starters).length === 0 && filterBySearch(substitutes).length === 0 && (
+          {filterBySearch(starters).length === 0 && (onlyStarters || filterBySearch(substitutes).length === 0) && (
             <p className="text-center text-dark-light/50 dark:text-neutral/50 text-sm py-6">Aucun joueur trouvé</p>
           )}
         </div>
@@ -692,14 +718,16 @@ function AssistPickerOverlay({
   onSelect,
   onSkip,
   onClose,
+  disabledPlayerIds = new Set(),
 }: {
   players: MatchPlayerEntry[];
   scorerPlayerId: string;
   onSelect: (playerId: string) => void;
   onSkip: () => void;
   onClose: () => void;
+  disabledPlayerIds?: Set<string>;
 }) {
-  const filteredPlayers = players.filter(p => p.player_id !== scorerPlayerId);
+  const filteredPlayers = players.filter(p => p.player_id !== scorerPlayerId && p.status === 'STARTER');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -718,20 +746,35 @@ function AssistPickerOverlay({
         </div>
         <div className="flex-1 overflow-y-auto p-5">
           <div className="grid grid-cols-2 gap-2">
-            {filteredPlayers.map(mp => (
-              <button
-                key={mp.player_id}
-                onClick={() => onSelect(mp.player_id)}
-                className="flex items-center gap-3 p-3 bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-xl hover:border-accent-blue/40 hover:shadow-sm transition-all text-left"
-              >
-                <div className="w-9 h-9 rounded-lg bg-accent-blue/10 flex items-center justify-center text-accent-blue font-bold text-sm shrink-0">
-                  {mp.player.jersey_number ?? '–'}
-                </div>
-                <p className="text-sm font-semibold text-dark dark:text-white truncate">
-                  {mp.player.first_name} {mp.player.last_name}
-                </p>
-              </button>
-            ))}
+            {filteredPlayers.map(mp => {
+              const isExpelled = disabledPlayerIds.has(mp.player_id);
+              return (
+                <button
+                  key={mp.player_id}
+                  onClick={() => !isExpelled && onSelect(mp.player_id)}
+                  disabled={isExpelled}
+                  className={`flex items-center gap-3 p-3 border rounded-xl text-left transition-all ${
+                    isExpelled
+                      ? 'bg-neutral/10 dark:bg-dark-light/30 border-neutral/10 dark:border-dark-light/20 opacity-50 cursor-not-allowed'
+                      : 'bg-white dark:bg-dark-lighter border-neutral/20 dark:border-dark-light hover:border-accent-blue/40 hover:shadow-sm'
+                  }`}
+                >
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
+                    isExpelled ? 'bg-red-100 dark:bg-red-900/30 text-red-500' : 'bg-accent-blue/10 text-accent-blue'
+                  }`}>
+                    {mp.player.jersey_number ?? '–'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-dark dark:text-white truncate">
+                      {mp.player.first_name} {mp.player.last_name}
+                    </p>
+                    {isExpelled && (
+                      <span className="text-[10px] text-red-500 font-semibold uppercase">Expulsé</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="p-5 border-t border-neutral/20 dark:border-dark-light">
@@ -749,7 +792,7 @@ function AssistPickerOverlay({
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
-type EventFlowStep = 'idle' | 'pick-player' | 'pick-opponent-jersey' | 'pick-zone' | 'pick-body-part' | 'pick-assist';
+type EventFlowStep = 'idle' | 'pick-player' | 'pick-opponent-jersey' | 'pick-zone' | 'pick-body-part' | 'pick-assist' | 'pick-assist-zone' | 'pick-assist-body-part' | 'pick-sub-player-in';
 
 export default function DirectPage() {
   // Team & match selection
@@ -781,6 +824,8 @@ export default function DirectPage() {
   const [pendingZone, setPendingZone] = useState<FieldZone | undefined>(undefined);
   const [pendingBodyPart, setPendingBodyPart] = useState<BodyPart | undefined>(undefined);
   const [pendingGoalId, setPendingGoalId] = useState<string | null>(null);
+  const [pendingAssistPlayerId, setPendingAssistPlayerId] = useState<string | null>(null);
+  const [pendingAssistZone, setPendingAssistZone] = useState<FieldZone | undefined>(undefined);
 
   // ── Team restore ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -847,7 +892,15 @@ export default function DirectPage() {
       setSelectedMatch(detail);
       setMatchPlayers(detail.matchPlayers || []);
       setMatchEvents(detail.matchEvents || []);
-      setOpponentEvents([]);
+      setOpponentEvents(
+        (detail as any).opponentEvents?.map((e: any) => ({
+          id: e.id,
+          event_type: e.event_type,
+          minute: e.minute,
+          jersey_number: e.jersey_number || '',
+          isOpponent: true as const,
+        })) || []
+      );
 
       setChronoSeconds(0);
       setIsChronoRunning(false);
@@ -915,11 +968,18 @@ export default function DirectPage() {
     setPendingZone(undefined);
     setPendingBodyPart(undefined);
     setPendingGoalId(null);
+    setPendingAssistPlayerId(null);
+    setPendingAssistZone(undefined);
   };
 
   const handlePlayerSelected = (playerId: string) => {
     setPendingPlayerId(playerId);
-    setFlowStep('pick-zone');
+    if (pendingEventType === 'SUBSTITUTION') {
+      // For substitution: player out selected, now pick player in
+      setFlowStep('pick-sub-player-in');
+    } else {
+      setFlowStep('pick-zone');
+    }
   };
 
   const handleZoneSelected = (zone: FieldZone) => {
@@ -948,7 +1008,31 @@ export default function DirectPage() {
     submitEvent(pendingPlayerId!, pendingEventType!, pendingZone, undefined);
   };
 
-  const handleAssistPlayerSelected = async (playerId: string) => {
+  const handleAssistPlayerSelected = (playerId: string) => {
+    setPendingAssistPlayerId(playerId);
+    setPendingAssistZone(undefined);
+    setFlowStep('pick-assist-zone');
+  };
+
+  const handleAssistZoneSelected = (zone: FieldZone) => {
+    setPendingAssistZone(zone);
+    setFlowStep('pick-assist-body-part');
+  };
+
+  const handleAssistZoneSkipped = () => {
+    setPendingAssistZone(undefined);
+    setFlowStep('pick-assist-body-part');
+  };
+
+  const handleAssistBodyPartSelected = (part: BodyPart) => {
+    submitAssist(pendingAssistPlayerId!, pendingAssistZone, part);
+  };
+
+  const handleAssistBodyPartSkipped = () => {
+    submitAssist(pendingAssistPlayerId!, pendingAssistZone, undefined);
+  };
+
+  const submitAssist = async (playerId: string, zone?: FieldZone, bodyPart?: BodyPart) => {
     if (!selectedMatch || !pendingGoalId) return;
     try {
       setIsSending(true);
@@ -957,12 +1041,55 @@ export default function DirectPage() {
         player_id: playerId,
         event_type: 'ASSIST',
         minute,
+        zone,
+        body_part: bodyPart,
         related_event_id: pendingGoalId,
       });
       showToast('Passe décisive ajoutée');
       await refreshEvents();
     } catch (err: any) {
-      showToast(err.response?.data?.message || 'Erreur lors de l\'ajout de la passe');
+      showToast(err.response?.data?.message || "Erreur lors de l'ajout de la passe");
+    } finally {
+      setIsSending(false);
+      cancelFlow();
+    }
+  };
+
+  // ── Substitution flow ──────────────────────────────────────────────────
+  const handleSubPlayerInSelected = async (playerInId: string) => {
+    if (!selectedMatch || !pendingPlayerId) return;
+    try {
+      setIsSending(true);
+      setFlowStep('idle');
+
+      const minute = formatChronoMinute(chronoSeconds);
+      const payload: CreateMatchEventPayload = {
+        player_id: pendingPlayerId, // player OUT
+        event_type: 'SUBSTITUTION',
+        minute,
+        related_player_id: playerInId, // player IN
+      };
+
+      await matchService.addEventToMatch(selectedMatch.id, payload);
+
+      const playerOut = matchPlayers.find(p => p.player_id === pendingPlayerId)?.player;
+      const playerIn = matchPlayers.find(p => p.player_id === playerInId)?.player;
+      const outName = playerOut ? `${playerOut.first_name} ${playerOut.last_name}` : '';
+      const inName = playerIn ? `${playerIn.first_name} ${playerIn.last_name}` : '';
+      showToast(`Changement — ${outName} ↔ ${inName} (${minute}')`);
+
+      // Update local matchPlayers: swap statuses
+      setMatchPlayers(prev =>
+        prev.map(mp => {
+          if (mp.player_id === pendingPlayerId) return { ...mp, status: 'SUBSTITUTE' as const };
+          if (mp.player_id === playerInId) return { ...mp, status: 'STARTER' as const };
+          return mp;
+        })
+      );
+
+      await refreshEvents();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Erreur lors du changement');
     } finally {
       setIsSending(false);
       cancelFlow();
@@ -970,24 +1097,43 @@ export default function DirectPage() {
   };
 
   // ── Opponent event flow ───────────────────────────────────────────────
-  const handleOpponentJerseySubmit = (jersey: string) => {
-    const minute = formatChronoMinute(chronoSeconds);
-    const oppEvent: OpponentEvent = {
-      id: generateLocalId(),
-      event_type: pendingEventType as 'GOAL' | 'YELLOW_CARD' | 'RED_CARD',
-      minute,
-      jersey_number: jersey,
-      isOpponent: true,
-    };
-    setOpponentEvents(prev => [...prev, oppEvent]);
-    const cfg = EVENT_CONFIG[pendingEventType!];
-    showToast(`${cfg.label} adverse${jersey ? ` — #${jersey}` : ''} (${minute}')`);
-    cancelFlow();
+  const handleOpponentJerseySubmit = async (jersey: string) => {
+    if (!selectedMatch) return;
+    try {
+      setIsSending(true);
+      const minute = formatChronoMinute(chronoSeconds);
+      const result = await matchService.addOpponentEvent(selectedMatch.id, {
+        event_type: pendingEventType as 'GOAL' | 'YELLOW_CARD' | 'RED_CARD',
+        minute,
+        jersey_number: jersey || undefined,
+      });
+      const oppEvent: OpponentEvent = {
+        id: result.id,
+        event_type: result.event_type as 'GOAL' | 'YELLOW_CARD' | 'RED_CARD',
+        minute: result.minute,
+        jersey_number: result.jersey_number || '',
+        isOpponent: true,
+      };
+      setOpponentEvents(prev => [...prev, oppEvent]);
+      const cfg = EVENT_CONFIG[pendingEventType!];
+      showToast(`${cfg.label} adverse${jersey ? ` — #${jersey}` : ''} (${minute}')`);
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Erreur lors de l'ajout");
+    } finally {
+      setIsSending(false);
+      cancelFlow();
+    }
   };
 
-  const handleDeleteOpponentEvent = (id: string) => {
-    setOpponentEvents(prev => prev.filter(e => e.id !== id));
-    showToast('Événement adverse supprimé');
+  const handleDeleteOpponentEvent = async (id: string) => {
+    if (!selectedMatch) return;
+    try {
+      await matchService.removeOpponentEvent(selectedMatch.id, id);
+      setOpponentEvents(prev => prev.filter(e => e.id !== id));
+      showToast('Événement adverse supprimé');
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Erreur lors de la suppression');
+    }
   };
 
   // ── Submit our team event ─────────────────────────────────────────────
@@ -1018,8 +1164,8 @@ export default function DirectPage() {
       const cfg = EVENT_CONFIG[eventType];
       showToast(`${cfg.label} — ${playerName} (${minute}')`);
 
-      if (eventType === 'GOAL' && result.event?.id) {
-        setPendingGoalId(result.event.id);
+      if (eventType === 'GOAL' && (result.id || result.event?.id)) {
+        setPendingGoalId(result.id || result.event.id);
         setFlowStep('pick-assist');
       } else {
         cancelFlow();
@@ -1092,11 +1238,22 @@ export default function DirectPage() {
     [opponentEvents]
   );
 
-  // Merged timeline: combine team events + opponent events, sorted by minute desc
+  const redCardedPlayerIds = useMemo(
+    () => new Set(matchEvents.filter(e => e.event_type === 'RED_CARD').map(e => e.player_id)),
+    [matchEvents]
+  );
+
+  // Merged timeline: combine team events + opponent events, sorted by minute desc then created_at desc
   const timeline: TimelineItem[] = useMemo(() => {
     const teamItems: TimelineItem[] = matchEvents.map(e => ({ ...e, isOpponent: false as const }));
     const oppItems: TimelineItem[] = opponentEvents;
-    return [...teamItems, ...oppItems].sort((a, b) => b.minute - a.minute);
+    return [...teamItems, ...oppItems].sort((a, b) => {
+      if (b.minute !== a.minute) return b.minute - a.minute;
+      // Pour la même minute, trier par created_at desc (plus récent en haut)
+      const aTime = ('created_at' in a && a.created_at) ? new Date(a.created_at).getTime() : 0;
+      const bTime = ('created_at' in b && b.created_at) ? new Date(b.created_at).getTime() : 0;
+      return bTime - aTime;
+    });
   }, [matchEvents, opponentEvents]);
 
   // ── No team ───────────────────────────────────────────────────────────
@@ -1298,7 +1455,7 @@ export default function DirectPage() {
           </div>
         </div>
 
-        <div className={`grid gap-2 ${isOpponentMode ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-5'}`}>
+        <div className={`grid gap-2 ${isOpponentMode ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-6'}`}>
           {activeQuickEvents.map(type => {
             const cfg = EVENT_CONFIG[type];
             return (
@@ -1395,6 +1552,15 @@ export default function DirectPage() {
                           #{teamItem.player.jersey_number}
                         </span>
                       )}
+                      {teamItem.event_type === 'SUBSTITUTION' && teamItem.related_player_id && (() => {
+                        const playerIn = matchPlayers.find(p => p.player_id === teamItem.related_player_id);
+                        return playerIn ? (
+                          <span className="text-dark-light/60 dark:text-neutral/60 ml-1 font-normal text-xs">
+                            ↔ {playerIn.player.first_name} {playerIn.player.last_name}
+                            {playerIn.player.jersey_number != null && ` #${playerIn.player.jersey_number}`}
+                          </span>
+                        ) : null;
+                      })()}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={`text-[11px] font-medium ${cfg.color}`}>{cfg.label}</span>
@@ -1429,6 +1595,19 @@ export default function DirectPage() {
           players={matchPlayers}
           onSelect={handlePlayerSelected}
           onClose={cancelFlow}
+          disabledPlayerIds={redCardedPlayerIds}
+          onlyStarters={pendingEventType !== 'SUBSTITUTION'}
+          title={pendingEventType === 'SUBSTITUTION' ? 'Joueur sortant' : 'Choisir un joueur'}
+        />
+      )}
+
+      {flowStep === 'pick-sub-player-in' && (
+        <PlayerPickerOverlay
+          players={matchPlayers.filter(p => p.status === 'SUBSTITUTE')}
+          onSelect={handleSubPlayerInSelected}
+          onClose={cancelFlow}
+          disabledPlayerIds={redCardedPlayerIds}
+          title="Joueur entrant"
         />
       )}
 
@@ -1462,6 +1641,23 @@ export default function DirectPage() {
           scorerPlayerId={pendingPlayerId!}
           onSelect={handleAssistPlayerSelected}
           onSkip={cancelFlow}
+          onClose={cancelFlow}
+          disabledPlayerIds={redCardedPlayerIds}
+        />
+      )}
+
+      {flowStep === 'pick-assist-zone' && (
+        <ZonePickerOverlay
+          onSelect={handleAssistZoneSelected}
+          onSkip={handleAssistZoneSkipped}
+          onClose={cancelFlow}
+        />
+      )}
+
+      {flowStep === 'pick-assist-body-part' && (
+        <BodyPartPickerOverlay
+          onSelect={handleAssistBodyPartSelected}
+          onSkip={handleAssistBodyPartSkipped}
           onClose={cancelFlow}
         />
       )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, Check, UserPlus, Search } from 'lucide-react';
 import { playerService, Player } from '@/services/playerService';
 import { matchService, PlayerToAdd, MatchPlayerEntry } from '@/services/matchService';
@@ -12,6 +12,8 @@ const POSITION_BADGE: Record<string, { label: string; color: string }> = {
   FORWARD:    { label: 'A',  color: 'bg-red-900/30 text-red-400' },
 };
 
+const MAX_STARTERS = 11;
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -20,15 +22,11 @@ interface Props {
   teamId: string;
 }
 
-interface SelectedPlayer {
-  player: Player;
-  status: 'STARTER' | 'SUBSTITUTE';
-}
-
 export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, teamId }: Props) {
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [existingPlayers, setExistingPlayers] = useState<MatchPlayerEntry[]>([]);
-  const [selected, setSelected] = useState<Map<string, SelectedPlayer>>(new Map());
+  // Ordered array — first 11 are STARTER, rest are SUBSTITUTE
+  const [selectionOrder, setSelectionOrder] = useState<{ id: string; player: Player }[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,16 +43,19 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
           playerService.getPlayersByTeam(teamId),
           matchService.getMatchPlayers(matchId),
         ]);
-        setAllPlayers(players.filter(p => p.status === 'ACTIVE'));
+        const activePlayers = players.filter(p => p.status === 'ACTIVE');
+        setAllPlayers(activePlayers);
         setExistingPlayers(matchPlayers);
 
-        // Pre-select already convoked players
-        const map = new Map<string, SelectedPlayer>();
-        matchPlayers.forEach(mp => {
-          const p = players.find(pl => pl.id === mp.player_id);
-          if (p) map.set(p.id, { player: p, status: mp.status });
+        // Pre-select already convoked players, starters first then substitutes (preserves order)
+        const starterEntries = matchPlayers.filter(mp => mp.status === 'STARTER');
+        const subEntries = matchPlayers.filter(mp => mp.status === 'SUBSTITUTE');
+        const ordered: { id: string; player: Player }[] = [];
+        [...starterEntries, ...subEntries].forEach(mp => {
+          const p = activePlayers.find(pl => pl.id === mp.player_id);
+          if (p) ordered.push({ id: p.id, player: p });
         });
-        setSelected(map);
+        setSelectionOrder(ordered);
       } catch {
         setError('Erreur lors du chargement des joueurs');
       } finally {
@@ -64,29 +65,20 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
     loadData();
   }, [isOpen, matchId, teamId]);
 
-  const togglePlayer = (player: Player) => {
-    setSelected(prev => {
-      const next = new Map(prev);
-      if (next.has(player.id)) {
-        next.delete(player.id);
-      } else {
-        next.set(player.id, { player, status: 'STARTER' });
-      }
-      return next;
-    });
-  };
+  // Compute status from order: first 11 = STARTER, rest = SUBSTITUTE
+  const getStatus = useCallback((index: number): 'STARTER' | 'SUBSTITUTE' => {
+    return index < MAX_STARTERS ? 'STARTER' : 'SUBSTITUTE';
+  }, []);
 
-  const toggleStatus = (playerId: string) => {
-    setSelected(prev => {
-      const next = new Map(prev);
-      const entry = next.get(playerId);
-      if (entry) {
-        next.set(playerId, {
-          ...entry,
-          status: entry.status === 'STARTER' ? 'SUBSTITUTE' : 'STARTER',
-        });
+  const selectedIds = useMemo(() => new Set(selectionOrder.map(s => s.id)), [selectionOrder]);
+
+  const togglePlayer = (player: Player) => {
+    setSelectionOrder(prev => {
+      if (prev.some(s => s.id === player.id)) {
+        return prev.filter(s => s.id !== player.id);
+      } else {
+        return [...prev, { id: player.id, player }];
       }
-      return next;
     });
   };
 
@@ -98,29 +90,28 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
     );
   }, [allPlayers, search]);
 
-  const starters = useMemo(
-    () => Array.from(selected.values()).filter(s => s.status === 'STARTER'),
-    [selected]
+  const startersCount = useMemo(
+    () => Math.min(selectionOrder.length, MAX_STARTERS),
+    [selectionOrder]
   );
-  const substitutes = useMemo(
-    () => Array.from(selected.values()).filter(s => s.status === 'SUBSTITUTE'),
-    [selected]
+  const substitutesCount = useMemo(
+    () => Math.max(0, selectionOrder.length - MAX_STARTERS),
+    [selectionOrder]
   );
 
   const handleSubmit = async () => {
-    if (selected.size === 0) return;
+    if (selectionOrder.length === 0) return;
     try {
       setIsSubmitting(true);
       setError('');
 
-      // Determine new players to add (not already convoked)
-      const existingIds = new Set(existingPlayers.map(ep => ep.player_id));
-      const newPlayers: PlayerToAdd[] = Array.from(selected.values())
-        .filter(s => !existingIds.has(s.player.id))
-        .map(s => ({ player_id: s.player.id, status: s.status }));
+      // Build full list with computed statuses
+      const allSelected: PlayerToAdd[] = selectionOrder.map((s, i) => ({
+        player_id: s.id,
+        status: getStatus(i),
+      }));
 
       // Determine players to remove (were convoked but now deselected)
-      const selectedIds = new Set(selected.keys());
       const toRemove = existingPlayers.filter(ep => !selectedIds.has(ep.player_id));
 
       // Execute removals
@@ -128,9 +119,9 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
         toRemove.map(p => matchService.removePlayerFromMatch(matchId, p.player_id).catch(() => {}))
       );
 
-      // Add new players  
-      if (newPlayers.length > 0) {
-        await matchService.addPlayersToMatch(matchId, newPlayers);
+      // Send ALL selected players (upsert handles existing — updates status if changed)
+      if (allSelected.length > 0) {
+        await matchService.addPlayersToMatch(matchId, allSelected);
       }
 
       onSuccess();
@@ -160,9 +151,9 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
             <div>
               <h2 className="text-lg font-bold text-dark dark:text-white">Composition</h2>
               <p className="text-[11px] text-dark-light/50 dark:text-neutral/50">
-                {selected.size} joueur{selected.size !== 1 ? 's' : ''} sélectionné{selected.size !== 1 ? 's' : ''}
+                {selectionOrder.length} joueur{selectionOrder.length !== 1 ? 's' : ''} sélectionné{selectionOrder.length !== 1 ? 's' : ''}
                 <span className="mx-1">·</span>
-                {starters.length} titu. · {substitutes.length} rempl.
+                {startersCount} titu. · {substitutesCount} rempl.
               </p>
             </div>
           </div>
@@ -203,8 +194,9 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
           ) : (
             <div className="space-y-1 py-2">
               {filteredPlayers.map(player => {
-                const sel = selected.get(player.id);
-                const isSelected = !!sel;
+                const isSelected = selectedIds.has(player.id);
+                const selIndex = selectionOrder.findIndex(s => s.id === player.id);
+                const status = selIndex >= 0 ? getStatus(selIndex) : null;
                 const pos = player.position ? POSITION_BADGE[player.position] : null;
 
                 return (
@@ -228,6 +220,13 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
                       {isSelected && <Check className="w-3 h-3 text-white" />}
                     </div>
 
+                    {/* Order number */}
+                    {isSelected && (
+                      <span className="w-5 text-center text-[10px] font-bold text-dark-light/60 dark:text-neutral/50">
+                        {selIndex + 1}
+                      </span>
+                    )}
+
                     {/* Jersey */}
                     <span className="w-7 text-center text-xs font-bold text-dark-light dark:text-neutral">
                       {player.jersey_number ?? '—'}
@@ -247,22 +246,17 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
                       </p>
                     </div>
 
-                    {/* Starter / Substitute toggle */}
-                    {isSelected && (
-                      <button
-                        type="button"
-                        onClick={e => {
-                          e.stopPropagation();
-                          toggleStatus(player.id);
-                        }}
-                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-full transition-colors ${
-                          sel.status === 'STARTER'
+                    {/* Auto status badge */}
+                    {isSelected && status && (
+                      <span
+                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
+                          status === 'STARTER'
                             ? 'bg-accent-green/15 text-accent-green'
                             : 'bg-accent-blue/15 text-accent-blue'
                         }`}
                       >
-                        {sel.status === 'STARTER' ? 'Titulaire' : 'Remplaçant'}
-                      </button>
+                        {status === 'STARTER' ? 'Titulaire' : 'Remplaçant'}
+                      </span>
                     )}
                   </div>
                 );
@@ -290,7 +284,7 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={isSubmitting || selected.size === 0}
+            disabled={isSubmitting || selectionOrder.length === 0}
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-accent-green text-white hover:bg-accent-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Sauvegarde...' : 'Valider la composition'}

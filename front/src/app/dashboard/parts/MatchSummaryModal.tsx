@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   X, Trophy, Clock, MapPin, Users, Shield, AlertTriangle,
-  ArrowDownCircle, ArrowUpCircle, Target,
+  ArrowDownCircle, ArrowUpCircle, Target, ArrowLeftRight,
 } from 'lucide-react';
 import { matchService } from '@/services/matchService';
 
@@ -17,6 +17,7 @@ interface MatchStats {
   status: string;
   totalPlayers: number;
   totalGoals: number;
+  totalOpponentGoals: number;
   totalAssists: number;
   totalYellowCards: number;
   totalRedCards: number;
@@ -30,6 +31,7 @@ interface MatchStats {
     eventType: string;
     playerName: string;
     jerseyNumber: number | null;
+    createdAt?: string;
   }[];
 }
 
@@ -71,6 +73,12 @@ const EVENT_DISPLAY: Record<string, { label: string; icon: React.ReactNode; colo
     icon: <ArrowUpCircle className="w-3.5 h-3.5" />,
     color: 'text-orange-600 dark:text-orange-400',
     bg: 'bg-orange-50 dark:bg-orange-900/20',
+  },
+  SUBSTITUTION: {
+    label: 'Changement',
+    icon: <ArrowLeftRight className="w-3.5 h-3.5" />,
+    color: 'text-purple-600 dark:text-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/20',
   },
 };
 
@@ -183,10 +191,10 @@ export default function MatchSummaryModal({
                   {/* Score */}
                   <div className="flex flex-col items-center px-6">
                     <div className="text-3xl font-black text-dark dark:text-white">
-                      {stats.totalGoals}
+                      {stats.totalGoals} - {stats.totalOpponentGoals}
                     </div>
                     <span className="text-[10px] text-dark-light/50 dark:text-neutral/50 uppercase tracking-wide mt-1">
-                      But{stats.totalGoals !== 1 ? 's' : ''}
+                      Score
                     </span>
                   </div>
 
