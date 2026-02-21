@@ -326,6 +326,9 @@ export class MatchesService {
   async updateStatus(id: string, userId: string, updateStatusDto: UpdateMatchStatusDto) {
     const match = await this.prisma.match.findUnique({
       where: { id },
+      include: {
+        matchPlayers: true,
+      },
     });
 
     if (!match) {
@@ -338,6 +341,19 @@ export class MatchesService {
     }
 
     this.validateStatusTransition(match.status, updateStatusDto.status);
+
+    // Vérifier qu'il y a au moins 2 titulaires pour passer en LIVE
+    if (updateStatusDto.status === 'LIVE') {
+      const startersCount = match.matchPlayers.filter(
+        (p) => p.status === 'STARTER',
+      ).length;
+
+      if (startersCount < 2) {
+        throw new BadRequestException(
+          `Il faut au moins 2 titulaires pour lancer un match en direct (actuellement ${startersCount})`,
+        );
+      }
+    }
 
     return this.prisma.match.update({
       where: { id },

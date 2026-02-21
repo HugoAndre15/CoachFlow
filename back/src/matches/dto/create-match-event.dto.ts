@@ -18,7 +18,11 @@ export class CreateMatchEventDto {
   @Max(120)
   minute: number;
 
-  @ApiPropertyOptional({ enum: ['LEFT', 'RIGHT', 'AXIS', 'BOX', 'OUTSIDE'], example: 'BOX', description: 'Zone du terrain' })
+  @ApiPropertyOptional({
+    enum: ['DEF_LEFT', 'DEF_CENTER', 'DEF_RIGHT', 'MID_LEFT', 'MID_CENTER', 'MID_RIGHT', 'ATT_LEFT', 'ATT_CENTER', 'ATT_RIGHT', 'BOX', 'OUTSIDE', 'LEFT', 'RIGHT', 'AXIS'],
+    example: 'MID_CENTER',
+    description: 'Zone du terrain (3×3 grille + surface + extérieur)',
+  })
   @IsOptional()
   @IsEnum(field_zone)
   zone?: field_zone;
