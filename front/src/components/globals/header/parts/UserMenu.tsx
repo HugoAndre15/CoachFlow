@@ -230,7 +230,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
             <div className="py-1">
               <button
                 onClick={() => {
-                  router.push('/dashboard/account');
+                  router.push('/dashboard/mon-compte');
                   setIsOpen(false);
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-dark-light dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-light/50 hover:text-dark dark:hover:text-white transition-colors"
@@ -240,7 +240,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
               </button>
               <button
                 onClick={() => {
-                  router.push('/dashboard/settings');
+                  router.push('/dashboard/parametres');
                   setIsOpen(false);
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-dark-light dark:text-neutral-lighter hover:bg-neutral-lighter/50 dark:hover:bg-dark-light/50 hover:text-dark dark:hover:text-white transition-colors"

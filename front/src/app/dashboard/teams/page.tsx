@@ -3,14 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Users, Shield, ChevronRight } from 'lucide-react';
 import { teamService, Team } from '@/services/teamService';
-import { clubService } from '@/services/clubService';
+import { useClubTeam } from '@/contexts/ClubTeamContext';
 import CreateTeamModal from '../parts/CreateTeamModal';
-
-interface Club {
-  id: string;
-  name: string;
-  role: string;
-}
 
 const mapRole = (role?: string): string => {
   switch (role) {
@@ -26,27 +20,11 @@ const CATEGORIES = [
 ];
 
 export default function TeamsPage() {
+  const { activeClub, allClubs, setActiveClub } = useClubTeam();
   const [teams, setTeams] = useState<Team[]>([]);
-  const [clubs, setClubs] = useState<Club[]>([]);
-  const [activeClub, setActiveClub] = useState<Club | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Charger les clubs de l'utilisateur
-  const fetchClubs = async () => {
-    try {
-      const data = await clubService.getMyClubs();
-      setClubs(data);
-
-      // Récupérer le club actif depuis localStorage
-      const savedId = localStorage.getItem('activeClubId');
-      const found = savedId ? data.find(c => c.id === savedId) : null;
-      setActiveClub(found || data[0] || null);
-    } catch (err) {
-      console.error('Error fetching clubs:', err);
-    }
-  };
 
   // Charger les équipes du club actif
   const fetchTeams = async (clubId: string) => {
@@ -64,25 +42,12 @@ export default function TeamsPage() {
   };
 
   useEffect(() => {
-    fetchClubs();
-  }, []);
-
-  useEffect(() => {
     if (activeClub) {
       fetchTeams(activeClub.id);
     } else {
       setIsLoading(false);
     }
-  }, [activeClub]);
-
-  // Écouter les changements de club depuis le UserMenu
-  useEffect(() => {
-    const handleClubChange = (e: CustomEvent) => {
-      setActiveClub(e.detail);
-    };
-    window.addEventListener('activeClubChanged', handleClubChange as EventListener);
-    return () => window.removeEventListener('activeClubChanged', handleClubChange as EventListener);
-  }, []);
+  }, [activeClub?.id]);
 
   const handleCreateSuccess = () => {
     setIsModalOpen(false);
@@ -109,19 +74,18 @@ export default function TeamsPage() {
 
         <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
           {/* Club selector */}
-          {clubs.length > 1 && (
+          {allClubs.length > 1 && (
             <select
               value={activeClub?.id || ''}
               onChange={(e) => {
-                const club = clubs.find(c => c.id === e.target.value);
+                const club = allClubs.find(c => c.id === e.target.value);
                 if (club) {
                   setActiveClub(club);
-                  localStorage.setItem('activeClubId', club.id);
                 }
               }}
               className="text-sm bg-white dark:bg-dark-lighter border border-neutral/30 dark:border-dark-light text-dark dark:text-white rounded-lg px-3 py-2 outline-none focus:border-accent-green"
             >
-              {clubs.map(c => (
+              {allClubs.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>

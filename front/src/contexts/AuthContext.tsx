@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  mounted: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: { firstName: string; lastName: string; email: string; password: string }) => Promise<void>;
   logout: () => void;
@@ -25,28 +26,37 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
+  // Hydrate from localStorage after mount (avoids SSR mismatch)
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    const storedUser = authService.getUser();
+    if (token && storedUser) {
+      setUser(storedUser);
+    }
+    setIsLoading(false);
+    setMounted(true);
+  }, []);
+
+  // Handle redirects (only after mounted)
+  useEffect(() => {
+    if (!mounted) return;
     const token = localStorage.getItem('token');
     const storedUser = authService.getUser();
 
     if (token && storedUser) {
-      setUser(storedUser);
-      // Rediriger depuis login/register vers dashboard uniquement
       if (pathname === '/login' || pathname === '/register') {
         router.replace('/dashboard');
       }
     } else {
-      // Rediriger uniquement les routes /dashboard/* vers login si pas connecté
       if (pathname.startsWith('/dashboard')) {
         router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
       }
     }
-
-    setIsLoading(false);
-  }, [pathname, router]);
+  }, [pathname, router, mounted]);
 
     const login = async (email: string, password: string) => {
         const response = await authService.login({ email, password });
@@ -74,24 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   };
 
-  // Afficher un loader pendant la vérification de l'authentification
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-lightest dark:bg-dark">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-accent-green"></div>
-          <p className="text-dark-lighter dark:text-neutral text-sm">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <AuthContext.Provider
       value={{
         user,
         isAuthenticated: !!user,
         isLoading,
+        mounted,
         login,
         register,
         logout,

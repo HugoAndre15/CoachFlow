@@ -1,20 +1,12 @@
 'use client';
 
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserClub } from "@/hooks/useUserClub";
 import { useState } from "react";
-import { usePathname } from "next/navigation";
-import { Logo, NavTabs, TeamSelector, UserMenu, MobileMenu } from "./header/parts";
+import { Logo, NavTabs, UserMenu, MobileMenu } from "./header/parts";
 
 export default function HeaderBar() {
-    const { user, logout, isLoading } = useAuth();
-    const { club } = useUserClub();
+    const { user, logout } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const pathname = usePathname();
-    const isDashboard = pathname?.startsWith('/dashboard');
-    const hasClub = !!club;
-
-    if (isLoading) return null;
 
     return (
       <header className="sticky top-0 z-50 bg-white dark:bg-dark border-b border-neutral/20 dark:border-dark-light transition-all duration-300">
@@ -23,24 +15,13 @@ export default function HeaderBar() {
             {/* Logo */}
             <Logo />
 
-            {/* Navigation Desktop */}
-            <NavTabs isDashboard={!!isDashboard && !!user} hasClub={hasClub} />
+            {/* Navigation Desktop - Public only */}
+            <NavTabs isDashboard={false} hasClub={false} />
 
             {/* Actions Desktop */}
             <div className="hidden md:flex items-center gap-6">
               {user ? (
-                <>
-                  {/* Sélecteur d'équipe (si club disponible et dans dashboard) */}
-                  {isDashboard && hasClub && club && (
-                    <>
-                      <TeamSelector clubId={club.id} />
-                      <div className="h-8 w-px bg-neutral/20 dark:bg-dark-light" />
-                    </>
-                  )}
-
-                  {/* Menu utilisateur */}
-                  <UserMenu user={user} onLogout={logout} />
-                </>
+                <UserMenu user={user} onLogout={logout} />
               ) : (
                 <div className="flex items-center gap-3">
                   <a
@@ -83,8 +64,8 @@ export default function HeaderBar() {
         {/* Mobile Menu */}
         <MobileMenu
           isOpen={isMobileMenuOpen}
-          isDashboard={!!isDashboard && !!user}
-          hasClub={hasClub}
+          isDashboard={false}
+          hasClub={false}
           user={user}
           onLogout={logout}
         />
