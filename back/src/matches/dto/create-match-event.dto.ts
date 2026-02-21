@@ -8,7 +8,7 @@ export class CreateMatchEventDto {
   @IsNotEmpty()
   player_id: string;
 
-  @ApiProperty({ enum: ['GOAL', 'ASSIST', 'YELLOW_CARD', 'RED_CARD', 'RECOVERY', 'BALL_LOSS'], example: 'GOAL', description: 'Type d\'événement' })
+  @ApiProperty({ enum: ['GOAL', 'ASSIST', 'YELLOW_CARD', 'RED_CARD', 'RECOVERY', 'BALL_LOSS', 'SUBSTITUTION'], example: 'GOAL', description: 'Type d\'événement' })
   @IsEnum(match_event_type)
   event_type: match_event_type;
 
@@ -36,4 +36,9 @@ export class CreateMatchEventDto {
   @IsOptional()
   @IsUUID()
   related_event_id?: string;
+
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440002', description: 'UUID du joueur entrant (pour SUBSTITUTION)' })
+  @IsOptional()
+  @IsUUID()
+  related_player_id?: string;
 }

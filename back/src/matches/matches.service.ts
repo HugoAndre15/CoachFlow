@@ -13,6 +13,7 @@ import { AddPlayersToMatchDto } from './dto/add-players-to-match.dto';
 import { UpdateMatchPlayerDto } from './dto/update-match-player.dto';
 import { CreateMatchEventDto } from './dto/create-match-event.dto';
 import { UpdateMatchEventDto } from './dto/update-match-event.dto';
+import { CreateOpponentEventDto } from './dto/create-opponent-event.dto';
 import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
 import { club_role, team_role, match_status, match_event_type } from '@prisma/client';
 
@@ -115,9 +116,12 @@ export class MatchesService {
     }
   }
 
-  private calculateScore(matchEvents: any[]): { goals: number } {
-    const goals = matchEvents.filter(e => e.event_type === 'GOAL');
-    return { goals: goals.length };
+  private calculateScore(matchEvents: any[], opponentEvents?: any[]): { home: number; away: number } {
+    const home = matchEvents.filter(e => e.event_type === 'GOAL').length;
+    const away = opponentEvents
+      ? opponentEvents.filter(e => e.event_type === 'GOAL').length
+      : 0;
+    return { home, away };
   }
 
   // ==================== CRUD MATCHS ====================
@@ -213,14 +217,27 @@ export class MatchesService {
             matchPlayers: true,
           },
         },
+        matchEvents: {
+          select: { event_type: true },
+        },
+        opponentEvents: {
+          select: { event_type: true },
+        },
       },
       orderBy,
       skip: (page - 1) * limit,
       take: limit,
     });
 
+    // Calculer le score pour chaque match
+    const dataWithScore = data.map(match => {
+      const score = this.calculateScore(match.matchEvents, match.opponentEvents);
+      const { matchEvents: _events, opponentEvents: _oppEvents, ...rest } = match;
+      return { ...rest, score };
+    });
+
     return {
-      data,
+      data: dataWithScore,
       meta: {
         total,
         page,
@@ -273,9 +290,16 @@ export class MatchesService {
               },
             },
           },
-          orderBy: {
-            minute: 'asc',
-          },
+          orderBy: [
+            { minute: 'asc' },
+            { created_at: 'asc' },
+          ],
+        },
+        opponentEvents: {
+          orderBy: [
+            { minute: 'asc' },
+            { created_at: 'asc' },
+          ],
         },
       },
     });
@@ -289,7 +313,7 @@ export class MatchesService {
       throw new ForbiddenException('Vous devez être membre du club pour voir ce match');
     }
 
-    const score = this.calculateScore(match.matchEvents);
+    const score = this.calculateScore(match.matchEvents, match.opponentEvents);
 
     return {
       ...match,
@@ -399,8 +423,8 @@ export class MatchesService {
       throw new ForbiddenException('Seuls le coach, l\'assistant ou le président du club peuvent convoquer des joueurs');
     }
 
-    if (match.status === match_status.FINISHED) {
-      throw new BadRequestException('Impossible de modifier la convocation d\'un match terminé');
+    if (match.status === match_status.LIVE || match.status === match_status.FINISHED) {
+      throw new BadRequestException('Impossible de modifier la convocation d\'un match en cours ou terminé');
     }
 
     // Vérifier que tous les joueurs existent
@@ -520,8 +544,8 @@ export class MatchesService {
       throw new ForbiddenException('Seuls le coach, l\'assistant ou le président du club peuvent modifier le statut d\'un joueur');
     }
 
-    if (match.status === match_status.FINISHED) {
-      throw new BadRequestException('Impossible de modifier le statut d\'un joueur pour un match terminé');
+    if (match.status === match_status.LIVE || match.status === match_status.FINISHED) {
+      throw new BadRequestException('Impossible de modifier le statut d\'un joueur pour un match en cours ou terminé');
     }
 
     const matchPlayer = await this.prisma.matchPlayer.findUnique({
@@ -575,8 +599,8 @@ export class MatchesService {
       throw new ForbiddenException('Seuls le coach, l\'assistant ou le président du club peuvent retirer un joueur');
     }
 
-    if (match.status === match_status.FINISHED) {
-      throw new BadRequestException('Impossible de retirer un joueur d\'un match terminé');
+    if (match.status === match_status.LIVE || match.status === match_status.FINISHED) {
+      throw new BadRequestException('Impossible de retirer un joueur d\'un match en cours ou terminé');
     }
 
     const matchPlayer = await this.prisma.matchPlayer.findUnique({
@@ -678,6 +702,30 @@ export class MatchesService {
       }
     }
 
+    // 4b. Si c'est une SUBSTITUTION, vérifier que related_player_id est fourni et convoqué
+    if (createEventDto.event_type === match_event_type.SUBSTITUTION) {
+      if (!createEventDto.related_player_id) {
+        throw new BadRequestException(
+          'Une SUBSTITUTION doit inclure related_player_id (joueur entrant)',
+        );
+      }
+
+      const incomingPlayer = await this.prisma.matchPlayer.findUnique({
+        where: {
+          match_id_player_id: {
+            match_id: matchId,
+            player_id: createEventDto.related_player_id,
+          },
+        },
+      });
+
+      if (!incomingPlayer) {
+        throw new BadRequestException(
+          'Le joueur entrant doit être convoqué pour ce match',
+        );
+      }
+    }
+
     // 5. Créer l'événement
     const event = await this.prisma.matchEvent.create({
       data: {
@@ -688,6 +736,7 @@ export class MatchesService {
         zone: createEventDto.zone,
         body_part: createEventDto.body_part,
         related_event_id: createEventDto.related_event_id,
+        related_player_id: createEventDto.related_player_id,
       },
       include: {
         player: {
@@ -789,7 +838,7 @@ export class MatchesService {
           },
         },
       },
-      orderBy: { minute: 'asc' },
+      orderBy: [{ minute: 'asc' }, { created_at: 'asc' }],
     });
   }
 
@@ -927,6 +976,86 @@ export class MatchesService {
     return { message: 'Événement supprimé' };
   }
 
+  // ==================== ÉVÉNEMENTS ADVERSES ====================
+
+  async addOpponentEvent(matchId: string, dto: CreateOpponentEventDto, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Match non trouvé');
+    }
+
+    const canManage = await this.canManageMatches(match.team_id, userId);
+    if (!canManage) {
+      throw new ForbiddenException(
+        'Seuls le coach, l\'assistant ou le président du club peuvent ajouter un événement adverse',
+      );
+    }
+
+    return this.prisma.opponentMatchEvent.create({
+      data: {
+        match_id: matchId,
+        event_type: dto.event_type,
+        minute: dto.minute,
+        jersey_number: dto.jersey_number,
+      },
+    });
+  }
+
+  async getOpponentEvents(matchId: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      include: { team: true },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Match non trouvé');
+    }
+
+    const canAccess = await this.canAccessTeamMatches(match.team.club_id, userId);
+    if (!canAccess) {
+      throw new ForbiddenException('Vous devez être membre du club pour voir les événements');
+    }
+
+    return this.prisma.opponentMatchEvent.findMany({
+      where: { match_id: matchId },
+      orderBy: [{ minute: 'asc' }, { created_at: 'asc' }],
+    });
+  }
+
+  async removeOpponentEvent(matchId: string, eventId: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Match non trouvé');
+    }
+
+    const canManage = await this.canManageMatches(match.team_id, userId);
+    if (!canManage) {
+      throw new ForbiddenException(
+        'Seuls le coach, l\'assistant ou le président du club peuvent supprimer un événement adverse',
+      );
+    }
+
+    const event = await this.prisma.opponentMatchEvent.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!event || event.match_id !== matchId) {
+      throw new NotFoundException('Événement adverse non trouvé');
+    }
+
+    await this.prisma.opponentMatchEvent.delete({
+      where: { id: eventId },
+    });
+
+    return { message: 'Événement adverse supprimé' };
+  }
+
   // ==================== STATISTIQUES DU MATCH ====================
 
   /**
@@ -951,6 +1080,7 @@ export class MatchesService {
             },
           },
         },
+        opponentEvents: true,
         matchPlayers: true,
       },
     });
@@ -1007,15 +1137,16 @@ export class MatchesService {
     }
     const topAssister = Object.values(assistsByPlayer).sort((a, b) => b.assists - a.assists)[0] || null;
 
-    // Chronologie des événements par minute
+    // Chronologie des événements par minute puis par created_at
     const timeline = events
       .map(e => ({
         minute: e.minute,
         eventType: e.event_type,
         playerName: `${e.player.first_name} ${e.player.last_name}`,
         jerseyNumber: e.player.jersey_number,
+        createdAt: e.created_at,
       }))
-      .sort((a, b) => a.minute - b.minute);
+      .sort((a, b) => a.minute - b.minute || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     return {
       matchId: match.id,
@@ -1025,6 +1156,7 @@ export class MatchesService {
       status: match.status,
       totalPlayers: match.matchPlayers.length,
       totalGoals: eventsByType[match_event_type.GOAL] || 0,
+      totalOpponentGoals: match.opponentEvents.filter(e => e.event_type === 'GOAL').length,
       totalAssists: eventsByType[match_event_type.ASSIST] || 0,
       totalYellowCards: eventsByType[match_event_type.YELLOW_CARD] || 0,
       totalRedCards: eventsByType[match_event_type.RED_CARD] || 0,
