@@ -15,6 +15,7 @@ export interface Match {
   status: MatchStatus;
   created_at: string;
   updated_at: string;
+  score?: { home: number; away: number };
   _count?: {
     matchEvents: number;
     matchPlayers: number;
@@ -30,7 +31,8 @@ export interface MatchDetail extends Match {
   };
   matchPlayers: MatchPlayerEntry[];
   matchEvents: MatchEventEntry[];
-  score: { goals: number };
+  opponentEvents: OpponentEventEntry[];
+  score: { home: number; away: number };
 }
 
 export interface MatchPlayerEntry {
@@ -55,6 +57,8 @@ export interface MatchEventEntry {
   minute: number;
   zone?: string;
   body_part?: string;
+  related_player_id?: string;
+  created_at?: string;
   player: {
     id: string;
     first_name: string;
@@ -64,9 +68,26 @@ export interface MatchEventEntry {
   };
 }
 
-export type MatchEventType = 'GOAL' | 'ASSIST' | 'YELLOW_CARD' | 'RED_CARD' | 'RECOVERY' | 'BALL_LOSS';
+export type MatchEventType = 'GOAL' | 'ASSIST' | 'YELLOW_CARD' | 'RED_CARD' | 'RECOVERY' | 'BALL_LOSS' | 'SUBSTITUTION';
 export type FieldZone = 'LEFT' | 'RIGHT' | 'AXIS' | 'DEF_LEFT' | 'DEF_CENTER' | 'DEF_RIGHT' | 'MID_LEFT' | 'MID_CENTER' | 'MID_RIGHT' | 'ATT_LEFT' | 'ATT_CENTER' | 'ATT_RIGHT' | 'BOX' | 'OUTSIDE';
 export type BodyPart = 'LEFT_FOOT' | 'RIGHT_FOOT' | 'HEAD';
+
+export type OpponentEventType = 'GOAL' | 'YELLOW_CARD' | 'RED_CARD';
+
+export interface OpponentEventEntry {
+  id: string;
+  match_id: string;
+  event_type: OpponentEventType;
+  minute: number;
+  jersey_number?: string;
+  created_at?: string;
+}
+
+export interface CreateOpponentEventPayload {
+  event_type: OpponentEventType;
+  minute: number;
+  jersey_number?: string;
+}
 
 export interface CreateMatchPayload {
   team_id: string;
@@ -82,6 +103,7 @@ export interface CreateMatchEventPayload {
   zone?: FieldZone;
   body_part?: BodyPart;
   related_event_id?: string;
+  related_player_id?: string;
 }
 
 export interface PlayerToAdd {
@@ -182,5 +204,24 @@ export const matchService = {
   /** Delete an event (if GOAL, linked ASSISTs are also deleted) */
   async removeMatchEvent(matchId: string, eventId: string): Promise<void> {
     await api.delete(`/matches/${matchId}/events/${eventId}`);
+  },
+
+  // ─── Opponent Events ──────────────────────────────────────────────
+
+  /** Add an opponent event */
+  async addOpponentEvent(matchId: string, payload: CreateOpponentEventPayload): Promise<OpponentEventEntry> {
+    const response = await api.post<OpponentEventEntry>(`/matches/${matchId}/opponent-events`, payload);
+    return response.data;
+  },
+
+  /** Get all opponent events */
+  async getOpponentEvents(matchId: string): Promise<OpponentEventEntry[]> {
+    const response = await api.get<OpponentEventEntry[]>(`/matches/${matchId}/opponent-events`);
+    return response.data;
+  },
+
+  /** Delete an opponent event */
+  async removeOpponentEvent(matchId: string, eventId: string): Promise<void> {
+    await api.delete(`/matches/${matchId}/opponent-events/${eventId}`);
   },
 };

@@ -51,6 +51,7 @@ enum match_event_type {
     RED_CARD
     RECOVERY
     BALL_LOSS
+    SUBSTITUTION
 }
 
 enum field_zone {
@@ -76,6 +77,12 @@ enum body_part {
     LEFT_FOOT
     RIGHT_FOOT
     HEAD
+}
+
+enum opponent_event_type {
+    GOAL
+    YELLOW_CARD
+    RED_CARD
 }
 
 enum club_role {
@@ -165,9 +172,10 @@ model Match {
     created_at DateTime       @default(now())
     updated_at DateTime       @updatedAt
 
-    team         Team          @relation(fields: [team_id], references: [id], onDelete: Cascade)
-    matchEvents  MatchEvent[]
-    matchPlayers MatchPlayer[]
+    team           Team                 @relation(fields: [team_id], references: [id], onDelete: Cascade)
+    matchEvents    MatchEvent[]
+    matchPlayers   MatchPlayer[]
+    opponentEvents OpponentMatchEvent[]
 }
 
 model MatchPlayer {
@@ -186,21 +194,35 @@ model MatchPlayer {
 }
 
 model MatchEvent {
-    id               String           @id @default(uuid())
-    match_id         String
-    player_id        String
-    event_type       match_event_type
-    minute           Int
-    zone             field_zone?
-    body_part        body_part?
-    related_event_id String? // ← NOUVEAU : lien ASSIST → GOAL
-    created_at       DateTime         @default(now())
-    updated_at       DateTime         @updatedAt
+    id                String           @id @default(uuid())
+    match_id          String
+    player_id         String
+    event_type        match_event_type
+    minute            Int
+    zone              field_zone?
+    body_part         body_part?
+    related_event_id  String? // ← lien ASSIST → GOAL
+    related_player_id String? // ← joueur entrant (SUBSTITUTION)
+    created_at        DateTime         @default(now())
+    updated_at        DateTime         @updatedAt
 
     match         Match        @relation(fields: [match_id], references: [id], onDelete: Cascade)
     player        Player       @relation(fields: [player_id], references: [id], onDelete: SetNull)
     relatedEvent  MatchEvent?  @relation("EventRelation", fields: [related_event_id], references: [id], onDelete: SetNull)
     relatedEvents MatchEvent[] @relation("EventRelation")
+}
+
+model OpponentMatchEvent {
+    id            String              @id @default(uuid())
+    match_id      String
+    event_type    opponent_event_type
+    minute        Int
+    jersey_number String?
+    created_at    DateTime            @default(now())
+
+    match Match @relation(fields: [match_id], references: [id], onDelete: Cascade)
+
+    @@map("opponent_match_events")
 }
 
 model ClubUser {

@@ -18,6 +18,7 @@ import { AddPlayersToMatchDto } from './dto/add-players-to-match.dto';
 import { UpdateMatchPlayerDto } from './dto/update-match-player.dto';
 import { CreateMatchEventDto } from './dto/create-match-event.dto';
 import { UpdateMatchEventDto } from './dto/update-match-event.dto';
+import { CreateOpponentEventDto } from './dto/create-opponent-event.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -163,6 +164,44 @@ export class MatchesController {
     @CurrentUser() user: any,
   ) {
     return this.matchesService.removeMatchEvent(id, eventId, user.id);
+  }
+
+  // ==================== ÉVÉNEMENTS ADVERSES ====================
+
+  @Post(':id/opponent-events')
+  @ApiOperation({ summary: 'Ajouter un événement adverse', description: 'GOAL, YELLOW_CARD ou RED_CARD de l\'équipe adverse' })
+  @ApiParam({ name: 'id', description: 'UUID du match' })
+  @ApiResponse({ status: 201, description: 'Événement adverse créé' })
+  addOpponentEvent(
+    @Param('id') id: string,
+    @Body() dto: CreateOpponentEventDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.matchesService.addOpponentEvent(id, dto, user.id);
+  }
+
+  @Get(':id/opponent-events')
+  @ApiOperation({ summary: 'Événements adverses du match' })
+  @ApiParam({ name: 'id', description: 'UUID du match' })
+  @ApiResponse({ status: 200, description: 'Liste des événements adverses' })
+  getOpponentEvents(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.matchesService.getOpponentEvents(id, user.id);
+  }
+
+  @Delete(':id/opponent-events/:eventId')
+  @ApiOperation({ summary: 'Supprimer un événement adverse' })
+  @ApiParam({ name: 'id', description: 'UUID du match' })
+  @ApiParam({ name: 'eventId', description: 'UUID de l\'événement adverse' })
+  @ApiResponse({ status: 200, description: 'Événement adverse supprimé' })
+  removeOpponentEvent(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.matchesService.removeOpponentEvent(id, eventId, user.id);
   }
 
   // ==================== STATISTIQUES ====================
