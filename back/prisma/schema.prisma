@@ -54,9 +54,20 @@ enum match_event_type {
 }
 
 enum field_zone {
+    // Legacy
     LEFT
     RIGHT
     AXIS
+    // Detailed zones
+    DEF_LEFT
+    DEF_CENTER
+    DEF_RIGHT
+    MID_LEFT
+    MID_CENTER
+    MID_RIGHT
+    ATT_LEFT
+    ATT_CENTER
+    ATT_RIGHT
     BOX
     OUTSIDE
 }
