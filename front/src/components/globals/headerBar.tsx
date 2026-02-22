@@ -21,7 +21,18 @@ export default function HeaderBar() {
             {/* Actions Desktop */}
             <div className="hidden md:flex items-center gap-6">
               {user ? (
-                <UserMenu user={user} onLogout={logout} />
+                <div className="flex items-center gap-3">
+                  <a
+                    href="/dashboard"
+                    className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-grey-medium hover:text-accent-green hover:bg-accent-green/8 dark:hover:bg-accent-green/10 transition-all duration-200"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity">
+                      <path fillRule="evenodd" d="M4.25 2A2.25 2.25 0 0 0 2 4.25v2.5A2.25 2.25 0 0 0 4.25 9h2.5A2.25 2.25 0 0 0 9 6.75v-2.5A2.25 2.25 0 0 0 6.75 2h-2.5Zm0 9A2.25 2.25 0 0 0 2 13.25v2.5A2.25 2.25 0 0 0 4.25 18h2.5A2.25 2.25 0 0 0 9 15.75v-2.5A2.25 2.25 0 0 0 6.75 11h-2.5Zm9-9A2.25 2.25 0 0 0 11 4.25v2.5A2.25 2.25 0 0 0 13.25 9h2.5A2.25 2.25 0 0 0 18 6.75v-2.5A2.25 2.25 0 0 0 15.75 2h-2.5Zm0 9A2.25 2.25 0 0 0 11 13.25v2.5A2.25 2.25 0 0 0 13.25 18h2.5A2.25 2.25 0 0 0 18 15.75v-2.5A2.25 2.25 0 0 0 15.75 11h-2.5Z" clipRule="evenodd" />
+                    </svg>
+                    Dashboard
+                  </a>
+                  <UserMenu user={user} onLogout={logout} />
+                </div>
               ) : (
                 <div className="flex items-center gap-3">
                   <a

@@ -44,15 +44,23 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     );
   }
 
+  const isHomePage = pathname === '/';
+
   // Public layout: Header + Content + Footer
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-dark">
+    <div className={`min-h-screen flex flex-col ${isHomePage ? 'bg-dark' : 'bg-gray-50 dark:bg-dark'}`}>
       <HeaderBar />
-      <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-6 md:py-8">
-        <div className="max-w-screen-xl mx-auto">
+      {isHomePage ? (
+        <main className="flex-1 w-full">
           {children}
-        </div>
-      </main>
+        </main>
+      ) : (
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-6 md:py-8">
+          <div className="max-w-screen-xl mx-auto">
+            {children}
+          </div>
+        </main>
+      )}
       <FooterBar />
     </div>
   );
