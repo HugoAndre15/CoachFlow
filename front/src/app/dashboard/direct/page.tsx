@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Play, Pause, RotateCcw, Square, Shield, Radio, Clock,
   Target, AlertTriangle, CircleDot,
@@ -809,6 +810,8 @@ export default function DirectPage() {
   const [chronoSeconds, setChronoSeconds] = useState(0);
   const [isChronoRunning, setIsChronoRunning] = useState(false);
   const chronoInterval = useRef<NodeJS.Timeout | null>(null);
+  const chronoSecondsRef = useRef(0);
+  const selectedMatchIdRef = useRef<string | null>(null);
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -816,6 +819,7 @@ export default function DirectPage() {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isOpponentMode, setIsOpponentMode] = useState(false);
+  const [confirmFinishOpen, setConfirmFinishOpen] = useState(false);
 
   // Event flow
   const [flowStep, setFlowStep] = useState<EventFlowStep>('idle');
@@ -826,6 +830,24 @@ export default function DirectPage() {
   const [pendingGoalId, setPendingGoalId] = useState<string | null>(null);
   const [pendingAssistPlayerId, setPendingAssistPlayerId] = useState<string | null>(null);
   const [pendingAssistZone, setPendingAssistZone] = useState<FieldZone | undefined>(undefined);
+
+  // ── Auto-select match from URL param (?matchId=...)  ─────────────────
+  const searchParams = useSearchParams();
+  const autoSelectDone = useRef(false);
+
+  useEffect(() => {
+    if (autoSelectDone.current || matches.length === 0) return;
+    const paramId = searchParams.get('matchId');
+    const savedId = localStorage.getItem('direct_matchId');
+    const targetId = paramId || savedId;
+    if (!targetId) return;
+    const match = matches.find(m => m.id === targetId && (m.status === 'LIVE' || m.status === 'UPCOMING'));
+    if (match) {
+      autoSelectDone.current = true;
+      handleSelectMatch(match);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matches, searchParams]);
 
   // ── Team restore ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -890,6 +912,7 @@ export default function DirectPage() {
 
       const detail = await matchService.getMatch(match.id);
       setSelectedMatch(detail);
+      selectedMatchIdRef.current = detail.id;
       setMatchPlayers(detail.matchPlayers || []);
       setMatchEvents(detail.matchEvents || []);
       setOpponentEvents(
@@ -902,9 +925,37 @@ export default function DirectPage() {
         })) || []
       );
 
-      setChronoSeconds(0);
-      setIsChronoRunning(false);
-      if (chronoInterval.current) clearInterval(chronoInterval.current);
+      // Persist selected match for F5 restore
+      localStorage.setItem('direct_matchId', detail.id);
+
+      // Restore chrono from localStorage
+      const savedChrono = localStorage.getItem(`chrono_${detail.id}`);
+      if (savedChrono) {
+        const parsed = JSON.parse(savedChrono);
+        if (parsed.paused) {
+          const elapsed = parsed.elapsed as number;
+          chronoSecondsRef.current = elapsed;
+          setChronoSeconds(elapsed);
+          setIsChronoRunning(false);
+        } else {
+          const elapsed = Math.floor((Date.now() - parsed.startedAt) / 1000) + (parsed.elapsedAtStart as number);
+          chronoSecondsRef.current = elapsed;
+          setChronoSeconds(elapsed);
+          setIsChronoRunning(true);
+          if (chronoInterval.current) clearInterval(chronoInterval.current);
+          chronoInterval.current = setInterval(() => {
+            setChronoSeconds(prev => {
+              chronoSecondsRef.current = prev + 1;
+              return prev + 1;
+            });
+          }, 1000);
+        }
+      } else {
+        chronoSecondsRef.current = 0;
+        setChronoSeconds(0);
+        setIsChronoRunning(false);
+        if (chronoInterval.current) clearInterval(chronoInterval.current);
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement du match');
     } finally {
@@ -916,8 +967,18 @@ export default function DirectPage() {
   const startChrono = () => {
     if (chronoInterval.current) clearInterval(chronoInterval.current);
     setIsChronoRunning(true);
+    const matchId = selectedMatchIdRef.current;
+    if (matchId) {
+      localStorage.setItem(`chrono_${matchId}`, JSON.stringify({
+        startedAt: Date.now(),
+        elapsedAtStart: chronoSecondsRef.current,
+      }));
+    }
     chronoInterval.current = setInterval(() => {
-      setChronoSeconds(prev => prev + 1);
+      setChronoSeconds(prev => {
+        chronoSecondsRef.current = prev + 1;
+        return prev + 1;
+      });
     }, 1000);
   };
 
@@ -927,11 +988,25 @@ export default function DirectPage() {
       clearInterval(chronoInterval.current);
       chronoInterval.current = null;
     }
+    const matchId = selectedMatchIdRef.current;
+    if (matchId) {
+      localStorage.setItem(`chrono_${matchId}`, JSON.stringify({
+        paused: true,
+        elapsed: chronoSecondsRef.current,
+      }));
+    }
   };
 
   const resetChrono = () => {
-    pauseChrono();
+    setIsChronoRunning(false);
+    if (chronoInterval.current) {
+      clearInterval(chronoInterval.current);
+      chronoInterval.current = null;
+    }
+    chronoSecondsRef.current = 0;
     setChronoSeconds(0);
+    const matchId = selectedMatchIdRef.current;
+    if (matchId) localStorage.removeItem(`chrono_${matchId}`);
   };
 
   useEffect(() => {
@@ -1202,12 +1277,20 @@ export default function DirectPage() {
   };
 
   // ── Finish match ──────────────────────────────────────────────────────
-  const handleFinishMatch = async () => {
+  const handleFinishMatch = () => {
+    setConfirmFinishOpen(true);
+  };
+
+  const doFinishMatch = async () => {
     if (!selectedMatch) return;
-    const confirm = window.confirm('Terminer ce match ? Cette action est irréversible.');
-    if (!confirm) return;
+    setConfirmFinishOpen(false);
     try {
       await matchService.updateStatus(selectedMatch.id, 'FINISHED');
+      if (selectedMatchIdRef.current) {
+        localStorage.removeItem(`chrono_${selectedMatchIdRef.current}`);
+      }
+      localStorage.removeItem('direct_matchId');
+      selectedMatchIdRef.current = null;
       pauseChrono();
       showToast('Match terminé');
       setSelectedMatch(null);
@@ -1219,12 +1302,19 @@ export default function DirectPage() {
 
   // ── Back to selector ──────────────────────────────────────────────────
   const handleBack = () => {
+    if (selectedMatchIdRef.current) {
+      localStorage.removeItem(`chrono_${selectedMatchIdRef.current}`);
+    }
+    localStorage.removeItem('direct_matchId');
+    selectedMatchIdRef.current = null;
+    autoSelectDone.current = false;
     pauseChrono();
+    chronoSecondsRef.current = 0;
+    setChronoSeconds(0);
     setSelectedMatch(null);
     setMatchEvents([]);
     setMatchPlayers([]);
     setOpponentEvents([]);
-    setChronoSeconds(0);
     if (activeTeam?.id) fetchMatches(activeTeam.id);
   };
 
@@ -1660,6 +1750,45 @@ export default function DirectPage() {
           onSkip={handleAssistBodyPartSkipped}
           onClose={cancelFlow}
         />
+      )}
+
+      {/* ── Confirm Finish Modal ────────────────────────────────────────── */}
+      {confirmFinishOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setConfirmFinishOpen(false)}
+          />
+          <div className="relative bg-white dark:bg-dark-secondary rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-start gap-4 p-6">
+              <div className="w-10 h-10 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center flex-shrink-0">
+                <Square className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-dark dark:text-white mb-1">
+                  Terminer ce match ?
+                </h3>
+                <p className="text-sm text-dark-light/70 dark:text-grey-medium leading-relaxed">
+                  Cette action est irréversible. Le match sera marqué comme terminé.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 pb-5">
+              <button
+                onClick={() => setConfirmFinishOpen(false)}
+                className="flex-1 py-2.5 border border-dark-light/20 dark:border-dark-light rounded-xl text-sm font-medium text-dark-light dark:text-grey-medium hover:bg-dark-light/5 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={doFinishMatch}
+                className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors"
+              >
+                Terminer le match
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Toast ──────────────────────────────────────────────────────── */}

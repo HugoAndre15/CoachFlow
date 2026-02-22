@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Users, Shield, ChevronRight } from 'lucide-react';
 import { teamService, Team } from '@/services/teamService';
 import { useClubTeam } from '@/contexts/ClubTeamContext';
-import CreateTeamModal from '../parts/CreateTeamModal';
+import CreateTeamModal from './parts/CreateTeamModal';
 
 const mapRole = (role?: string): string => {
   switch (role) {

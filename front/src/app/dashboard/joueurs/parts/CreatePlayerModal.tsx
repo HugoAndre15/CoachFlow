@@ -59,6 +59,7 @@ export default function CreatePlayerModal({ isOpen, onClose, onSuccess, teamId }
     } catch (err: any) {
       console.error('Error creating player:', err);
       setError(err.response?.data?.message || 'Erreur lors de la création du joueur');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -82,8 +83,14 @@ export default function CreatePlayerModal({ isOpen, onClose, onSuccess, teamId }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-dark-lighter rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={handleClose}
+    >
+      <div
+        className="bg-white dark:bg-dark-lighter rounded-2xl shadow-2xl max-w-md w-full p-6 relative"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Close */}
         <button
           onClick={handleClose}

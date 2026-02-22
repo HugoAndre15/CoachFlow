@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { clubService } from '@/services/clubService';
 import { teamService, Team } from '@/services/teamService';
-import CreateClubModal from '@/app/dashboard/parts/CreateClubModal';
+import CreateClubModal from '@/app/dashboard/clubs/parts/CreateClubModal';
 import { Users, Settings, LogOut, Plus, LayoutGrid, RefreshCcw, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 

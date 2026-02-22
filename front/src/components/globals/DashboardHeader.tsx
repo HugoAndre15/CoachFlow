@@ -74,7 +74,7 @@ export default function DashboardHeader({ onToggleSidebar }: DashboardHeaderProp
       </button>
 
       {/* Logo - Left (hidden on mobile to save space) */}
-      <a href="/dashboard" className="hidden md:flex items-center gap-2.5 mr-8 flex-shrink-0 hover:opacity-80 transition-opacity">
+      <a href="/" className="hidden md:flex items-center gap-2.5 mr-8 flex-shrink-0 hover:opacity-80 transition-opacity">
         <div className="w-8 h-8 rounded-lg bg-accent-green flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white">
             <path d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z" />
