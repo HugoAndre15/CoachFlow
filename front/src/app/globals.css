@@ -18,6 +18,25 @@
   --color-grey-light: #9CA3AF; /* Gris moyen - Textes secondaires et éléments neutres */
   --color-grey-medium: #94A3B8; /* Gris moyen - Textes secondaires et éléments neutres */
 
+  /* Landing page animations */
+  --animate-float: landing-float 6s ease-in-out infinite;
+  --animate-float-delayed: landing-float-delayed 8s ease-in-out 2s infinite;
+  --animate-pulse-glow: landing-pulse-glow 5s ease-in-out infinite;
+}
+
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes landing-float-delayed {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(15px); }
+}
+
+@keyframes landing-pulse-glow {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(1.08); }
 }
 
 @layer base {
