@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import CreateClubModal from './CreateClubModal';
+import CreateClubModal from '../clubs/parts/CreateClubModal';
 
 interface NoClubStateProps {
   onClubCreated: () => void;

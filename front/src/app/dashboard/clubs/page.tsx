@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Eye, Edit2, Trash2, Plus, Users, Crown, Clipboard, Shield } from 'lucide-react';
-import CreateClubModal from '../parts/CreateClubModal';
-import EditClubModal from '../parts/EditClubModal';
-import DeleteClubModal from '../parts/DeleteClubModal';
+import CreateClubModal from './parts/CreateClubModal';
+import EditClubModal from './parts/EditClubModal';
+import DeleteClubModal from './parts/DeleteClubModal';
 import { clubService } from '@/services/clubService';
 
 // Types

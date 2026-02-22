@@ -1,43 +1,21 @@
-'use client';
-
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Users, Target, Award, AlertTriangle } from 'lucide-react';
+﻿'use client';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Users, Target, Award, Star, TrendingUp, Activity, Zap } from 'lucide-react';
 import { playerService, Player, PlayerStats } from '@/services/playerService';
 import { Team } from '@/services/teamService';
-import CreatePlayerModal from '../parts/CreatePlayerModal';
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-const POSITION_LABELS: Record<string, { label: string; color: string }> = {
-  GOALKEEPER: { label: 'G', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
-  DEFENDER:   { label: 'D', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  MIDFIELDER: { label: 'M', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  FORWARD:    { label: 'A', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-};
-
-const POSITION_FULL: Record<string, string> = {
-  GOALKEEPER: 'Gardien',
-  DEFENDER: 'Défenseur',
-  MIDFIELDER: 'Milieu',
-  FORWARD: 'Attaquant',
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  ACTIVE:    'bg-accent-green/10 text-accent-green',
-  INJURED:   'bg-accent-red/10 text-accent-red',
-  SUSPENDED: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  RETIRED:   'bg-neutral/20 text-dark-light dark:text-neutral',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Actif',
-  INJURED: 'Blessé',
-  SUSPENDED: 'Suspendu',
-  RETIRED: 'Retraité',
-};
-
-// ─── Component ──────────────────────────────────────────────────────────────
-
+import CreatePlayerModal from './parts/CreatePlayerModal';
+import PlayerDetailModal from './parts/PlayerDetailModal';
+import EditPlayerModal from './parts/EditPlayerModal';
+import JoueursHeader from './parts/JoueursHeader';
+import JoueursFilters from './parts/JoueursFilters';
+import JoueursLoadingState from './parts/JoueursLoadingState';
+import NoTeamState from './parts/NoTeamState';
+import NoPlayersState from './parts/NoPlayersState';
+import PlayerTable from './parts/PlayerTable';
+import DeleteConfirmModal from './parts/DeleteConfirmModal';
+import StatCard from './parts/StatCard';
+import TopCard from './parts/TopCard';
+// --- Component ---------------------------------------------------------------
 export default function JoueursPage() {
   const [activeTeam, setActiveTeam] = useState<Team | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -47,25 +25,20 @@ export default function JoueursPage() {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [positionFilter, setPositionFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
-
+  const [search, setSearch] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewingPlayer, setViewingPlayer] = useState<Player | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   // Charger depuis localStorage au montage
   useEffect(() => {
     const savedTeamId = localStorage.getItem('activeTeamId');
     const savedTeamName = localStorage.getItem('activeTeamName');
     const savedTeamCategory = localStorage.getItem('activeTeamCategory');
     if (savedTeamId && savedTeamName) {
-      const team: Team = {
-        id: savedTeamId,
-        name: savedTeamName,
-        category: savedTeamCategory || '',
-        club_id: '',
-      };
-      setActiveTeam(team);
+      setActiveTeam({ id: savedTeamId, name: savedTeamName, category: savedTeamCategory || '', club_id: '' });
     }
   }, []);
-
-  // Écouter les changements d'équipe
+  // Ecouter les changements d'equipe
   useEffect(() => {
     const handler = (e: CustomEvent<Team>) => {
       setActiveTeam(e.detail);
@@ -75,8 +48,6 @@ export default function JoueursPage() {
     window.addEventListener('activeTeamChanged', handler as EventListener);
     return () => window.removeEventListener('activeTeamChanged', handler as EventListener);
   }, []);
-
-  // Charger les joueurs quand l'équipe change
   const fetchPlayers = useCallback(async (teamId: string) => {
     try {
       setIsLoading(true);
@@ -84,7 +55,6 @@ export default function JoueursPage() {
       setStatsMap({});
       const data = await playerService.getPlayersByTeam(teamId);
       setPlayers(data);
-      // Charger les stats de tous les joueurs en parallèle
       if (data.length > 0) {
         setIsLoadingStats(true);
         const statsResults = await Promise.allSettled(
@@ -103,223 +73,211 @@ export default function JoueursPage() {
       setIsLoading(false);
     }
   }, []);
-
   useEffect(() => {
     if (activeTeam?.id) fetchPlayers(activeTeam.id);
   }, [activeTeam?.id, fetchPlayers]);
-
   // Filtres
-  const filtered = players.filter(p => {
+  const filtered = useMemo(() => players.filter(p => {
     if (positionFilter && p.position !== positionFilter) return false;
-    if (statusFilter && p.status !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (
+        !p.first_name.toLowerCase().includes(q) &&
+        !p.last_name.toLowerCase().includes(q) &&
+        !(p.jersey_number?.toString() ?? '').includes(q)
+      ) return false;
+    }
     return true;
-  });
-
+  }), [players, positionFilter, search]);
+  // Stats globales
+  const globalStats = useMemo(() => {
+    const allStats = Object.values(statsMap);
+    return {
+      totalGoals:   allStats.reduce((s, x) => s + (x.goals ?? 0), 0),
+      totalAssists: allStats.reduce((s, x) => s + (x.assists ?? 0), 0),
+      totalRecov:   allStats.reduce((s, x) => s + (x.recoveries ?? 0), 0),
+    };
+  }, [statsMap]);
+  // Top performers
+  const topPerformers = useMemo(() => {
+    const entries = Object.entries(statsMap);
+    const byGoals   = [...entries].sort((a, b) => (b[1].goals ?? 0) - (a[1].goals ?? 0))[0];
+    const byAssists = [...entries].sort((a, b) => (b[1].assists ?? 0) - (a[1].assists ?? 0))[0];
+    const byRecov   = [...entries].sort((a, b) => (b[1].recoveries ?? 0) - (a[1].recoveries ?? 0))[0];
+    const findName  = (id: string) => {
+      const p = players.find(x => x.id === id);
+      return p ? p.first_name + ' ' + p.last_name : '-';
+    };
+    return {
+      scorer: byGoals   ? { name: findName(byGoals[0]),   value: byGoals[1].goals + ' but' + (byGoals[1].goals !== 1 ? 's' : '') }         : null,
+      assist: byAssists ? { name: findName(byAssists[0]), value: byAssists[1].assists + ' passe' + (byAssists[1].assists !== 1 ? 's' : '') } : null,
+      recov:  byRecov   ? { name: findName(byRecov[0]),   value: byRecov[1].recoveries + ' recup.' }                                         : null,
+    };
+  }, [statsMap, players]);
   const handleCreateSuccess = () => {
     setIsModalOpen(false);
     if (activeTeam?.id) fetchPlayers(activeTeam.id);
   };
-
-  // ─── Render ───────────────────────────────────────────────────────────────
-
+  const handleDelete = async (playerId: string) => {
+    try {
+      await playerService.deletePlayer(playerId);
+      setPlayers(prev => prev.filter(p => p.id !== playerId));
+      setStatsMap(prev => {
+        const next = { ...prev };
+        delete next[playerId];
+        return next;
+      });
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erreur lors de la suppression');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+  // --- Render ------------------------------------------------------------------
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-dark dark:text-white">Joueurs</h1>
-          {activeTeam && (
-            <p className="text-sm text-dark-light/70 dark:text-neutral mt-0.5">
-              {activeTeam.name}
-              {activeTeam.category && <span className="ml-2 text-xs bg-neutral-lighter dark:bg-dark-light px-1.5 py-0.5 rounded">{activeTeam.category}</span>}
-            </p>
-          )}
-        </div>
-
-        <button
-          onClick={() => setIsModalOpen(true)}
-          disabled={!activeTeam}
-          className="flex items-center gap-2 px-4 py-2 bg-accent-green text-white rounded-lg text-sm font-medium hover:bg-accent-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Plus className="w-4 h-4" />
-          Ajouter un joueur
-        </button>
+    <div className="relative min-h-screen">
+      {/* Background orbs */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-40 -left-32 w-96 h-96 bg-accent-green rounded-full blur-3xl opacity-[0.06] dark:opacity-[0.09] animate-[landing-float_8s_ease-in-out_infinite]" />
+        <div className="absolute top-1/3 -right-40 w-80 h-80 bg-accent-blue rounded-full blur-3xl opacity-[0.05] dark:opacity-[0.07] animate-[landing-float-delayed_10s_ease-in-out_infinite]" />
+        <div className="absolute -bottom-32 left-1/3 w-72 h-72 bg-red-500 rounded-full blur-3xl opacity-[0.04] dark:opacity-[0.06] animate-[landing-float_12s_ease-in-out_infinite_2s]" />
+        <div className="absolute top-2/3 left-10 w-48 h-48 bg-accent-green rounded-full blur-2xl opacity-[0.03] dark:opacity-[0.05] animate-[landing-float-delayed_9s_ease-in-out_infinite_1s]" />
       </div>
-
-      {/* No team selected */}
-      {!activeTeam ? (
-        <div className="flex flex-col items-center justify-center py-28 text-center">
-          <Users className="w-12 h-12 text-neutral mb-4" />
-          <p className="text-dark-light dark:text-neutral font-medium">Aucune équipe sélectionnée</p>
-          <p className="text-sm text-dark-light/50 dark:text-neutral/50 mt-1">
-            Sélectionnez une équipe dans la barre de navigation
-          </p>
-        </div>
-      ) : isLoading ? (
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-xl animate-pulse" />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-accent-red font-medium">{error}</p>
-          <button onClick={() => fetchPlayers(activeTeam.id)} className="mt-3 text-sm text-accent-green hover:underline">
-            Réessayer
-          </button>
-        </div>
-      ) : (
-        <>
-          {/* Filtres + compteur */}
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-dark-light dark:text-neutral">
-              <span className="font-semibold text-dark dark:text-white">{filtered.length}</span> joueur{filtered.length !== 1 ? 's' : ''}
-            </span>
-            <div className="ml-auto flex items-center gap-2">
-              <select
-                value={positionFilter}
-                onChange={e => setPositionFilter(e.target.value)}
-                className="text-sm bg-white dark:bg-dark-lighter border border-neutral/30 dark:border-dark-light text-dark dark:text-white rounded-lg px-3 py-1.5 outline-none focus:border-accent-green"
-              >
-                <option value="">Tous les postes</option>
-                <option value="GOALKEEPER">Gardiens</option>
-                <option value="DEFENDER">Défenseurs</option>
-                <option value="MIDFIELDER">Milieux</option>
-                <option value="FORWARD">Attaquants</option>
-              </select>
-              <select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="text-sm bg-white dark:bg-dark-lighter border border-neutral/30 dark:border-dark-light text-dark dark:text-white rounded-lg px-3 py-1.5 outline-none focus:border-accent-green"
-              >
-                <option value="">Tous les statuts</option>
-                <option value="ACTIVE">Actifs</option>
-                <option value="INJURED">Blessés</option>
-                <option value="SUSPENDED">Suspendus</option>
-                <option value="RETIRED">Retraités</option>
-              </select>
-            </div>
+      <div className="relative z-10 space-y-6">
+        {/* Header */}
+        <JoueursHeader
+          activeTeam={activeTeam}
+          isLoading={isLoading}
+          onRefresh={() => activeTeam && fetchPlayers(activeTeam.id)}
+          onAdd={() => setIsModalOpen(true)}
+        />
+        {/* No team / Loading / Error / Content */}
+        {!activeTeam ? (
+          <NoTeamState />
+        ) : isLoading ? (
+          <JoueursLoadingState />
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <p className="text-red-400 font-medium">{error}</p>
+            <button onClick={() => fetchPlayers(activeTeam.id)} className="mt-3 text-sm text-accent-green hover:underline">
+              Reessayer
+            </button>
           </div>
-
-          {/* Table */}
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Users className="w-10 h-10 text-neutral mb-3" />
-              <p className="text-dark-light dark:text-neutral font-medium">Aucun joueur</p>
-              <p className="text-sm text-dark-light/50 dark:text-neutral/50 mt-1 mb-4">
-                {positionFilter || statusFilter ? 'Aucun joueur ne correspond aux filtres' : 'Ajoutez votre premier joueur'}
-              </p>
-              {!positionFilter && !statusFilter && (
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-accent-green text-white rounded-lg text-sm font-medium hover:bg-accent-green/90 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Ajouter un joueur
-                </button>
-              )}
+        ) : (
+          <>
+            {/* Global stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                icon={<Users className="w-4 h-4 text-accent-green" />}
+                label="Effectif total"
+                value={players.length}
+                sub={players.filter(p => p.status === 'ACTIVE').length + ' actifs'}
+                barColor="bg-accent-green"
+              />
+              <StatCard
+                icon={<Target className="w-4 h-4 text-yellow-400" />}
+                label="Buts marques"
+                value={globalStats.totalGoals}
+                sub={'moy. ' + (players.length > 0 ? (globalStats.totalGoals / players.length).toFixed(1) : 0) + ' / joueur'}
+                barColor="bg-yellow-400"
+              />
+              <StatCard
+                icon={<Award className="w-4 h-4 text-accent-blue" />}
+                label="Passes decisives"
+                value={globalStats.totalAssists}
+                sub={'moy. ' + (players.length > 0 ? (globalStats.totalAssists / players.length).toFixed(1) : 0) + ' / joueur'}
+                barColor="bg-accent-blue"
+              />
+              <StatCard
+                icon={<Zap className="w-4 h-4 text-purple-400" />}
+                label="Recuperations"
+                value={globalStats.totalRecov}
+                sub={'moy. ' + (players.length > 0 ? (globalStats.totalRecov / players.length).toFixed(1) : 0) + ' / joueur'}
+                barColor="bg-purple-400"
+              />
             </div>
-          ) : (
-            <div className="bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-xl overflow-hidden">
-              {/* Header row */}
-              <div className="grid grid-cols-[40px_1fr_120px_100px_40px_40px_40px_40px_40px] gap-3 px-4 py-2.5 border-b border-neutral/10 dark:border-dark-light bg-neutral-lighter/40 dark:bg-dark-secondary/30">
-                <span className="text-xs font-medium text-dark-light/60 dark:text-neutral/60 text-center">#</span>
-                <span className="text-xs font-medium text-dark-light/60 dark:text-neutral/60">Joueur</span>
-                <span className="text-xs font-medium text-dark-light/60 dark:text-neutral/60">Poste</span>
-                <span className="text-xs font-medium text-dark-light/60 dark:text-neutral/60">Statut</span>
-                <span className="text-xs font-medium text-dark-light/60 dark:text-neutral/60 text-center" title="Matchs joués">MJ</span>
-                <span className="text-xs font-medium text-dark-light/60 dark:text-neutral/60 text-center" title="Buts">
-                  <Target className="w-3.5 h-3.5 inline" />
-                </span>
-                <span className="text-xs font-medium text-dark-light/60 dark:text-neutral/60 text-center" title="Passes décisives">
-                  <Award className="w-3.5 h-3.5 inline" />
-                </span>
-                <span className="text-xs font-medium text-yellow-500 text-center" title="Cartons jaunes">▪</span>
-                <span className="text-xs font-medium text-red-500 text-center" title="Cartons rouges">▪</span>
+            {/* Top performers */}
+            {Object.keys(statsMap).length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <TopCard
+                  icon={<Star className="w-4 h-4 text-yellow-400" />}
+                  title="Meilleur Buteur"
+                  name={topPerformers.scorer?.name ?? '-'}
+                  value={topPerformers.scorer?.value ?? '0 but'}
+                  accentText="text-yellow-400"
+                />
+                <TopCard
+                  icon={<TrendingUp className="w-4 h-4 text-accent-blue" />}
+                  title="Plus de passes decisives"
+                  name={topPerformers.assist?.name ?? '-'}
+                  value={topPerformers.assist?.value ?? '0 passe'}
+                  accentText="text-accent-blue"
+                />
+                <TopCard
+                  icon={<Activity className="w-4 h-4 text-accent-green" />}
+                  title="Plus de recuperations"
+                  name={topPerformers.recov?.name ?? '-'}
+                  value={topPerformers.recov?.value ?? '0 recup.'}
+                  accentText="text-accent-green"
+                />
               </div>
-
-              {/* Player rows */}
-              {filtered.map(player => {
-                const stats = statsMap[player.id];
-                const posStyle = player.position ? POSITION_LABELS[player.position] : null;
-                return (
-                  <div
-                    key={player.id}
-                    className="grid grid-cols-[40px_1fr_120px_100px_40px_40px_40px_40px_40px] gap-3 px-4 py-3 border-b border-neutral/5 dark:border-dark-light/50 last:border-0 hover:bg-neutral-lighter/30 dark:hover:bg-dark-secondary/20 transition-colors items-center"
-                  >
-                    {/* Numéro */}
-                    <span className="text-sm font-bold text-dark-light dark:text-neutral text-center">
-                      {player.jersey_number ?? '—'}
-                    </span>
-
-                    {/* Nom */}
-                    <div>
-                      <p className="text-sm font-semibold text-dark dark:text-white">
-                        {player.last_name} {player.first_name}
-                      </p>
-                      {player.strong_foot && (
-                        <p className="text-[10px] text-dark-light/50 dark:text-neutral/50">
-                          Pied {player.strong_foot === 'RIGHT' ? 'D' : player.strong_foot === 'LEFT' ? 'G' : 'D/G'}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Poste */}
-                    <div className="flex items-center gap-1.5">
-                      {posStyle && (
-                        <span className={`text-xs font-bold w-6 h-6 rounded flex items-center justify-center ${posStyle.color}`}>
-                          {posStyle.label}
-                        </span>
-                      )}
-                      <span className="text-xs text-dark-light/70 dark:text-neutral">
-                        {player.position ? POSITION_FULL[player.position] : '—'}
-                      </span>
-                    </div>
-
-                    {/* Statut */}
-                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full w-fit ${STATUS_STYLE[player.status]}`}>
-                      {STATUS_LABEL[player.status]}
-                    </span>
-
-                    {/* Stats */}
-                    {isLoadingStats && !stats ? (
-                      <div className="col-span-5 flex items-center justify-center">
-                        <div className="h-3 w-16 bg-neutral/20 rounded animate-pulse" />
-                      </div>
-                    ) : (
-                      <>
-                        <span className="text-sm text-dark dark:text-neutral-lighter text-center font-medium">
-                          {stats?.total_matches ?? '—'}
-                        </span>
-                        <span className="text-sm text-dark dark:text-neutral-lighter text-center font-medium">
-                          {stats?.goals ?? '—'}
-                        </span>
-                        <span className="text-sm text-dark dark:text-neutral-lighter text-center font-medium">
-                          {stats?.assists ?? '—'}
-                        </span>
-                        <span className="text-sm text-yellow-500 text-center font-medium">
-                          {stats?.yellow_cards ?? '—'}
-                        </span>
-                        <span className="text-sm text-red-500 text-center font-medium">
-                          {stats?.red_cards ?? '—'}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Modal */}
+            )}
+            {/* Filters */}
+            <JoueursFilters
+              search={search}
+              onSearchChange={setSearch}
+              positionFilter={positionFilter}
+              onPositionChange={setPositionFilter}
+              filteredCount={filtered.length}
+            />
+            {/* Table / Empty */}
+            {filtered.length === 0 ? (
+              <NoPlayersState
+                hasFilters={!!(search || positionFilter)}
+                onAdd={() => setIsModalOpen(true)}
+              />
+            ) : (
+              <PlayerTable
+                players={filtered}
+                statsMap={statsMap}
+                isLoadingStats={isLoadingStats}
+                onView={setViewingPlayer}
+                onEdit={setEditingPlayer}
+                onDelete={setDeletingId}
+              />
+            )}
+          </>
+        )}
+      </div>
+      {/* Modals */}
       {activeTeam && (
         <CreatePlayerModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSuccess={handleCreateSuccess}
           teamId={activeTeam.id}
+        />
+      )}
+      <PlayerDetailModal
+        isOpen={!!viewingPlayer}
+        player={viewingPlayer}
+        stats={viewingPlayer ? statsMap[viewingPlayer.id] : undefined}
+        onClose={() => setViewingPlayer(null)}
+      />
+      <EditPlayerModal
+        isOpen={!!editingPlayer}
+        player={editingPlayer}
+        onClose={() => setEditingPlayer(null)}
+        onSuccess={(updated) => {
+          setPlayers(prev => prev.map(p => p.id === updated.id ? updated : p));
+          setEditingPlayer(null);
+        }}
+      />
+      {deletingId && (
+        <DeleteConfirmModal
+          playerId={deletingId}
+          onCancel={() => setDeletingId(null)}
+          onConfirm={handleDelete}
         />
       )}
     </div>

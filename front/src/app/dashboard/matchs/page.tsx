@@ -1,15 +1,48 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Plus, Calendar, MapPin, Clock, Users, Play, ChevronRight,
-  Shield, Radio, Trophy, Search, Filter,
+  Shield, Radio, Trophy, Search, ChevronDown, ChevronUp, X, AlertTriangle,
 } from 'lucide-react';
 import { matchService, Match, MatchStatus } from '@/services/matchService';
 import { Team } from '@/services/teamService';
-import CreateMatchModal from '../parts/CreateMatchModal';
-import CompositionModal from '../parts/CompositionModal';
-import MatchSummaryModal from '../parts/MatchSummaryModal';
+import CreateMatchModal from './parts/CreateMatchModal';
+import CompositionModal from './parts/CompositionModal';
+import MatchSummaryModal from './parts/MatchSummaryModal';
+
+// ─── Alert Modal ─────────────────────────────────────────────────────────────
+
+function AlertModal({ message, onClose }: { message: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-neutral-lightest dark:bg-dark-secondary rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="flex items-start gap-4 p-6">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-dark dark:text-white mb-1">Attention</h3>
+            <p className="text-sm text-dark-light/70 dark:text-neutral leading-relaxed">{message}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-neutral/10 dark:hover:bg-dark-light transition-colors flex-shrink-0">
+            <X className="w-4 h-4 text-dark-light dark:text-neutral" />
+          </button>
+        </div>
+        <div className="px-6 pb-5">
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 bg-accent-green text-white text-sm font-semibold rounded-xl hover:bg-accent-green/90 transition-colors"
+          >
+            Compris
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -225,13 +258,14 @@ function MatchCard({
           )}
 
           {isLive && (
-            <button
+            <a
+              href={`/dashboard/direct?matchId=${match.id}`}
               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors"
             >
               <Radio className="w-3.5 h-3.5" />
               Ouvrir le direct
               <ChevronRight className="w-3 h-3" />
-            </button>
+            </a>
           )}
 
           {match.status === 'FINISHED' && (
@@ -261,6 +295,10 @@ export default function MatchsPage() {
   const [isCreateOpen, setIsCreateOpen]     = useState(false);
   const [compositionMatchId, setCompositionMatchId] = useState<string | null>(null);
   const [summaryMatchId, setSummaryMatchId]         = useState<string | null>(null);
+  const [alertMessage, setAlertMessage]             = useState<string | null>(null);
+  const [collapsedLive, setCollapsedLive]           = useState(false);
+  const [collapsedUpcoming, setCollapsedUpcoming]   = useState(false);
+  const [collapsedFinished, setCollapsedFinished]   = useState(false);
 
   // ── Restore team from localStorage ────────────────────────────────────
   useEffect(() => {
@@ -306,7 +344,7 @@ export default function MatchsPage() {
       const startersCount = players.filter(p => p.status === 'STARTER').length;
 
       if (startersCount < 2) {
-        alert(
+        setAlertMessage(
           `Il faut au moins 2 titulaires pour lancer un match en direct (actuellement ${startersCount}). Configurez la composition d'abord.`,
         );
         return;
@@ -315,7 +353,7 @@ export default function MatchsPage() {
       await matchService.updateStatus(matchId, 'LIVE');
       if (activeTeam?.id) fetchMatches(activeTeam.id);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors du passage en direct');
+      setAlertMessage(err.response?.data?.message || 'Erreur lors du passage en direct');
     }
   };
 
@@ -516,69 +554,96 @@ export default function MatchsPage() {
           {/* Live section */}
           {grouped.live.length > 0 && (
             <section>
-              <div className="flex items-center gap-2 mb-3">
+              <button
+                onClick={() => setCollapsedLive(p => !p)}
+                className="flex items-center gap-2 mb-3 group w-full text-left"
+              >
                 <LivePulse />
-                <h2 className="text-sm font-semibold text-accent-green uppercase tracking-wide">
+                <h2 className="text-sm font-semibold text-accent-green uppercase tracking-wide flex-1">
                   En direct ({grouped.live.length})
                 </h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {grouped.live.map(m => (
-                  <MatchCard
-                    key={m.id}
-                    match={m}
-                    teamName={activeTeam.name}
-                    onComposition={() => setCompositionMatchId(m.id)}
-                    onGoLive={() => {}}
-                    onSummary={() => setSummaryMatchId(m.id)}
-                  />
-                ))}
-              </div>
+                {collapsedLive ? <ChevronDown className="w-4 h-4 text-accent-green" /> : <ChevronUp className="w-4 h-4 text-accent-green" />}
+              </button>
+              {!collapsedLive && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {grouped.live.map(m => (
+                    <MatchCard
+                      key={m.id}
+                      match={m}
+                      teamName={activeTeam.name}
+                      onComposition={() => setCompositionMatchId(m.id)}
+                      onGoLive={() => {}}
+                      onSummary={() => setSummaryMatchId(m.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
           {/* Upcoming section */}
           {grouped.upcoming.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide mb-3">
-                À venir ({grouped.upcoming.length})
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {grouped.upcoming.map(m => (
-                  <MatchCard
-                    key={m.id}
-                    match={m}
-                    teamName={activeTeam.name}
-                    onComposition={() => setCompositionMatchId(m.id)}
-                    onGoLive={() => handleGoLive(m.id)}
-                    onSummary={() => setSummaryMatchId(m.id)}
-                  />
-                ))}
-              </div>
+              <button
+                onClick={() => setCollapsedUpcoming(p => !p)}
+                className="flex items-center gap-2 mb-3 group w-full text-left"
+              >
+                <h2 className="text-sm font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide flex-1">
+                  À venir ({grouped.upcoming.length})
+                </h2>
+                {collapsedUpcoming ? <ChevronDown className="w-4 h-4 text-dark-light/40 dark:text-neutral/40" /> : <ChevronUp className="w-4 h-4 text-dark-light/40 dark:text-neutral/40" />}
+              </button>
+              {!collapsedUpcoming && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {grouped.upcoming.map(m => (
+                    <MatchCard
+                      key={m.id}
+                      match={m}
+                      teamName={activeTeam.name}
+                      onComposition={() => setCompositionMatchId(m.id)}
+                      onGoLive={() => handleGoLive(m.id)}
+                      onSummary={() => setSummaryMatchId(m.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
           {/* Finished section */}
           {grouped.finished.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide mb-3">
-                Terminés ({grouped.finished.length})
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {grouped.finished.map(m => (
-                  <MatchCard
-                    key={m.id}
-                    match={m}
-                    teamName={activeTeam.name}
-                    onComposition={() => setCompositionMatchId(m.id)}
-                    onGoLive={() => {}}
-                    onSummary={() => setSummaryMatchId(m.id)}
-                  />
-                ))}
-              </div>
+              <button
+                onClick={() => setCollapsedFinished(p => !p)}
+                className="flex items-center gap-2 mb-3 group w-full text-left"
+              >
+                <h2 className="text-sm font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide flex-1">
+                  Terminés ({grouped.finished.length})
+                </h2>
+                {collapsedFinished ? <ChevronDown className="w-4 h-4 text-dark-light/40 dark:text-neutral/40" /> : <ChevronUp className="w-4 h-4 text-dark-light/40 dark:text-neutral/40" />}
+              </button>
+              {!collapsedFinished && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {grouped.finished.map(m => (
+                    <MatchCard
+                      key={m.id}
+                      match={m}
+                      teamName={activeTeam.name}
+                      onComposition={() => setCompositionMatchId(m.id)}
+                      onGoLive={() => {}}
+                      onSummary={() => setSummaryMatchId(m.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>
+      )}
+
+      {/* ── Alert Modal ──────────────────────────────────────────────── */}
+      {alertMessage && (
+        <AlertModal message={alertMessage} onClose={() => setAlertMessage(null)} />
       )}
 
       {/* ── Modals ───────────────────────────────────────────────────── */}
