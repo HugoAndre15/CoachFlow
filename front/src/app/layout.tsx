@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Providers } from "./providers";
 import LayoutWrapper from "@/components/globals/LayoutWrapper";
@@ -29,6 +30,7 @@ export default function RootLayout({
         <Providers>
           <LayoutWrapper>{children}</LayoutWrapper>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
