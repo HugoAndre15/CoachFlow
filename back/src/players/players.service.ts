@@ -355,11 +355,23 @@ export class PlayersService {
     // 6. Buts par zone
     const goalEvents = events.filter(e => e.event_type === 'GOAL');
     const goalsByZone = {
-      LEFT: goalEvents.filter(e => e.zone === 'LEFT').length,
-      RIGHT: goalEvents.filter(e => e.zone === 'RIGHT').length,
-      AXIS: goalEvents.filter(e => e.zone === 'AXIS').length,
-      BOX: goalEvents.filter(e => e.zone === 'BOX').length,
+      // Zones de grille 3×3 (utilisées par le sélecteur de match live)
+      ATT_LEFT:   goalEvents.filter(e => e.zone === 'ATT_LEFT').length,
+      ATT_CENTER: goalEvents.filter(e => e.zone === 'ATT_CENTER').length,
+      ATT_RIGHT:  goalEvents.filter(e => e.zone === 'ATT_RIGHT').length,
+      MID_LEFT:   goalEvents.filter(e => e.zone === 'MID_LEFT').length,
+      MID_CENTER: goalEvents.filter(e => e.zone === 'MID_CENTER').length,
+      MID_RIGHT:  goalEvents.filter(e => e.zone === 'MID_RIGHT').length,
+      DEF_LEFT:   goalEvents.filter(e => e.zone === 'DEF_LEFT').length,
+      DEF_CENTER: goalEvents.filter(e => e.zone === 'DEF_CENTER').length,
+      DEF_RIGHT:  goalEvents.filter(e => e.zone === 'DEF_RIGHT').length,
+      // Zones complémentaires
+      BOX:    goalEvents.filter(e => e.zone === 'BOX').length,
       OUTSIDE: goalEvents.filter(e => e.zone === 'OUTSIDE').length,
+      // Zones legacy (conservées pour compatibilité)
+      LEFT:  goalEvents.filter(e => e.zone === 'LEFT').length,
+      RIGHT: goalEvents.filter(e => e.zone === 'RIGHT').length,
+      AXIS:  goalEvents.filter(e => e.zone === 'AXIS').length,
     };
 
     // 7. Buts par partie du corps

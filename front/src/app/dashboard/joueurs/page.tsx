@@ -160,7 +160,7 @@ export default function JoueursPage() {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-red-400 font-medium">{error}</p>
             <button onClick={() => fetchPlayers(activeTeam.id)} className="mt-3 text-sm text-accent-green hover:underline">
-              Reessayer
+              Réessayer
             </button>
           </div>
         ) : (
@@ -176,21 +176,21 @@ export default function JoueursPage() {
               />
               <StatCard
                 icon={<Target className="w-4 h-4 text-yellow-400" />}
-                label="Buts marques"
+                label="Buts marqués"
                 value={globalStats.totalGoals}
                 sub={'moy. ' + (players.length > 0 ? (globalStats.totalGoals / players.length).toFixed(1) : 0) + ' / joueur'}
                 barColor="bg-yellow-400"
               />
               <StatCard
                 icon={<Award className="w-4 h-4 text-accent-blue" />}
-                label="Passes decisives"
+                label="Passes décisives"
                 value={globalStats.totalAssists}
                 sub={'moy. ' + (players.length > 0 ? (globalStats.totalAssists / players.length).toFixed(1) : 0) + ' / joueur'}
                 barColor="bg-accent-blue"
               />
               <StatCard
                 icon={<Zap className="w-4 h-4 text-purple-400" />}
-                label="Recuperations"
+                label="Récupérations"
                 value={globalStats.totalRecov}
                 sub={'moy. ' + (players.length > 0 ? (globalStats.totalRecov / players.length).toFixed(1) : 0) + ' / joueur'}
                 barColor="bg-purple-400"
@@ -208,14 +208,14 @@ export default function JoueursPage() {
                 />
                 <TopCard
                   icon={<TrendingUp className="w-4 h-4 text-accent-blue" />}
-                  title="Plus de passes decisives"
+                  title="Plus de passes décisives"
                   name={topPerformers.assist?.name ?? '-'}
                   value={topPerformers.assist?.value ?? '0 passe'}
                   accentText="text-accent-blue"
                 />
                 <TopCard
                   icon={<Activity className="w-4 h-4 text-accent-green" />}
-                  title="Plus de recuperations"
+                  title="Plus de récupérations"
                   name={topPerformers.recov?.name ?? '-'}
                   value={topPerformers.recov?.value ?? '0 recup.'}
                   accentText="text-accent-green"

@@ -45,7 +45,7 @@ const EVENT_DISPLAY: Record<string, { label: string; icon: React.ReactNode; colo
     bg: 'bg-accent-green/10',
   },
   ASSIST: {
-    label: 'Passe dé.',
+    label: 'Passe décisive',
     icon: <ArrowUpCircle className="w-3.5 h-3.5" />,
     color: 'text-accent-blue',
     bg: 'bg-accent-blue/10',
@@ -75,11 +75,50 @@ const EVENT_DISPLAY: Record<string, { label: string; icon: React.ReactNode; colo
     bg: 'bg-orange-50 dark:bg-orange-900/20',
   },
   SUBSTITUTION: {
-    label: 'Changement',
+    label: 'Remplacement',
     icon: <ArrowLeftRight className="w-3.5 h-3.5" />,
     color: 'text-purple-600 dark:text-purple-400',
     bg: 'bg-purple-50 dark:bg-purple-900/20',
   },
+  OWN_GOAL: {
+    label: 'But contre son camp',
+    icon: <Target className="w-3.5 h-3.5" />,
+    color: 'text-orange-500',
+    bg: 'bg-orange-500/10',
+  },
+  PENALTY: {
+    label: 'Penalty',
+    icon: <Target className="w-3.5 h-3.5" />,
+    color: 'text-accent-green',
+    bg: 'bg-accent-green/10',
+  },
+  MISSED_PENALTY: {
+    label: 'Penalty raté',
+    icon: <Target className="w-3.5 h-3.5" />,
+    color: 'text-red-400',
+    bg: 'bg-red-500/10',
+  },
+  FOUL: {
+    label: 'Faute',
+    icon: <AlertTriangle className="w-3.5 h-3.5" />,
+    color: 'text-orange-500',
+    bg: 'bg-orange-500/10',
+  },
+  SAVE: {
+    label: 'Arrêt',
+    icon: <Shield className="w-3.5 h-3.5" />,
+    color: 'text-accent-blue',
+    bg: 'bg-accent-blue/10',
+  },
+};
+
+// French fallback for unknown event type keys
+const EVENT_TYPE_FALLBACK: Record<string, string> = {
+  GOAL: 'But', ASSIST: 'Passe décisive', YELLOW_CARD: 'Carton jaune',
+  RED_CARD: 'Carton rouge', RECOVERY: 'Récupération', BALL_LOSS: 'Perte de balle',
+  SUBSTITUTION: 'Remplacement', OWN_GOAL: 'But contre son camp',
+  PENALTY: 'Penalty', MISSED_PENALTY: 'Penalty raté',
+  FOUL: 'Faute', SAVE: 'Arrêt',
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -299,9 +338,9 @@ export default function MatchSummaryModal({
 
                     {stats.timeline.map((event, idx) => {
                       const cfg = EVENT_DISPLAY[event.eventType] || {
-                        label: event.eventType,
+                        label: EVENT_TYPE_FALLBACK[event.eventType] ?? 'Événement',
                         icon: <Clock className="w-3.5 h-3.5" />,
-                        color: 'text-dark-light',
+                        color: 'text-dark-light dark:text-neutral',
                         bg: 'bg-neutral/10',
                       };
 

@@ -51,6 +51,7 @@ export default function FeaturesSection() {
       />
 
       {/* Feature 3: Convocations */}
+      {/* 
       <FeatureBlock
         badge={{ icon: <Send className="w-4 h-4" />, text: 'Convocations', color: 'blue' }}
         title="Convoquez vos joueurs en un clic par email et SMS"
@@ -68,7 +69,8 @@ export default function FeaturesSection() {
         ctaText="Essayer les convocations"
         mockup={<ConvocationMockup />}
         reversed={false}
-      />
+      /> 
+      */}
     </section>
   );
 }
