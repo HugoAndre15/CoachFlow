@@ -1,6 +1,7 @@
 'use client';
 
 import { Club } from '@/services/clubService';
+import ClubLogo from '@/components/ui/ClubLogo';
 import StatsCard from './StatsCard';
 
 interface ClubDashboardProps {
@@ -18,9 +19,12 @@ export default function ClubDashboard({ club, userName }: ClubDashboardProps) {
         <p className="text-gray-600 dark:text-neutral mt-2">
           Bienvenue, {userName} !
         </p>
-        <h2 className="text-accent-green font-bold text-xl uppercase mt-1">
-          {club.name}
-        </h2>
+        <div className="flex items-center gap-3 mt-1">
+          <ClubLogo logo={club.logo} name={club.name} size="lg" />
+          <h2 className="text-accent-green font-bold text-xl uppercase">
+            {club.name}
+          </h2>
+        </div>
       </div>
     </div>
   );

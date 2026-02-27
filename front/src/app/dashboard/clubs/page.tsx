@@ -5,15 +5,8 @@ import { Eye, Edit2, Trash2, Plus, Users, Crown, Clipboard, Shield } from 'lucid
 import CreateClubModal from './parts/CreateClubModal';
 import EditClubModal from './parts/EditClubModal';
 import DeleteClubModal from './parts/DeleteClubModal';
-import { clubService } from '@/services/clubService';
-
-// Types
-interface Club {
-  id: string;
-  name: string;
-  role: string;
-  created_at: string;
-}
+import { clubService, Club } from '@/services/clubService';
+import ClubLogo from '@/components/ui/ClubLogo';
 
 type RoleFilter = 'Tous' | 'Président' | 'Responsable' | 'Entraîneur';
 
@@ -205,9 +198,7 @@ export default function ClubsPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-green to-accent-blue flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                      {club.name.charAt(0)}
-                    </div>
+                    <ClubLogo logo={club.logo} name={club.name} size="lg" className="shadow-lg" />
                     <div>
                       <h3 className="text-lg font-bold text-dark dark:text-neutral-lightest group-hover:text-accent-green transition-colors">
                         {club.name}

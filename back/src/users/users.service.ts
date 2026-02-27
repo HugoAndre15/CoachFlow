@@ -117,6 +117,9 @@ export class UsersService {
           select: {
             id: true,
             name: true,
+            city: true,
+            logo: true,
+            invite_code: true,
             created_at: true,
           },
         },

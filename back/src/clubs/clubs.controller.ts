@@ -16,6 +16,7 @@ import { UpdateClubDto } from './dto/update-club.dto';
 import { AddClubMemberDto } from './dto/add-club-member.dto';
 import { UpdateClubMemberRoleDto } from './dto/update-club-member-role.dto';
 import { TransferPresidencyDto } from './dto/transfer-presidency.dto';
+import { JoinClubDto } from './dto/join-club.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -37,6 +38,18 @@ export class ClubsController {
     @CurrentUser() user: any
   ) {
     return this.clubsService.create(createClubDto, user.id);
+  }
+
+  @Post('join')
+  @ApiOperation({ summary: 'Rejoindre un club par code d\'invitation', description: 'L\'utilisateur est ajouté en tant que COACH par défaut' })
+  @ApiResponse({ status: 201, description: 'Club rejoint avec succès' })
+  @ApiResponse({ status: 404, description: 'Code d\'invitation invalide' })
+  @ApiResponse({ status: 409, description: 'Déjà membre du club' })
+  joinByCode(
+    @Body() joinClubDto: JoinClubDto,
+    @CurrentUser() user: any
+  ) {
+    return this.clubsService.joinByCode(joinClubDto, user.id);
   }
 
   @Get()

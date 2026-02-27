@@ -11,6 +11,7 @@ import { UpdateClubDto } from './dto/update-club.dto';
 import { AddClubMemberDto } from './dto/add-club-member.dto';
 import { UpdateClubMemberRoleDto } from './dto/update-club-member-role.dto';
 import { TransferPresidencyDto } from './dto/transfer-presidency.dto';
+import { JoinClubDto } from './dto/join-club.dto';
 import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
 import { club_role } from '@prisma/client';
 
@@ -70,6 +71,18 @@ export class ClubsService {
     return false; // COACH ne peut rien changer
   }
 
+  /**
+   * Génère un code d'invitation lisible de 9 caractères alphanumériques
+   */
+  private generateInviteCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous chars (0,O,I,1)
+    let code = '';
+    for (let i = 0; i < 9; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
   // ==================== CRUD DE BASE ====================
 
   /**
@@ -77,10 +90,16 @@ export class ClubsService {
    */
   async create(createClubDto: CreateClubDto, userId: string) {
     return this.prisma.$transaction(async (tx) => {
+      // Générer un code d'invitation lisible (9 caractères alphanumériques)
+      const inviteCode = this.generateInviteCode();
+
       // Créer le club
       const club = await tx.club.create({
         data: {
           name: createClubDto.name,
+          city: createClubDto.city || null,
+          logo: createClubDto.logo || null,
+          invite_code: inviteCode,
         },
       });
 
@@ -524,5 +543,52 @@ export class ClubsService {
     });
     
     return { message: 'Vous avez quitté le club avec succès' };
+  }
+
+  // ==================== REJOINDRE UN CLUB ====================
+
+  /**
+   * Rejoindre un club via son code d'invitation
+   * L'utilisateur est ajouté en tant que COACH par défaut
+   */
+  async joinByCode(joinClubDto: JoinClubDto, userId: string) {
+    const club = await this.prisma.club.findUnique({
+      where: { invite_code: joinClubDto.invite_code },
+    });
+
+    if (!club) {
+      throw new NotFoundException('Code d\'invitation invalide. Vérifiez le code et réessayez.');
+    }
+
+    // Vérifier si l'utilisateur est déjà membre
+    const existingMember = await this.prisma.clubUser.findFirst({
+      where: {
+        club_id: club.id,
+        user_id: userId,
+      },
+    });
+
+    if (existingMember) {
+      throw new ConflictException('Vous êtes déjà membre de ce club');
+    }
+
+    // Ajouter l'utilisateur comme COACH par défaut
+    await this.prisma.clubUser.create({
+      data: {
+        club_id: club.id,
+        user_id: userId,
+        role: club_role.COACH,
+      },
+    });
+
+    return {
+      message: `Vous avez rejoint le club "${club.name}" avec succès`,
+      club: {
+        id: club.id,
+        name: club.name,
+        city: club.city,
+        logo: club.logo,
+      },
+    };
   }
 }

@@ -6,10 +6,12 @@ import { teamService, Team } from '@/services/teamService';
 import CreateClubModal from '@/app/dashboard/clubs/parts/CreateClubModal';
 import { Users, Settings, LogOut, Plus, LayoutGrid, RefreshCcw, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ClubLogo from '@/components/ui/ClubLogo';
 
 interface Club {
   id: string;
   name: string;
+  logo?: string;
   role: string;
   created_at: string;
 }
@@ -168,9 +170,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
             {activeClub && (
               <div className="px-4 py-3 bg-accent-green/5 dark:bg-accent-green/10 border-b border-neutral/20 dark:border-dark-light">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-green to-accent-blue flex items-center justify-center text-white font-bold text-sm">
-                    {activeClub.name.charAt(0)}
-                  </div>
+                  <ClubLogo logo={activeClub.logo} name={activeClub.name} size="md" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-dark dark:text-white truncate">
                       {activeClub.name}
@@ -289,9 +289,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
                   onClick={() => handleClubChange(club)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-lighter/50 dark:hover:bg-dark-light/50 transition-colors text-left"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-green to-accent-blue flex items-center justify-center text-white font-bold text-sm">
-                    {club.name.charAt(0)}
-                  </div>
+                  <ClubLogo logo={club.logo} name={club.name} size="md" />
                   <span className="text-sm text-dark dark:text-neutral-lightest truncate flex-1">
                     {club.name}
                   </span>

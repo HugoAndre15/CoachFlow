@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
     provider = "prisma-client-js"
 }
@@ -10,9 +7,147 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-// Ajoutez vos modèles ici
+model Player {
+    id            String        @id @default(uuid())
+    first_name    String
+    last_name     String
+    created_at    DateTime      @default(now())
+    jersey_number Int?
+    team_id       String
+    updated_at    DateTime      @updatedAt
+    user_id       String?       @unique
+    position      position?
+    status        player_status @default(ACTIVE)
+    strong_foot   strong_foot?
+    matchEvents   MatchEvent[]
+    team          Team          @relation(fields: [team_id], references: [id], onDelete: Cascade)
+    user          User?         @relation(fields: [user_id], references: [id])
+    matchPlayers  MatchPlayer[]
+}
 
-//Enum Position
+model Team {
+    id         String     @id @default(uuid())
+    name       String
+    category   String
+    created_at DateTime   @default(now())
+    updated_at DateTime   @updatedAt
+    club_id    String
+    matches    Match[]
+    players    Player[]
+    club       Club       @relation(fields: [club_id], references: [id], onDelete: Cascade)
+    teamUsers  TeamUser[]
+}
+
+model User {
+    id            String     @id @default(uuid())
+    email         String     @unique
+    password_hash String
+    first_name    String
+    last_name     String
+    created_at    DateTime   @default(now())
+    updated_at    DateTime   @updatedAt
+    clubUsers     ClubUser[]
+    player        Player?
+    teamUsers     TeamUser[]
+}
+
+model Club {
+    id          String     @id @default(uuid())
+    name        String
+    created_at  DateTime   @default(now())
+    updated_at  DateTime   @updatedAt
+    city        String?
+    invite_code String?    @unique
+    logo        String?
+    clubUsers   ClubUser[]
+    teams       Team[]
+}
+
+model Match {
+    id             String               @id @default(uuid())
+    team_id        String
+    opponent       String
+    location       match_location
+    match_date     DateTime
+    status         match_status         @default(UPCOMING)
+    created_at     DateTime             @default(now())
+    updated_at     DateTime             @updatedAt
+    team           Team                 @relation(fields: [team_id], references: [id], onDelete: Cascade)
+    matchEvents    MatchEvent[]
+    matchPlayers   MatchPlayer[]
+    opponentEvents OpponentMatchEvent[]
+}
+
+model MatchPlayer {
+    id         String              @id @default(uuid())
+    match_id   String
+    player_id  String
+    status     match_player_status @default(SUBSTITUTE)
+    created_at DateTime            @default(now())
+    updated_at DateTime            @updatedAt
+    match      Match               @relation(fields: [match_id], references: [id], onDelete: Cascade)
+    player     Player              @relation(fields: [player_id], references: [id], onDelete: Cascade)
+
+    @@unique([match_id, player_id])
+    @@map("match_players")
+}
+
+model MatchEvent {
+    id                String           @id @default(uuid())
+    match_id          String
+    player_id         String
+    event_type        match_event_type
+    minute            Int
+    zone              field_zone?
+    body_part         body_part?
+    created_at        DateTime         @default(now())
+    updated_at        DateTime         @updatedAt
+    related_event_id  String?
+    related_player_id String?
+    match             Match            @relation(fields: [match_id], references: [id], onDelete: Cascade)
+    player            Player           @relation(fields: [player_id], references: [id], onDelete: SetNull)
+    relatedEvent      MatchEvent?      @relation("EventRelation", fields: [related_event_id], references: [id])
+    relatedEvents     MatchEvent[]     @relation("EventRelation")
+}
+
+model OpponentMatchEvent {
+    id            String              @id @default(uuid())
+    match_id      String
+    event_type    opponent_event_type
+    minute        Int
+    jersey_number String?
+    created_at    DateTime            @default(now())
+    match         Match               @relation(fields: [match_id], references: [id], onDelete: Cascade)
+
+    @@map("opponent_match_events")
+}
+
+model ClubUser {
+    id         String    @id @default(uuid())
+    club_id    String
+    user_id    String
+    role       club_role
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    club       Club      @relation(fields: [club_id], references: [id], onDelete: Cascade)
+    user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+    @@unique([club_id, user_id])
+}
+
+model TeamUser {
+    id         String    @id @default(uuid())
+    team_id    String
+    user_id    String
+    role       team_role
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    team       Team      @relation(fields: [team_id], references: [id], onDelete: Cascade)
+    user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+    @@unique([team_id, user_id])
+}
+
 enum position {
     GOALKEEPER
     DEFENDER
@@ -55,11 +190,11 @@ enum match_event_type {
 }
 
 enum field_zone {
-    // Legacy
     LEFT
     RIGHT
     AXIS
-    // Detailed zones
+    BOX
+    OUTSIDE
     DEF_LEFT
     DEF_CENTER
     DEF_RIGHT
@@ -69,8 +204,6 @@ enum field_zone {
     ATT_LEFT
     ATT_CENTER
     ATT_RIGHT
-    BOX
-    OUTSIDE
 }
 
 enum body_part {
@@ -94,161 +227,9 @@ enum club_role {
 enum team_role {
     COACH
     ASSISTANT_COACH
-    //PLAYER  pour la V1, mais à terme on pourrait vouloir différencier les joueurs des membres du staff
 }
 
 enum match_player_status {
-    STARTER // Titulaire
-    SUBSTITUTE // Remplaçant
-}
-
-//Modèle Player
-
-model Player {
-    id            String        @id @default(uuid())
-    first_name    String
-    last_name     String
-    position      position?
-    strong_foot   strong_foot?
-    jersey_number Int?
-    status        player_status @default(ACTIVE)
-    team_id       String
-    user_id       String?       @unique
-    created_at    DateTime      @default(now())
-    updated_at    DateTime      @updatedAt
-
-    team         Team          @relation(fields: [team_id], references: [id], onDelete: Cascade)
-    user         User?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
-    matchEvents  MatchEvent[]
-    matchPlayers MatchPlayer[]
-}
-
-//Modèle Team
-model Team {
-    id         String     @id @default(uuid())
-    name       String
-    category   String
-    club_id    String
-    created_at DateTime   @default(now())
-    updated_at DateTime   @updatedAt
-    players    Player[]
-    matches    Match[]
-    teamUsers  TeamUser[]
-
-    club Club @relation(fields: [club_id], references: [id], onDelete: Cascade)
-}
-
-//Modèle User
-model User {
-    id            String   @id @default(uuid())
-    email         String   @unique
-    password_hash String
-    first_name    String
-    last_name     String
-    created_at    DateTime @default(now())
-    updated_at    DateTime @updatedAt
-
-    player    Player?
-    teamUsers TeamUser[]
-    clubUsers ClubUser[]
-}
-
-model Club {
-    id         String     @id @default(uuid())
-    name       String
-    created_at DateTime   @default(now())
-    updated_at DateTime   @updatedAt
-    clubUsers  ClubUser[]
-    teams      Team[]
-}
-
-model Match {
-    id         String         @id @default(uuid())
-    team_id    String
-    opponent   String
-    location   match_location
-    match_date DateTime
-    status     match_status   @default(UPCOMING)
-    created_at DateTime       @default(now())
-    updated_at DateTime       @updatedAt
-
-    team           Team                 @relation(fields: [team_id], references: [id], onDelete: Cascade)
-    matchEvents    MatchEvent[]
-    matchPlayers   MatchPlayer[]
-    opponentEvents OpponentMatchEvent[]
-}
-
-model MatchPlayer {
-    id         String              @id @default(uuid())
-    match_id   String
-    player_id  String
-    status     match_player_status @default(SUBSTITUTE)
-    created_at DateTime            @default(now())
-    updated_at DateTime            @updatedAt
-
-    match  Match  @relation(fields: [match_id], references: [id], onDelete: Cascade)
-    player Player @relation(fields: [player_id], references: [id], onDelete: Cascade)
-
-    @@unique([match_id, player_id]) // Un joueur ne peut être convoqué qu'une fois par match
-    @@map("match_players")
-}
-
-model MatchEvent {
-    id                String           @id @default(uuid())
-    match_id          String
-    player_id         String
-    event_type        match_event_type
-    minute            Int
-    zone              field_zone?
-    body_part         body_part?
-    related_event_id  String? // ← lien ASSIST → GOAL
-    related_player_id String? // ← joueur entrant (SUBSTITUTION)
-    created_at        DateTime         @default(now())
-    updated_at        DateTime         @updatedAt
-
-    match         Match        @relation(fields: [match_id], references: [id], onDelete: Cascade)
-    player        Player       @relation(fields: [player_id], references: [id], onDelete: SetNull)
-    relatedEvent  MatchEvent?  @relation("EventRelation", fields: [related_event_id], references: [id], onDelete: SetNull)
-    relatedEvents MatchEvent[] @relation("EventRelation")
-}
-
-model OpponentMatchEvent {
-    id            String              @id @default(uuid())
-    match_id      String
-    event_type    opponent_event_type
-    minute        Int
-    jersey_number String?
-    created_at    DateTime            @default(now())
-
-    match Match @relation(fields: [match_id], references: [id], onDelete: Cascade)
-
-    @@map("opponent_match_events")
-}
-
-model ClubUser {
-    id         String    @id @default(uuid())
-    club_id    String
-    user_id    String
-    role       club_role
-    created_at DateTime  @default(now())
-    updated_at DateTime  @updatedAt
-
-    club Club @relation(fields: [club_id], references: [id], onDelete: Cascade)
-    user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-    @@unique([club_id, user_id])
-}
-
-model TeamUser {
-    id         String    @id @default(uuid())
-    team_id    String
-    user_id    String
-    role       team_role
-    created_at DateTime  @default(now())
-    updated_at DateTime  @updatedAt
-
-    team Team @relation(fields: [team_id], references: [id], onDelete: Cascade)
-    user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-    @@unique([team_id, user_id])
+    STARTER
+    SUBSTITUTE
 }

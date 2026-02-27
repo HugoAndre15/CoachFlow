@@ -6,11 +6,13 @@ import FooterBar from "./footerBar";
 import DashboardHeader from "./DashboardHeader";
 import Sidebar from "./Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useClubTeam } from "@/contexts/ClubTeamContext";
 import { useState } from "react";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, mounted } = useAuth();
+  const { activeClub, isLoadingClubs } = useClubTeam();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Pages without any header/footer (authentication)
@@ -27,8 +29,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     return <div className="min-h-screen bg-dark" />;
   }
 
-  // Dashboard layout: DashboardHeader + Sidebar (fixed) + Content
-  if (isDashboard && user) {
+  // Dashboard: user logged in AND has a club → full layout with sidebar + header selectors
+  if (isDashboard && user && activeClub && !isLoadingClubs) {
     return (
       <div className="h-screen flex flex-col bg-dark overflow-hidden">
         <DashboardHeader onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
@@ -40,6 +42,29 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             </div>
           </main>
         </div>
+      </div>
+    );
+  }
+
+  // Dashboard: user without club — header visible (no selectors), no sidebar
+  if (isDashboard && user) {
+    return (
+      <div className="h-screen flex flex-col bg-dark overflow-hidden">
+        <DashboardHeader onToggleSidebar={() => {}} hideSelectors />
+        <main className="flex-1 overflow-y-auto bg-dark">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
+  // Dashboard: not logged in — minimal shell (redirect will happen via AuthContext)
+  if (isDashboard) {
+    return (
+      <div className="min-h-screen bg-dark">
+        <main className="w-full">
+          {children}
+        </main>
       </div>
     );
   }

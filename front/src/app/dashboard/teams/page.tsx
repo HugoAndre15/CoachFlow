@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Users, Shield, ChevronRight } from 'lucide-react';
 import { teamService, Team } from '@/services/teamService';
 import { useClubTeam } from '@/contexts/ClubTeamContext';
+import ClubLogo from '@/components/ui/ClubLogo';
 import CreateTeamModal from './parts/CreateTeamModal';
 
 const mapRole = (role?: string): string => {
@@ -61,14 +62,17 @@ export default function TeamsPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-dark dark:text-white leading-tight">Mes Équipes</h1>
           {activeClub && (
-            <p className="text-sm text-dark-light/70 dark:text-neutral mt-1">
-              {activeClub.name}
+            <div className="flex items-center gap-2 mt-1">
+              <ClubLogo logo={activeClub.logo} name={activeClub.name} size="sm" />
+              <span className="text-sm text-dark-light/70 dark:text-neutral">
+                {activeClub.name}
+              </span>
               {activeClub.role && (
                 <span className="ml-2 text-[11px] font-medium px-2 py-0.5 rounded-full bg-neutral/10 dark:bg-dark-light text-dark-light dark:text-neutral">
                   {mapRole(activeClub.role)}
                 </span>
               )}
-            </p>
+            </div>
           )}
         </div>
 

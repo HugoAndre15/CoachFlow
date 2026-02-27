@@ -14,6 +14,7 @@ import {
   Shield,
   Menu,
 } from 'lucide-react';
+import ClubLogo from '@/components/ui/ClubLogo';
 
 // Map roles to French display
 const mapRole = (role: string): string => {
@@ -27,9 +28,10 @@ const mapRole = (role: string): string => {
 
 interface DashboardHeaderProps {
   onToggleSidebar: () => void;
+  hideSelectors?: boolean;
 }
 
-export default function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
+export default function DashboardHeader({ onToggleSidebar, hideSelectors = false }: DashboardHeaderProps) {
   const { user, logout } = useAuth();
   const {
     activeClub,
@@ -64,14 +66,16 @@ export default function DashboardHeader({ onToggleSidebar }: DashboardHeaderProp
 
   return (
     <header className="sticky top-0 z-50 h-14 bg-dark border-b border-dark-light/50 flex items-center px-2 sm:px-4 lg:px-6 select-none">
-      {/* Mobile hamburger */}
-      <button
-        onClick={onToggleSidebar}
-        className="lg:hidden p-2 -ml-1 mr-2 rounded-lg text-grey-medium hover:text-white hover:bg-dark-lighter transition-colors"
-        aria-label="Menu"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
+      {/* Mobile hamburger — hidden when no club */}
+      {!hideSelectors && (
+        <button
+          onClick={onToggleSidebar}
+          className="lg:hidden p-2 -ml-1 mr-2 rounded-lg text-grey-medium hover:text-white hover:bg-dark-lighter transition-colors"
+          aria-label="Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Logo - Left (hidden on mobile to save space) */}
       <a href="/" className="hidden md:flex items-center gap-2.5 mr-8 flex-shrink-0 hover:opacity-80 transition-opacity">
@@ -84,7 +88,10 @@ export default function DashboardHeader({ onToggleSidebar }: DashboardHeaderProp
         <span className="text-lg font-bold text-white hidden lg:block">CoachFlow</span>
       </a>
 
-      {/* Center - Club & Team Selectors */}
+      {/* Center - Club & Team Selectors (hidden when no club) */}
+      {hideSelectors ? (
+        <div className="flex-1" />
+      ) : (
       <div className="flex items-center gap-1 sm:gap-1.5 flex-1 justify-center min-w-0">
         {/* Club Selector */}
         <div className="relative" ref={clubRef}>
@@ -95,9 +102,7 @@ export default function DashboardHeader({ onToggleSidebar }: DashboardHeaderProp
             <div className="flex items-center gap-1 sm:gap-2">
               <span className="text-[10px] text-grey-medium uppercase tracking-wider font-medium hidden lg:block">Club</span>
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="w-6 h-6 rounded-md bg-accent-green/20 flex items-center justify-center border border-accent-green/30 flex-shrink-0">
-                  <Shield className="w-3.5 h-3.5 text-accent-green" />
-                </div>
+                <ClubLogo logo={activeClub?.logo} name={activeClub?.name || '?'} size="xs" />
                 <span className="text-xs sm:text-sm font-semibold text-white max-w-[80px] sm:max-w-[140px] truncate">
                   {activeClub?.name || 'Aucun club'}
                 </span>
@@ -122,13 +127,7 @@ export default function DashboardHeader({ onToggleSidebar }: DashboardHeaderProp
                         : 'text-neutral hover:bg-dark-light/50 hover:text-white'
                     }`}
                   >
-                    <div className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold ${
-                      activeClub?.id === club.id
-                        ? 'bg-accent-green text-white'
-                        : 'bg-dark-light text-neutral'
-                    }`}>
-                      {club.name.charAt(0).toUpperCase()}
-                    </div>
+                    <ClubLogo logo={club.logo} name={club.name} size="sm" />
                     <span className="text-sm font-medium truncate">{club.name}</span>
                   </button>
                 ))}
@@ -220,9 +219,9 @@ export default function DashboardHeader({ onToggleSidebar }: DashboardHeaderProp
           )}
         </div>
       </div>
+      )}
 
-      {/* Right - Notifications + Profile */}
-      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+      {/* Right - Notifications + Profile */}      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         {/* Notifications — desktop only */}
         <button className="relative p-2 rounded-lg hover:bg-dark-lighter transition-colors text-grey-medium hover:text-white hidden sm:block">
           <Bell className="w-5 h-5" />
