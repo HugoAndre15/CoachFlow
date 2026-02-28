@@ -14,7 +14,7 @@ export default function StatsCard({ title, value, subtitle, icon, iconBgColor, i
         <div>
           <p className="text-gray-500 dark:text-neutral text-sm">{title}</p>
           <p className="text-3xl font-bold text-gray-900 dark:text-neutral-lightest mt-2">{value}</p>
-          <p className={`text-xs mt-1 ${subtitle.includes('%') ? 'text-accent-green' : ''}`}>{subtitle}</p>
+          <p className={`text-xs mt-1 ${subtitle.includes('%') ? 'text-accent-green' : 'text-gray-500 dark:text-neutral'}`}>{subtitle}</p>
         </div>
         <div className={`w-12 h-12 ${iconBgColor} rounded-lg flex items-center justify-center`}>
           <div className={iconColor}>{icon}</div>

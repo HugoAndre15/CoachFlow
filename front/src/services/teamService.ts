@@ -28,6 +28,40 @@ export interface CreateTeamPayload {
     club_id: string;
 }
 
+export interface TeamStats {
+    teamId: string;
+    teamName: string;
+    category: string;
+    totalMatches: number;
+    upcomingMatches: number;
+    liveMatches: number;
+    finishedMatches: number;
+    totalGoals: number;
+    totalAssists: number;
+    totalYellowCards: number;
+    totalRedCards: number;
+    totalRecoveries: number;
+    totalBallLosses: number;
+    averageGoalsPerMatch: number;
+    topScorer: { playerId: string; playerName: string; jerseyNumber?: number; goals: number } | null;
+    topAssister: { playerId: string; playerName: string; jerseyNumber?: number; assists: number } | null;
+    matchesHistory: { matchId: string; opponent: string; date: string; location: string; status: string; goals: number }[];
+}
+
+export interface TeamPlayerStats {
+    playerId: string;
+    playerName: string;
+    jerseyNumber?: number;
+    position?: string;
+    matchesPlayed: number;
+    goals: number;
+    assists: number;
+    yellowCards: number;
+    redCards: number;
+    recoveries: number;
+    ballLosses: number;
+}
+
 export const teamService = {
     getTeamsByClub: async (clubId: string): Promise<Team[]> => {
         const response = await api.get<TeamsResponse>(`/teams?clubId=${clubId}&limit=50`);
@@ -51,5 +85,15 @@ export const teamService = {
 
     deleteTeam: async (teamId: string): Promise<void> => {
         await api.delete(`/teams/${teamId}`);
+    },
+
+    getTeamStats: async (teamId: string): Promise<TeamStats> => {
+        const response = await api.get<TeamStats>(`/teams/${teamId}/stats`);
+        return response.data;
+    },
+
+    getTeamPlayersStats: async (teamId: string): Promise<TeamPlayerStats[]> => {
+        const response = await api.get<TeamPlayerStats[]>(`/teams/${teamId}/stats/players`);
+        return response.data;
     },
 };

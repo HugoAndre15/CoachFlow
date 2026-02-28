@@ -26,9 +26,41 @@ export interface JoinClubResponse {
     };
 }
 
+export interface ClubMember {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+}
+
+export interface ClubDetail {
+    id: string;
+    name: string;
+    city?: string;
+    logo?: string;
+    invite_code?: string;
+    created_at: string;
+    updated_at: string;
+    myRole: string;
+    clubUsers: { role: string; user: { id: string; email: string; first_name: string; last_name: string } }[];
+    teams: { id: string; name: string; category: string }[];
+    _count?: { teams: number; clubUsers: number };
+}
+
 export const clubService = {
     getMyClubs: async (): Promise<Club[]> => {
         const response = await api.get('/users/me/clubs');
+        return response.data;
+    },
+
+    getClubDetail: async (id: string): Promise<ClubDetail> => {
+        const response = await api.get<ClubDetail>(`/clubs/${id}`);
+        return response.data;
+    },
+
+    getClubMembers: async (id: string): Promise<ClubMember[]> => {
+        const response = await api.get(`/clubs/${id}/members`);
         return response.data;
     },
 
@@ -42,8 +74,8 @@ export const clubService = {
         return response.data;
     },
 
-    updateClub: async (id: string, name: string): Promise<Club> => {
-        const response = await api.patch(`/clubs/${id}`, { name });
+    updateClub: async (id: string, data: Partial<CreateClubDto>): Promise<Club> => {
+        const response = await api.patch(`/clubs/${id}`, data);
         return response.data;
     },
 

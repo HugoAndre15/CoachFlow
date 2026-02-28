@@ -30,13 +30,13 @@ export default function InputForm({ label, type, placeholder, value, onChange, e
                     placeholder={placeholder ?? `Entrez votre ${label}`}
                     value={value}
                     onChange={onChange}
-                    className={`w-full py-2.5 px-3 bg-white border border-neutral rounded-lg outline-none transition-all duration-300 ease-in-out placeholder:text-dark-lighter placeholder:text-sm placeholder:font-medium selection:bg-green-100 selection:text-green-900 ${inputClasses}`}
+                    className={`w-full py-2.5 px-3 bg-white dark:bg-dark-lighter border border-neutral dark:border-dark-light rounded-lg outline-none transition-all duration-300 ease-in-out text-dark dark:text-neutral-lightest placeholder:text-dark-lighter dark:placeholder:text-neutral placeholder:text-sm placeholder:font-medium selection:bg-green-100 selection:text-green-900 ${inputClasses}`}
                 />
                 {isPassword && (
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-neutral hover:text-gray-700 dark:hover:text-white transition-colors cursor-pointer"
                     >
                         {showPassword ? (
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">

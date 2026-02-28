@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Users, Shield, ChevronRight } from 'lucide-react';
 import { teamService, Team } from '@/services/teamService';
 import { useClubTeam } from '@/contexts/ClubTeamContext';
@@ -22,6 +23,7 @@ const CATEGORIES = [
 
 export default function TeamsPage() {
   const { activeClub, allClubs, setActiveClub } = useClubTeam();
+  const router = useRouter();
   const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -154,6 +156,7 @@ export default function TeamsPage() {
           {teams.map((team) => (
             <div
               key={team.id}
+              onClick={() => router.push(`/dashboard/teams/${team.id}`)}
               className="group bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-2xl p-5 hover:border-accent-green/50 dark:hover:border-accent-green/40 hover:shadow-sm transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">

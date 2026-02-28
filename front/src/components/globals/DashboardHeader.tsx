@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Shield,
   Menu,
+  Eye,
 } from 'lucide-react';
 import ClubLogo from '@/components/ui/ClubLogo';
 
@@ -132,13 +133,25 @@ export default function DashboardHeader({ onToggleSidebar, hideSelectors = false
                   </button>
                 ))}
               </div>
-              <div className="border-t border-dark-light/50 p-2">
+              <div className="border-t border-dark-light/50 p-2 space-y-0.5">
+                {activeClub && (
+                  <button
+                    onClick={() => {
+                      router.push(`/dashboard/clubs/${activeClub.id}`);
+                      setClubOpen(false);
+                    }}
+                    className="w-full text-xs text-neutral hover:text-white hover:bg-dark-light/50 py-1.5 px-3 rounded-lg text-left font-medium transition-colors flex items-center gap-2"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    Voir le club
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     router.push('/dashboard/clubs');
                     setClubOpen(false);
                   }}
-                  className="w-full text-xs text-accent-green hover:text-accent-green/80 py-1.5 text-center font-medium transition-colors"
+                  className="w-full text-xs text-accent-green hover:text-accent-green/80 py-1.5 px-3 rounded-lg text-center font-medium transition-colors"
                 >
                   Gérer mes Clubs
                 </button>
@@ -204,13 +217,25 @@ export default function DashboardHeader({ onToggleSidebar, hideSelectors = false
                   ))
                 )}
               </div>
-              <div className="border-t border-dark-light/50 p-2">
+              <div className="border-t border-dark-light/50 p-2 space-y-0.5">
+                {activeTeam && (
+                  <button
+                    onClick={() => {
+                      router.push(`/dashboard/teams/${activeTeam.id}`);
+                      setTeamOpen(false);
+                    }}
+                    className="w-full text-xs text-neutral hover:text-white hover:bg-dark-light/50 py-1.5 px-3 rounded-lg text-left font-medium transition-colors flex items-center gap-2"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    Voir l&apos;équipe
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     router.push('/dashboard/teams');
                     setTeamOpen(false);
                   }}
-                  className="w-full text-xs text-accent-green hover:text-accent-green/80 py-1.5 text-center font-medium transition-colors"
+                  className="w-full text-xs text-accent-green hover:text-accent-green/80 py-1.5 px-3 rounded-lg text-center font-medium transition-colors"
                 >
                   Gérer mes Équipes
                 </button>

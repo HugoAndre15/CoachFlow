@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Eye, Edit2, Trash2, Plus, Users, Crown, Clipboard, Shield } from 'lucide-react';
 import CreateClubModal from './parts/CreateClubModal';
 import EditClubModal from './parts/EditClubModal';
@@ -25,6 +26,7 @@ const mapRole = (role: string): string => {
 };
 
 export default function ClubsPage() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<RoleFilter>('Tous');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clubs, setClubs] = useState<Club[]>([]);
@@ -32,7 +34,7 @@ export default function ClubsPage() {
   const [error, setError] = useState<string | null>(null);
   
   // États pour les modales d'édition et suppression
-  const [editingClub, setEditingClub] = useState<{ id: string; name: string } | null>(null);
+  const [editingClub, setEditingClub] = useState<Club | null>(null);
   const [deletingClub, setDeletingClub] = useState<{ id: string; name: string } | null>(null);
 
   const fetchClubs = async () => {
@@ -94,7 +96,7 @@ export default function ClubsPage() {
 
   const handleEdit = (club: Club) => {
     if (isPresident(club.role)) {
-      setEditingClub({ id: club.id, name: club.name });
+      setEditingClub(club);
     }
   };
 
@@ -222,7 +224,9 @@ export default function ClubsPage() {
 
                 {/* Actions */}
                 <div className="flex gap-2 mt-4">
-                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-green hover:bg-accent-green/90 text-white rounded-lg font-medium transition-colors">
+                  <button
+                    onClick={() => router.push(`/dashboard/clubs/${club.id}`)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-green hover:bg-accent-green/90 text-white rounded-lg font-medium transition-colors">
                     <Eye className="w-4 h-4" />
                     <span>Voir</span>
                   </button>
@@ -292,10 +296,9 @@ export default function ClubsPage() {
           onClose={() => setEditingClub(null)}
           onSuccess={() => {
             setEditingClub(null);
-            fetchClubs(); // Rafraîchir la liste après modification
+            fetchClubs();
           }}
-          clubId={editingClub.id}
-          currentName={editingClub.name}
+          club={editingClub!}
         />
       )}
 
