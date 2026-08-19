@@ -8,10 +8,7 @@ import {
   Users,
   Swords,
   Radio,
-  ClipboardList,
-  CalendarCheck,
-  CreditCard,
-  Settings,
+  Shield,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -38,11 +35,6 @@ const sidebarItems: SidebarItem[] = [
     icon: <LayoutDashboard className="w-5 h-5" />,
   },
   {
-    label: 'Joueurs',
-    href: '/dashboard/joueurs',
-    icon: <Users className="w-5 h-5" />,
-  },
-  {
     label: 'Matchs',
     href: '/dashboard/matchs',
     icon: <Swords className="w-5 h-5" />,
@@ -53,24 +45,14 @@ const sidebarItems: SidebarItem[] = [
     icon: <Radio className="w-5 h-5" />,
   },
   {
-    label: 'Convocations',
-    href: '/dashboard/convocations',
-    icon: <ClipboardList className="w-5 h-5" />,
+    label: 'Joueurs',
+    href: '/dashboard/joueurs',
+    icon: <Users className="w-5 h-5" />,
   },
   {
-    label: 'Présences',
-    href: '/dashboard/presences',
-    icon: <CalendarCheck className="w-5 h-5" />,
-  },
-  {
-    label: 'Abonnement',
-    href: '/dashboard/abonnement',
-    icon: <CreditCard className="w-5 h-5" />,
-  },
-  {
-    label: 'Paramètres',
-    href: '/dashboard/parametres',
-    icon: <Settings className="w-5 h-5" />,
+    label: 'Équipes',
+    href: '/dashboard/teams',
+    icon: <Shield className="w-5 h-5" />,
   },
 ];
 

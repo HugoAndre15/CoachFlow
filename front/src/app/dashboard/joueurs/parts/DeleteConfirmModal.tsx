@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { Archive } from 'lucide-react';
 
 interface DeleteConfirmModalProps {
   playerId: string;
@@ -16,12 +16,12 @@ export default function DeleteConfirmModal({ playerId, onCancel, onConfirm }: De
       <div className="relative bg-white dark:bg-dark-secondary rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="flex items-start gap-4 p-6">
           <div className="w-10 h-10 rounded-xl bg-red-500/15 text-red-400 flex items-center justify-center flex-shrink-0">
-            <Trash2 className="w-5 h-5" />
+            <Archive className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-dark dark:text-white mb-1">Supprimer ce joueur ?</h3>
+            <h3 className="text-base font-bold text-dark dark:text-white mb-1">Retirer ce joueur de l’effectif ?</h3>
             <p className="text-sm text-dark-light/70 dark:text-grey-medium leading-relaxed">
-              Cette action est irréversible. Toutes les statistiques associées seront perdues.
+              Le joueur sera archivé. Ses matchs et ses statistiques resteront conservés.
             </p>
           </div>
         </div>
@@ -36,7 +36,7 @@ export default function DeleteConfirmModal({ playerId, onCancel, onConfirm }: De
             onClick={() => onConfirm(playerId)}
             className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors"
           >
-            Supprimer
+            Archiver
           </button>
         </div>
       </div>

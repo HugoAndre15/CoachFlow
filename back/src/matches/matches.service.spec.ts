@@ -165,6 +165,8 @@ describe('MatchesService', () => {
         location: 'Stadium A',
         match_date: new Date('2024-12-01'),
         status: match_status.UPCOMING,
+        matchEvents: [],
+        opponentEvents: [],
         _count: { matchEvents: 0, matchPlayers: 11 },
       },
       {
@@ -174,6 +176,8 @@ describe('MatchesService', () => {
         location: 'Stadium B',
         match_date: new Date('2024-12-15'),
         status: match_status.LIVE,
+        matchEvents: [],
+        opponentEvents: [],
         _count: { matchEvents: 5, matchPlayers: 11 },
       },
     ];
@@ -293,6 +297,7 @@ describe('MatchesService', () => {
         { id: 'evt1', event_type: match_event_type.GOAL, minute: 15 },
         { id: 'evt2', event_type: match_event_type.YELLOW_CARD, minute: 30 },
       ],
+      opponentEvents: [],
     };
 
     it('should return match details with score when user is club member', async () => {
@@ -303,7 +308,8 @@ describe('MatchesService', () => {
 
       expect(result).toHaveProperty('id', mockMatchId);
       expect(result).toHaveProperty('score');
-      expect(result.score.goals).toBe(1);
+      expect(result.score.home).toBe(1);
+      expect(result.score.away).toBe(0);
     });
 
     it('should throw NotFoundException if match does not exist', async () => {
@@ -371,6 +377,10 @@ describe('MatchesService', () => {
         id: mockMatchId,
         team_id: mockTeamId,
         status: match_status.UPCOMING,
+        matchPlayers: [
+          { id: 'mp-1', status: 'STARTER' },
+          { id: 'mp-2', status: 'STARTER' },
+        ],
       });
       mockCoachPermissions();
       prisma.match.update.mockResolvedValue({
@@ -924,7 +934,7 @@ describe('MatchesService', () => {
       expect(prisma.matchEvent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { match_id: mockMatchId },
-          orderBy: { minute: 'asc' },
+          orderBy: [{ minute: 'asc' }, { created_at: 'asc' }],
         }),
       );
     });
@@ -1142,6 +1152,7 @@ describe('MatchesService', () => {
           player: { id: 'player-2', first_name: 'Jane', last_name: 'Smith', jersey_number: 10, position: 'MIDFIELDER' },
         },
       ],
+      opponentEvents: [],
     };
 
     it('should return match statistics for a COACH', async () => {
@@ -1153,6 +1164,7 @@ describe('MatchesService', () => {
       expect(result.matchId).toBe(mockMatchId);
       expect(result.opponent).toBe('FC Rival');
       expect(result.totalGoals).toBe(2);
+      expect(result.totalOpponentGoals).toBe(0);
       expect(result.totalAssists).toBe(1);
       expect(result.totalYellowCards).toBe(1);
       expect(result.totalRedCards).toBe(0);
