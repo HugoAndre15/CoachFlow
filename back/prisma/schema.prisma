@@ -102,6 +102,13 @@ enum match_player_status {
     SUBSTITUTE // Remplaçant
 }
 
+enum match_presence_status {
+    UNKNOWN // Présence à renseigner
+    PRESENT // Disponible pour le match
+    UNCERTAIN // Présence incertaine
+    ABSENT // Indisponible
+}
+
 //Modèle Player
 
 model Player {
@@ -179,12 +186,13 @@ model Match {
 }
 
 model MatchPlayer {
-    id         String              @id @default(uuid())
+    id         String                @id @default(uuid())
     match_id   String
     player_id  String
-    status     match_player_status @default(SUBSTITUTE)
-    created_at DateTime            @default(now())
-    updated_at DateTime            @updatedAt
+    status     match_player_status   @default(SUBSTITUTE)
+    presence   match_presence_status @default(UNKNOWN)
+    created_at DateTime              @default(now())
+    updated_at DateTime              @updatedAt
 
     match  Match  @relation(fields: [match_id], references: [id], onDelete: Cascade)
     player Player @relation(fields: [player_id], references: [id], onDelete: Cascade)
