@@ -15,7 +15,24 @@ import { CreateMatchEventDto } from './dto/create-match-event.dto';
 import { UpdateMatchEventDto } from './dto/update-match-event.dto';
 import { CreateOpponentEventDto } from './dto/create-opponent-event.dto';
 import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
-import { club_role, team_role, match_status, match_event_type } from '@prisma/client';
+import {
+  club_role,
+  team_role,
+  match_status,
+  match_event_type,
+} from '@prisma/client';
+
+const MATCH_PRESENCE = {
+  UNKNOWN: 'UNKNOWN',
+  PRESENT: 'PRESENT',
+  UNCERTAIN: 'UNCERTAIN',
+  ABSENT: 'ABSENT',
+} as const;
+
+type MatchPlayerWithPresence = {
+  status?: string;
+  presence?: string;
+};
 
 @Injectable()
 export class MatchesService {
@@ -366,15 +383,16 @@ export class MatchesService {
 
     this.validateStatusTransition(match.status, updateStatusDto.status);
 
-    // Vérifier qu'il y a au moins 2 titulaires pour passer en LIVE
+    // Vérifier qu'il y a au moins 2 titulaires présents pour passer en LIVE
     if (updateStatusDto.status === 'LIVE') {
-      const startersCount = match.matchPlayers.filter(
-        (p) => p.status === 'STARTER',
+      const playersWithPresence = match.matchPlayers as MatchPlayerWithPresence[];
+      const startersCount = playersWithPresence.filter(
+        (player) => player.status === 'STARTER' && (!player.presence || player.presence === MATCH_PRESENCE.PRESENT),
       ).length;
 
       if (startersCount < 2) {
         throw new BadRequestException(
-          `Il faut au moins 2 titulaires pour lancer un match en direct (actuellement ${startersCount})`,
+          `Il faut au moins 2 titulaires présents pour lancer un match en direct (actuellement ${startersCount})`,
         );
       }
     }
@@ -458,6 +476,17 @@ export class MatchesService {
     const results: any[] = [];
     for (const playerToAdd of addPlayersDto.players) {
       try {
+        const presence = playerToAdd.presence ?? MATCH_PRESENCE.PRESENT;
+        const updateData = {
+          status: playerToAdd.status,
+          ...(playerToAdd.presence ? { presence } : {}),
+        };
+        const createData = {
+          match_id: matchId,
+          player_id: playerToAdd.player_id,
+          status: playerToAdd.status,
+          presence,
+        };
         const mp = await this.prisma.matchPlayer.upsert({
           where: {
             match_id_player_id: {
@@ -465,14 +494,8 @@ export class MatchesService {
               player_id: playerToAdd.player_id,
             },
           },
-          update: {
-            status: playerToAdd.status,
-          },
-          create: {
-            match_id: matchId,
-            player_id: playerToAdd.player_id,
-            status: playerToAdd.status,
-          },
+          update: updateData,
+          create: createData,
           include: {
             player: {
               select: {
@@ -561,6 +584,15 @@ export class MatchesService {
       throw new NotFoundException('Le joueur n\'est pas convoqué pour ce match');
     }
 
+    if (!updateDto.status && !updateDto.presence) {
+      throw new BadRequestException('Indiquez une présence ou un rôle à modifier');
+    }
+
+    const updateData = {
+      status: updateDto.status,
+      presence: updateDto.presence,
+    };
+
     return this.prisma.matchPlayer.update({
       where: {
         match_id_player_id: {
@@ -568,9 +600,7 @@ export class MatchesService {
           player_id: playerId,
         },
       },
-      data: {
-        status: updateDto.status,
-      },
+      data: updateData,
       include: {
         player: {
           select: {
@@ -683,6 +713,13 @@ export class MatchesService {
       );
     }
 
+    const matchPlayerWithPresence = matchPlayer as typeof matchPlayer & MatchPlayerWithPresence;
+    if (matchPlayerWithPresence.presence && matchPlayerWithPresence.presence !== MATCH_PRESENCE.PRESENT) {
+      throw new BadRequestException(
+        'Le joueur doit être marqué présent pour enregistrer un événement',
+      );
+    }
+
     // 4. Si c'est un ASSIST, vérifier que related_event_id pointe vers un GOAL du même match
     if (createEventDto.event_type === match_event_type.ASSIST) {
       if (!createEventDto.related_event_id) {
@@ -722,6 +759,13 @@ export class MatchesService {
       if (!incomingPlayer) {
         throw new BadRequestException(
           'Le joueur entrant doit être convoqué pour ce match',
+        );
+      }
+
+      const incomingPlayerWithPresence = incomingPlayer as typeof incomingPlayer & MatchPlayerWithPresence;
+      if (incomingPlayerWithPresence.presence && incomingPlayerWithPresence.presence !== MATCH_PRESENCE.PRESENT) {
+        throw new BadRequestException(
+          'Le joueur entrant doit être marqué présent pour ce match',
         );
       }
     }
@@ -1098,6 +1142,12 @@ export class MatchesService {
     }
 
     const events = match.matchEvents;
+    const playersWithPresence = match.matchPlayers as MatchPlayerWithPresence[];
+    const presenceCounts = playersWithPresence.reduce<Record<string, number>>((counts, player) => {
+      const presence = player.presence || MATCH_PRESENCE.PRESENT;
+      counts[presence] = (counts[presence] || 0) + 1;
+      return counts;
+    }, {});
 
     // Compter les événements par type
     const eventsByType: Record<string, number> = {};
@@ -1154,7 +1204,13 @@ export class MatchesService {
       matchDate: match.match_date,
       location: match.location,
       status: match.status,
-      totalPlayers: match.matchPlayers.length,
+      totalPlayers: presenceCounts[MATCH_PRESENCE.PRESENT] || 0,
+      presenceCounts: {
+        present: presenceCounts[MATCH_PRESENCE.PRESENT] || 0,
+        uncertain: presenceCounts[MATCH_PRESENCE.UNCERTAIN] || 0,
+        absent: presenceCounts[MATCH_PRESENCE.ABSENT] || 0,
+        unknown: presenceCounts[MATCH_PRESENCE.UNKNOWN] || 0,
+      },
       totalGoals: eventsByType[match_event_type.GOAL] || 0,
       totalOpponentGoals: match.opponentEvents.filter(e => e.event_type === 'GOAL').length,
       totalAssists: eventsByType[match_event_type.ASSIST] || 0,

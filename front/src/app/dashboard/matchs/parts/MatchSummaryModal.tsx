@@ -5,35 +5,9 @@ import {
   X, Trophy, Clock, MapPin, Users, Shield, AlertTriangle,
   ArrowDownCircle, ArrowUpCircle, Target, ArrowLeftRight,
 } from 'lucide-react';
-import { matchService } from '@/services/matchService';
+import { matchService, MatchStats } from '@/services/matchService';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-interface MatchStats {
-  matchId: string;
-  opponent: string;
-  matchDate: string;
-  location: string;
-  status: string;
-  totalPlayers: number;
-  totalGoals: number;
-  totalOpponentGoals: number;
-  totalAssists: number;
-  totalYellowCards: number;
-  totalRedCards: number;
-  totalRecoveries: number;
-  totalBallLosses: number;
-  topScorer: { playerId: string; playerName: string; jerseyNumber: number | null; goals: number } | null;
-  topAssister: { playerId: string; playerName: string; jerseyNumber: number | null; assists: number } | null;
-  eventsByType: Record<string, number>;
-  timeline: {
-    minute: number;
-    eventType: string;
-    playerName: string;
-    jerseyNumber: number | null;
-    createdAt?: string;
-  }[];
-}
 
 // ─── Event display config ───────────────────────────────────────────────────
 

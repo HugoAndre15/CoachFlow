@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Play, Pause, RotateCcw, Square, Shield, Radio, Clock,
   Target, AlertTriangle, CircleDot,
@@ -103,8 +103,8 @@ const EVENT_CONFIG: Record<MatchEventType, {
   },
 };
 
-const QUICK_EVENTS: MatchEventType[] = ['GOAL', 'YELLOW_CARD', 'RED_CARD', 'RECOVERY', 'BALL_LOSS', 'SUBSTITUTION'];
-const OPPONENT_EVENTS: ('GOAL' | 'YELLOW_CARD' | 'RED_CARD')[] = ['GOAL', 'YELLOW_CARD', 'RED_CARD'];
+const SECONDARY_TEAM_EVENTS: MatchEventType[] = ['YELLOW_CARD', 'RED_CARD', 'RECOVERY', 'BALL_LOSS'];
+const SECONDARY_OPPONENT_EVENTS: MatchEventType[] = ['YELLOW_CARD', 'RED_CARD'];
 
 const ZONE_CONFIG: { key: FieldZone; label: string }[] = [
   { key: 'DEF_LEFT', label: 'Déf. Gauche' },
@@ -140,10 +140,6 @@ function formatChrono(seconds: number): string {
 
 function formatChronoMinute(seconds: number): number {
   return Math.floor(seconds / 60);
-}
-
-function generateLocalId(): string {
-  return `opp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
@@ -796,6 +792,7 @@ function AssistPickerOverlay({
 type EventFlowStep = 'idle' | 'pick-player' | 'pick-opponent-jersey' | 'pick-zone' | 'pick-body-part' | 'pick-assist' | 'pick-assist-zone' | 'pick-assist-body-part' | 'pick-sub-player-in';
 
 export default function DirectPage() {
+  const router = useRouter();
   // Team & match selection
   const { activeTeam } = useClubTeam();
   const [matches, setMatches] = useState<Match[]>([]);
@@ -820,7 +817,6 @@ export default function DirectPage() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [isOpponentMode, setIsOpponentMode] = useState(false);
   const [confirmFinishOpen, setConfirmFinishOpen] = useState(false);
 
   // Event flow
@@ -917,11 +913,13 @@ export default function DirectPage() {
         // Vérifier le nombre de titulaires avant de passer en LIVE
         const players = await matchService.getMatchPlayers(match.id);
         if (requestId !== selectionRequestId.current) return;
-        const startersCount = players.filter(p => p.status === 'STARTER').length;
+        const startersCount = players.filter(
+          p => p.status === 'STARTER' && (!p.presence || p.presence === 'PRESENT'),
+        ).length;
 
         if (startersCount < 2) {
           setError(
-            `Il faut au moins 2 titulaires pour lancer un match en direct (actuellement ${startersCount}). Configurez la composition d'abord.`,
+            `Il faut au moins 2 titulaires présents pour lancer un match en direct (actuellement ${startersCount}). Préparez d'abord la feuille de match.`,
           );
           setIsLoading(false);
           return;
@@ -935,7 +933,9 @@ export default function DirectPage() {
       if (requestId !== selectionRequestId.current) return;
       setSelectedMatch(detail);
       selectedMatchIdRef.current = detail.id;
-      setMatchPlayers(detail.matchPlayers || []);
+      setMatchPlayers(
+        (detail.matchPlayers || []).filter(player => !player.presence || player.presence === 'PRESENT'),
+      );
       setMatchEvents(detail.matchEvents || []);
       setOpponentEvents(
         (detail as any).opponentEvents?.map((e: any) => ({
@@ -1047,14 +1047,14 @@ export default function DirectPage() {
   };
 
   // ── Event flow (our team) ─────────────────────────────────────────────
-  const startEventFlow = (eventType: MatchEventType) => {
+  const startEventFlow = (eventType: MatchEventType, isOpponent = false) => {
     setPendingEventType(eventType);
     setPendingPlayerId(null);
     setPendingZone(undefined);
     setPendingBodyPart(undefined);
     setPendingGoalId(null);
 
-    if (isOpponentMode) {
+    if (isOpponent) {
       setFlowStep('pick-opponent-jersey');
     } else {
       setFlowStep('pick-player');
@@ -1308,6 +1308,7 @@ export default function DirectPage() {
 
   const doFinishMatch = async () => {
     if (!selectedMatch) return;
+    const finishedMatchId = selectedMatch.id;
     setConfirmFinishOpen(false);
     try {
       await matchService.updateStatus(selectedMatch.id, 'FINISHED');
@@ -1319,7 +1320,7 @@ export default function DirectPage() {
       pauseChrono();
       showToast('Match terminé');
       setSelectedMatch(null);
-      if (activeTeam?.id) fetchMatches(activeTeam.id);
+      router.push(`/dashboard/matchs/${finishedMatchId}`);
     } catch (err: any) {
       showToast(err.response?.data?.message || 'Erreur lors de la terminaison');
     }
@@ -1327,8 +1328,11 @@ export default function DirectPage() {
 
   // ── Back to selector ──────────────────────────────────────────────────
   const handleBack = () => {
-    if (selectedMatchIdRef.current) {
-      localStorage.removeItem(`chrono_${selectedMatchIdRef.current}`);
+    const currentMatchId = selectedMatchIdRef.current;
+    if (currentMatchId) {
+      pauseChrono();
+      router.push(`/dashboard/matchs/${currentMatchId}`);
+      return;
     }
     localStorage.removeItem('direct_matchId');
     selectedMatchIdRef.current = null;
@@ -1429,9 +1433,6 @@ export default function DirectPage() {
       </div>
     );
   }
-
-  // ── Live interface ────────────────────────────────────────────────────
-  const activeQuickEvents = isOpponentMode ? OPPONENT_EVENTS : QUICK_EVENTS;
 
   return (
     <div className="space-y-5">
@@ -1539,57 +1540,69 @@ export default function DirectPage() {
 
       {/* ── Quick actions ──────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-2xl p-5">
-        {/* Team / Opponent toggle — full-width, prominent */}
-        <div className="mb-4">
-          <p className="text-[11px] font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide mb-2">
-            Actions rapides
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setIsOpponentMode(false)}
-              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${
-                !isOpponentMode
-                  ? 'bg-accent-green/10 border-accent-green text-accent-green shadow-sm'
-                  : 'bg-neutral-lighter/40 dark:bg-dark-secondary/40 border-transparent text-dark-light/50 dark:text-neutral/50 hover:border-neutral/30 dark:hover:border-dark-light/30'
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              Notre équipe
-            </button>
-            <button
-              onClick={() => setIsOpponentMode(true)}
-              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${
-                isOpponentMode
-                  ? 'bg-accent-red/10 border-accent-red text-accent-red shadow-sm'
-                  : 'bg-neutral-lighter/40 dark:bg-dark-secondary/40 border-transparent text-dark-light/50 dark:text-neutral/50 hover:border-neutral/30 dark:hover:border-dark-light/30'
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              Adversaire
-            </button>
-          </div>
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-dark-light/60 dark:text-neutral/60">
+          Actions principales
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => startEventFlow('GOAL')}
+            disabled={isSending}
+            className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-accent-green/30 bg-accent-green/10 p-3 text-accent-green transition-transform active:scale-[0.98] disabled:opacity-50"
+          >
+            <Target className="h-5 w-5" />
+            <span className="text-xs font-bold sm:text-sm">But pour nous</span>
+          </button>
+          <button
+            onClick={() => startEventFlow('GOAL', true)}
+            disabled={isSending}
+            className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-accent-red/30 bg-accent-red/10 p-3 text-accent-red transition-transform active:scale-[0.98] disabled:opacity-50"
+          >
+            <Shield className="h-5 w-5" />
+            <span className="text-xs font-bold sm:text-sm">But adverse</span>
+          </button>
+          <button
+            onClick={() => startEventFlow('SUBSTITUTION')}
+            disabled={isSending}
+            className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 p-3 text-purple-500 transition-transform active:scale-[0.98] disabled:opacity-50"
+          >
+            <ArrowLeftRight className="h-5 w-5" />
+            <span className="text-xs font-bold sm:text-sm">Changement</span>
+          </button>
         </div>
 
-        <div className={`grid gap-2 ${isOpponentMode ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-6'}`}>
-          {activeQuickEvents.map(type => {
-            const cfg = EVENT_CONFIG[type];
-            return (
-              <button
-                key={type}
-                onClick={() => startEventFlow(type)}
-                disabled={isSending}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all hover:shadow-sm disabled:opacity-50 ${
-                  isOpponentMode
-                    ? 'bg-accent-red/5 border-accent-red/20 text-accent-red hover:bg-accent-red/10'
-                    : `${cfg.bg} ${cfg.border} ${cfg.color}`
-                } hover:scale-[1.02] active:scale-[0.98]`}
-              >
-                {cfg.icon}
-                <span className="text-xs font-semibold">{cfg.shortLabel}</span>
-              </button>
-            );
-          })}
-        </div>
+        <details className="mt-4 rounded-xl border border-neutral/20 dark:border-dark-light">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-dark-light dark:text-neutral">
+            Autres événements
+          </summary>
+          <div className="space-y-3 border-t border-neutral/20 p-3 dark:border-dark-light">
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-dark-light/50 dark:text-neutral/50">Notre équipe</p>
+              <div className="grid grid-cols-4 gap-2">
+                {SECONDARY_TEAM_EVENTS.map(type => {
+                  const cfg = EVENT_CONFIG[type];
+                  return (
+                    <button key={type} onClick={() => startEventFlow(type)} disabled={isSending} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border p-2 text-center disabled:opacity-50 ${cfg.bg} ${cfg.border} ${cfg.color}`}>
+                      {cfg.icon}<span className="text-[10px] font-semibold sm:text-xs">{cfg.shortLabel}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-dark-light/50 dark:text-neutral/50">Adversaire</p>
+              <div className="grid grid-cols-2 gap-2">
+                {SECONDARY_OPPONENT_EVENTS.map(type => {
+                  const cfg = EVENT_CONFIG[type];
+                  return (
+                    <button key={type} onClick={() => startEventFlow(type, true)} disabled={isSending} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-accent-red/20 bg-accent-red/5 p-2 text-accent-red disabled:opacity-50">
+                      {cfg.icon}<span className="text-xs font-semibold">{cfg.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </details>
       </div>
 
       {/* ── Timeline ───────────────────────────────────────────────────── */}

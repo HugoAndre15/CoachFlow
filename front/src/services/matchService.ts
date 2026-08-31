@@ -5,6 +5,7 @@ import api from './api';
 export type MatchLocation = 'HOME' | 'AWAY';
 export type MatchStatus = 'UPCOMING' | 'LIVE' | 'FINISHED';
 export type MatchPlayerStatus = 'STARTER' | 'SUBSTITUTE';
+export type MatchPresenceStatus = 'UNKNOWN' | 'PRESENT' | 'UNCERTAIN' | 'ABSENT';
 
 export interface Match {
   id: string;
@@ -40,6 +41,7 @@ export interface MatchPlayerEntry {
   match_id: string;
   player_id: string;
   status: MatchPlayerStatus;
+  presence: MatchPresenceStatus;
   player: {
     id: string;
     first_name: string;
@@ -109,6 +111,39 @@ export interface CreateMatchEventPayload {
 export interface PlayerToAdd {
   player_id: string;
   status: MatchPlayerStatus;
+  presence?: MatchPresenceStatus;
+}
+
+export interface MatchStats {
+  matchId: string;
+  opponent: string;
+  matchDate: string;
+  location: MatchLocation;
+  status: MatchStatus;
+  totalPlayers: number;
+  presenceCounts?: {
+    present: number;
+    uncertain: number;
+    absent: number;
+    unknown: number;
+  };
+  totalGoals: number;
+  totalOpponentGoals: number;
+  totalAssists: number;
+  totalYellowCards: number;
+  totalRedCards: number;
+  totalRecoveries: number;
+  totalBallLosses: number;
+  topScorer: { playerId: string; playerName: string; jerseyNumber: number | null; goals: number } | null;
+  topAssister: { playerId: string; playerName: string; jerseyNumber: number | null; assists: number } | null;
+  eventsByType: Record<string, number>;
+  timeline: {
+    minute: number;
+    eventType: string;
+    playerName: string;
+    jerseyNumber: number | null;
+    createdAt?: string;
+  }[];
 }
 
 export interface MatchesResponse {
@@ -182,8 +217,8 @@ export const matchService = {
   },
 
   /** Get match stats */
-  async getMatchStats(matchId: string) {
-    const response = await api.get(`/matches/${matchId}/stats`);
+  async getMatchStats(matchId: string): Promise<MatchStats> {
+    const response = await api.get<MatchStats>(`/matches/${matchId}/stats`);
     return response.data;
   },
 

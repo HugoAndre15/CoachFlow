@@ -1,10 +1,17 @@
-import { IsArray, ArrayNotEmpty, ValidateNested, IsEnum, IsUUID } from 'class-validator';
+import { IsArray, ArrayNotEmpty, ValidateNested, IsEnum, IsUUID, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum MatchPlayerStatus {
   STARTER = 'STARTER',
   SUBSTITUTE = 'SUBSTITUTE',
+}
+
+export enum MatchPresenceStatus {
+  UNKNOWN = 'UNKNOWN',
+  PRESENT = 'PRESENT',
+  UNCERTAIN = 'UNCERTAIN',
+  ABSENT = 'ABSENT',
 }
 
 export class PlayerToAddDto {
@@ -15,10 +22,19 @@ export class PlayerToAddDto {
   @ApiProperty({ enum: MatchPlayerStatus, example: 'STARTER', description: 'Titulaire ou remplaçant' })
   @IsEnum(MatchPlayerStatus)
   status: MatchPlayerStatus;
+
+  @ApiPropertyOptional({
+    enum: MatchPresenceStatus,
+    example: MatchPresenceStatus.PRESENT,
+    description: 'Disponibilité du joueur pour le match',
+  })
+  @IsOptional()
+  @IsEnum(MatchPresenceStatus)
+  presence?: MatchPresenceStatus;
 }
 
 export class AddPlayersToMatchDto {
-  @ApiProperty({ type: [PlayerToAddDto], description: 'Liste des joueurs à convoquer' })
+  @ApiProperty({ type: [PlayerToAddDto], description: 'Liste des joueurs de la feuille de match' })
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })

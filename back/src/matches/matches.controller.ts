@@ -62,7 +62,7 @@ export class MatchesController {
   // ==================== GESTION DES JOUEURS CONVOQUÉS ====================
 
   @Post(':id/players')
-  @ApiOperation({ summary: 'Convoquer des joueurs', description: 'Ajouter des joueurs à la feuille de match' })
+  @ApiOperation({ summary: 'Préparer les joueurs', description: 'Ajouter ou mettre à jour présence et rôle sur la feuille de match' })
   @ApiParam({ name: 'id', description: 'UUID du match' })
   @ApiResponse({ status: 201, description: 'Joueurs convoqués' })
   @ApiResponse({ status: 403, description: 'Non autorisé' })
@@ -75,7 +75,7 @@ export class MatchesController {
   }
 
   @Get(':id/players')
-  @ApiOperation({ summary: 'Joueurs convoqués', description: 'Liste triée par status (STARTER puis SUBSTITUTE)' })
+  @ApiOperation({ summary: 'Joueurs du match', description: 'Liste avec présence et rôle dans la composition' })
   @ApiParam({ name: 'id', description: 'UUID du match' })
   @ApiResponse({ status: 200, description: 'Liste des joueurs convoqués' })
   getMatchPlayers(
@@ -86,7 +86,7 @@ export class MatchesController {
   }
 
   @Patch(':id/players/:playerId')
-  @ApiOperation({ summary: 'Modifier le status d\'un joueur convoqué', description: 'STARTER ↔ SUBSTITUTE' })
+  @ApiOperation({ summary: 'Modifier un joueur du match', description: 'Mettre à jour sa présence et/ou son rôle' })
   @ApiParam({ name: 'id', description: 'UUID du match' })
   @ApiParam({ name: 'playerId', description: 'UUID du joueur' })
   @ApiResponse({ status: 200, description: 'Status mis à jour' })

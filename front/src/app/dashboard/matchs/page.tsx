@@ -3,46 +3,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Plus, Calendar, MapPin, Clock, Users, Play, ChevronRight,
-  Shield, Radio, Trophy, Search, ChevronDown, ChevronUp, X, AlertTriangle,
+  Plus, Calendar, MapPin, Clock, Users, ChevronRight,
+  Shield, Radio, Trophy, Search, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { matchService, Match, MatchStatus } from '@/services/matchService';
 import { useClubTeam } from '@/contexts/ClubTeamContext';
 import CreateMatchModal from './parts/CreateMatchModal';
-import CompositionModal from './parts/CompositionModal';
-import MatchSummaryModal from './parts/MatchSummaryModal';
-
-// ─── Alert Modal ─────────────────────────────────────────────────────────────
-
-function AlertModal({ message, onClose }: { message: string; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-neutral-lightest dark:bg-dark-secondary rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-        <div className="flex items-start gap-4 p-6">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-base font-bold text-dark dark:text-white mb-1">Attention</h3>
-            <p className="text-sm text-dark-light/70 dark:text-neutral leading-relaxed">{message}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-neutral/10 dark:hover:bg-dark-light transition-colors flex-shrink-0">
-            <X className="w-4 h-4 text-dark-light dark:text-neutral" />
-          </button>
-        </div>
-        <div className="px-6 pb-5">
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 bg-accent-green text-white text-sm font-semibold rounded-xl hover:bg-accent-green/90 transition-colors"
-          >
-            Compris
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -118,13 +84,11 @@ function MatchCard({
   match,
   teamName,
   onComposition,
-  onGoLive,
   onSummary,
 }: {
   match: Match;
   teamName: string;
   onComposition: () => void;
-  onGoLive: () => void;
   onSummary: () => void;
 }) {
   const cfg = STATUS_CONFIG[match.status];
@@ -216,7 +180,7 @@ function MatchCard({
           <div className="flex items-center justify-center gap-4 text-xs text-dark-light/50 dark:text-neutral/40 pb-3 border-b border-neutral/10 dark:border-dark-light mb-3">
             <span className="flex items-center gap-1">
               <Users className="w-3.5 h-3.5" />
-              {match._count.matchPlayers} convoqué{match._count.matchPlayers !== 1 ? 's' : ''}
+              {match._count.matchPlayers} joueur{match._count.matchPlayers !== 1 ? 's' : ''} suivi{match._count.matchPlayers !== 1 ? 's' : ''}
             </span>
             {match.status === 'FINISHED' && (
               <span className="flex items-center gap-1">
@@ -229,31 +193,14 @@ function MatchCard({
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {match.status === 'UPCOMING' ? (
-            <button
-              onClick={onComposition}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-neutral/20 dark:border-dark-light text-dark-light dark:text-neutral hover:bg-neutral/5 dark:hover:bg-dark-secondary/30 transition-colors"
-            >
-              <Users className="w-3.5 h-3.5" />
-              Composition
-            </button>
-          ) : (
-            <span
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-neutral/10 dark:border-dark-light/30 text-dark-light/40 dark:text-neutral/30 cursor-not-allowed"
-              title="Composition verrouillée — match en cours ou terminé"
-            >
-              <Users className="w-3.5 h-3.5" />
-              Composition 🔒
-            </span>
-          )}
-
           {isUpcoming && (
             <button
-              onClick={onGoLive}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-accent-green text-white hover:bg-accent-green/90 transition-colors group/btn"
+              onClick={onComposition}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-accent-green text-white hover:bg-accent-green/90 transition-colors"
             >
-              <Play className="w-3.5 h-3.5 transition-transform group-hover/btn:scale-110" />
-              Lancer en direct
+              <Users className="w-3.5 h-3.5" />
+              Préparer le match
+              <ChevronRight className="w-3 h-3" />
             </button>
           )}
 
@@ -287,15 +234,13 @@ function MatchCard({
 
 export default function MatchsPage() {
   const { activeTeam } = useClubTeam();
+  const router = useRouter();
   const [matches, setMatches]               = useState<Match[]>([]);
   const [isLoading, setIsLoading]           = useState(false);
   const [error, setError]                   = useState<string | null>(null);
   const [statusFilter, setStatusFilter]     = useState('');
   const [searchQuery, setSearchQuery]       = useState('');
   const [isCreateOpen, setIsCreateOpen]     = useState(false);
-  const [compositionMatchId, setCompositionMatchId] = useState<string | null>(null);
-  const [summaryMatchId, setSummaryMatchId]         = useState<string | null>(null);
-  const [alertMessage, setAlertMessage]             = useState<string | null>(null);
   const [collapsedLive, setCollapsedLive]           = useState(false);
   const [collapsedUpcoming, setCollapsedUpcoming]   = useState(false);
   const [collapsedFinished, setCollapsedFinished]   = useState(false);
@@ -332,27 +277,6 @@ export default function MatchsPage() {
     }
   }, [activeTeam?.id, fetchMatches]);
 
-  // ── Go live ───────────────────────────────────────────────────────────
-  const handleGoLive = async (matchId: string) => {
-    try {
-      // Vérifier qu'il y a au moins 2 titulaires avant de passer en direct
-      const players = await matchService.getMatchPlayers(matchId);
-      const startersCount = players.filter(p => p.status === 'STARTER').length;
-
-      if (startersCount < 2) {
-        setAlertMessage(
-          `Il faut au moins 2 titulaires pour lancer un match en direct (actuellement ${startersCount}). Configurez la composition d'abord.`,
-        );
-        return;
-      }
-
-      await matchService.updateStatus(matchId, 'LIVE');
-      if (activeTeam?.id) fetchMatches(activeTeam.id);
-    } catch (err: any) {
-      setAlertMessage(err.response?.data?.message || 'Erreur lors du passage en direct');
-    }
-  };
-
   // ── Filtered & grouped matches ────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = matches;
@@ -378,11 +302,6 @@ export default function MatchsPage() {
 
   const handleCreateSuccess = () => {
     setIsCreateOpen(false);
-    if (activeTeam?.id) fetchMatches(activeTeam.id);
-  };
-
-  const handleCompositionSuccess = () => {
-    setCompositionMatchId(null);
     if (activeTeam?.id) fetchMatches(activeTeam.id);
   };
 
@@ -567,9 +486,8 @@ export default function MatchsPage() {
                       key={m.id}
                       match={m}
                       teamName={activeTeam.name}
-                      onComposition={() => setCompositionMatchId(m.id)}
-                      onGoLive={() => {}}
-                      onSummary={() => setSummaryMatchId(m.id)}
+                      onComposition={() => router.push(`/dashboard/matchs/${m.id}`)}
+                      onSummary={() => router.push(`/dashboard/matchs/${m.id}`)}
                     />
                   ))}
                 </div>
@@ -596,9 +514,8 @@ export default function MatchsPage() {
                       key={m.id}
                       match={m}
                       teamName={activeTeam.name}
-                      onComposition={() => setCompositionMatchId(m.id)}
-                      onGoLive={() => handleGoLive(m.id)}
-                      onSummary={() => setSummaryMatchId(m.id)}
+                      onComposition={() => router.push(`/dashboard/matchs/${m.id}`)}
+                      onSummary={() => router.push(`/dashboard/matchs/${m.id}`)}
                     />
                   ))}
                 </div>
@@ -625,9 +542,8 @@ export default function MatchsPage() {
                       key={m.id}
                       match={m}
                       teamName={activeTeam.name}
-                      onComposition={() => setCompositionMatchId(m.id)}
-                      onGoLive={() => {}}
-                      onSummary={() => setSummaryMatchId(m.id)}
+                      onComposition={() => router.push(`/dashboard/matchs/${m.id}`)}
+                      onSummary={() => router.push(`/dashboard/matchs/${m.id}`)}
                     />
                   ))}
                 </div>
@@ -635,11 +551,6 @@ export default function MatchsPage() {
             </section>
           )}
         </div>
-      )}
-
-      {/* ── Alert Modal ──────────────────────────────────────────────── */}
-      {alertMessage && (
-        <AlertModal message={alertMessage} onClose={() => setAlertMessage(null)} />
       )}
 
       {/* ── Modals ───────────────────────────────────────────────────── */}
@@ -650,24 +561,6 @@ export default function MatchsPage() {
         teamId={activeTeam.id}
       />
 
-      {compositionMatchId && (
-        <CompositionModal
-          isOpen={!!compositionMatchId}
-          onClose={() => setCompositionMatchId(null)}
-          onSuccess={handleCompositionSuccess}
-          matchId={compositionMatchId}
-          teamId={activeTeam.id}
-        />
-      )}
-
-      {summaryMatchId && (
-        <MatchSummaryModal
-          isOpen={!!summaryMatchId}
-          onClose={() => setSummaryMatchId(null)}
-          matchId={summaryMatchId}
-          teamName={activeTeam.name}
-        />
-      )}
     </div>
   );
 }

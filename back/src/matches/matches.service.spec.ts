@@ -19,7 +19,7 @@ import {
   body_part,
   player_status,
 } from '@prisma/client';
-import { MatchPlayerStatus } from './dto/add-players-to-match.dto';
+import { MatchPlayerStatus, MatchPresenceStatus } from './dto/add-players-to-match.dto';
 
 describe('MatchesService', () => {
   let service: MatchesService;
@@ -414,6 +414,23 @@ describe('MatchesService', () => {
       expect(result.status).toBe(match_status.FINISHED);
     });
 
+    it('should not count an absent starter when starting a match', async () => {
+      prisma.match.findUnique.mockResolvedValue({
+        id: mockMatchId,
+        team_id: mockTeamId,
+        status: match_status.UPCOMING,
+        matchPlayers: [
+          { id: 'mp-1', status: 'STARTER', presence: MatchPresenceStatus.PRESENT },
+          { id: 'mp-2', status: 'STARTER', presence: MatchPresenceStatus.ABSENT },
+        ],
+      });
+      mockCoachPermissions();
+
+      await expect(
+        service.updateStatus(mockMatchId, mockUserId, { status: match_status.LIVE }),
+      ).rejects.toThrow('Il faut au moins 2 titulaires présents');
+    });
+
     it('should throw BadRequestException for invalid status transition (UPCOMING to FINISHED)', async () => {
       prisma.match.findUnique.mockResolvedValue({
         id: mockMatchId,
@@ -509,7 +526,11 @@ describe('MatchesService', () => {
   describe('addPlayersToMatch', () => {
     const addPlayersDto = {
       players: [
-        { player_id: 'player1', status: MatchPlayerStatus.STARTER },
+        {
+          player_id: 'player1',
+          status: MatchPlayerStatus.STARTER,
+          presence: MatchPresenceStatus.PRESENT,
+        },
         { player_id: 'player2', status: MatchPlayerStatus.SUBSTITUTE },
       ],
     };
@@ -538,6 +559,12 @@ describe('MatchesService', () => {
 
       expect(result).toHaveLength(2);
       expect(prisma.matchPlayer.upsert).toHaveBeenCalledTimes(2);
+      expect(prisma.matchPlayer.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ presence: MatchPresenceStatus.PRESENT }),
+          update: expect.objectContaining({ presence: MatchPresenceStatus.PRESENT }),
+        }),
+      );
     });
 
     it('should throw BadRequestException if match is FINISHED', async () => {
@@ -847,6 +874,24 @@ describe('MatchesService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('should reject an event for an absent player', async () => {
+      prisma.match.findUnique.mockResolvedValue({
+        id: mockMatchId,
+        team_id: mockTeamId,
+      });
+      mockCoachPermissions();
+      prisma.matchPlayer.findUnique.mockResolvedValue({
+        match_id: mockMatchId,
+        player_id: mockPlayerId,
+        presence: MatchPresenceStatus.ABSENT,
+      });
+
+      await expect(
+        service.addEventToMatch(mockMatchId, createEventDto, mockUserId),
+      ).rejects.toThrow('Le joueur doit être marqué présent');
+      expect(prisma.matchEvent.create).not.toHaveBeenCalled();
+    });
+
     it('should validate ASSIST must reference a GOAL', async () => {
       const assistDto = {
         player_id: mockPlayerId,
@@ -1119,8 +1164,8 @@ describe('MatchesService', () => {
       status: match_status.FINISHED,
       team: { id: mockTeamId, club_id: mockClubId },
       matchPlayers: [
-        { id: 'mp-1', player_id: 'player-1' },
-        { id: 'mp-2', player_id: 'player-2' },
+        { id: 'mp-1', player_id: 'player-1', presence: MatchPresenceStatus.PRESENT },
+        { id: 'mp-2', player_id: 'player-2', presence: MatchPresenceStatus.ABSENT },
       ],
       matchEvents: [
         {
@@ -1170,7 +1215,13 @@ describe('MatchesService', () => {
       expect(result.totalRedCards).toBe(0);
       expect(result.totalRecoveries).toBe(0);
       expect(result.totalBallLosses).toBe(0);
-      expect(result.totalPlayers).toBe(2);
+      expect(result.totalPlayers).toBe(1);
+      expect(result.presenceCounts).toEqual({
+        present: 1,
+        uncertain: 0,
+        absent: 1,
+        unknown: 0,
+      });
       expect(result.topScorer).toEqual({
         playerId: 'player-1',
         playerName: 'John Doe',
