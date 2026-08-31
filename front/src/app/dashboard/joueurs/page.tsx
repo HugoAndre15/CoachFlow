@@ -1,8 +1,8 @@
 ﻿'use client';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Users, Target, Award, Star, TrendingUp, Activity, Zap } from 'lucide-react';
 import { playerService, Player, PlayerStats } from '@/services/playerService';
-import { Team } from '@/services/teamService';
+import { useClubTeam } from '@/contexts/ClubTeamContext';
 import CreatePlayerModal from './parts/CreatePlayerModal';
 import PlayerDetailModal from './parts/PlayerDetailModal';
 import EditPlayerModal from './parts/EditPlayerModal';
@@ -17,7 +17,7 @@ import StatCard from './parts/StatCard';
 import TopCard from './parts/TopCard';
 // --- Component ---------------------------------------------------------------
 export default function JoueursPage() {
-  const [activeTeam, setActiveTeam] = useState<Team | null>(null);
+  const { activeTeam } = useClubTeam();
   const [players, setPlayers] = useState<Player[]>([]);
   const [statsMap, setStatsMap] = useState<Record<string, PlayerStats>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -29,52 +29,53 @@ export default function JoueursPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [viewingPlayer, setViewingPlayer] = useState<Player | null>(null);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
-  // Charger depuis localStorage au montage
-  useEffect(() => {
-    const savedTeamId = localStorage.getItem('activeTeamId');
-    const savedTeamName = localStorage.getItem('activeTeamName');
-    const savedTeamCategory = localStorage.getItem('activeTeamCategory');
-    if (savedTeamId && savedTeamName) {
-      setActiveTeam({ id: savedTeamId, name: savedTeamName, category: savedTeamCategory || '', club_id: '' });
-    }
-  }, []);
-  // Ecouter les changements d'equipe
-  useEffect(() => {
-    const handler = (e: CustomEvent<Team>) => {
-      setActiveTeam(e.detail);
-      localStorage.setItem('activeTeamName', e.detail.name);
-      localStorage.setItem('activeTeamCategory', e.detail.category);
-    };
-    window.addEventListener('activeTeamChanged', handler as EventListener);
-    return () => window.removeEventListener('activeTeamChanged', handler as EventListener);
-  }, []);
+  const playersRequestId = useRef(0);
+
   const fetchPlayers = useCallback(async (teamId: string) => {
+    const requestId = ++playersRequestId.current;
     try {
       setIsLoading(true);
+      setIsLoadingStats(false);
       setError(null);
+      setPlayers([]);
       setStatsMap({});
       const data = await playerService.getPlayersByTeam(teamId);
+      if (requestId !== playersRequestId.current) return;
       setPlayers(data);
       if (data.length > 0) {
         setIsLoadingStats(true);
         const statsResults = await Promise.allSettled(
           data.map(p => playerService.getPlayerStats(p.id).then(s => ({ id: p.id, stats: s })))
         );
+        if (requestId !== playersRequestId.current) return;
         const map: Record<string, PlayerStats> = {};
         statsResults.forEach(r => {
           if (r.status === 'fulfilled') map[r.value.id] = r.value.stats;
         });
         setStatsMap(map);
-        setIsLoadingStats(false);
       }
     } catch (err: any) {
+      if (requestId !== playersRequestId.current) return;
       setError(err.response?.data?.message || 'Erreur lors du chargement des joueurs');
     } finally {
-      setIsLoading(false);
+      if (requestId === playersRequestId.current) {
+        setIsLoading(false);
+        setIsLoadingStats(false);
+      }
     }
   }, []);
+
   useEffect(() => {
-    if (activeTeam?.id) fetchPlayers(activeTeam.id);
+    if (activeTeam?.id) {
+      void fetchPlayers(activeTeam.id);
+    } else {
+      playersRequestId.current += 1;
+      setPlayers([]);
+      setStatsMap({});
+      setError(null);
+      setIsLoading(false);
+      setIsLoadingStats(false);
+    }
   }, [activeTeam?.id, fetchPlayers]);
   // Filtres
   const filtered = useMemo(() => players.filter(p => {
@@ -120,7 +121,7 @@ export default function JoueursPage() {
   };
   const handleDelete = async (playerId: string) => {
     try {
-      await playerService.deletePlayer(playerId);
+      await playerService.archivePlayer(playerId);
       setPlayers(prev => prev.filter(p => p.id !== playerId));
       setStatsMap(prev => {
         const next = { ...prev };
@@ -128,7 +129,7 @@ export default function JoueursPage() {
         return next;
       });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la suppression');
+      setError(err.response?.data?.message || 'Erreur lors de l’archivage');
     } finally {
       setDeletingId(null);
     }

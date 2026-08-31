@@ -207,7 +207,7 @@ model MatchEvent {
     updated_at        DateTime         @updatedAt
 
     match         Match        @relation(fields: [match_id], references: [id], onDelete: Cascade)
-    player        Player       @relation(fields: [player_id], references: [id], onDelete: SetNull)
+    player        Player       @relation(fields: [player_id], references: [id], onDelete: Restrict)
     relatedEvent  MatchEvent?  @relation("EventRelation", fields: [related_event_id], references: [id], onDelete: SetNull)
     relatedEvents MatchEvent[] @relation("EventRelation")
 }

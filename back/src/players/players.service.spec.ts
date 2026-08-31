@@ -160,6 +160,11 @@ describe('PlayersService', () => {
       // Assert
       expect(result.data).toHaveLength(1);
       expect(result.meta.total).toBe(1);
+      expect(prisma.player.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          status: { not: player_status.RETIRED },
+        }),
+      });
     });
 
     it('devrait refuser si non autorisé', async () => {
@@ -445,7 +450,7 @@ describe('PlayersService', () => {
 
   // ==================== REMOVE ====================
   describe('remove', () => {
-    it('devrait permettre au COACH de supprimer un joueur', async () => {
+    it('devrait permettre au COACH d\'archiver un joueur', async () => {
       // Arrange
       const playerId = 'player-1';
       const userId = 'user-1';
@@ -467,16 +472,21 @@ describe('PlayersService', () => {
       prisma.team.findUnique.mockResolvedValue({ club_id: 'club-1' } as any);
       prisma.clubUser.findFirst.mockResolvedValue(null); // Pas président
       prisma.teamUser.findFirst.mockResolvedValue({ role: team_role.COACH } as any);
-      prisma.player.delete.mockResolvedValue(player);
+      const archivedPlayer = { ...player, status: player_status.RETIRED };
+      prisma.player.update.mockResolvedValue(archivedPlayer);
 
       // Act
       const result = await service.remove(playerId, userId);
 
       // Assert
-      expect(result).toEqual(player);
+      expect(result).toEqual(archivedPlayer);
+      expect(prisma.player.update).toHaveBeenCalledWith({
+        where: { id: playerId },
+        data: { status: player_status.RETIRED },
+      });
     });
 
-    it('devrait permettre au PRESIDENT du club de supprimer un joueur', async () => {
+    it('devrait permettre au PRESIDENT du club d\'archiver un joueur', async () => {
       // Arrange
       const playerId = 'player-1';
       const userId = 'user-1';
@@ -498,13 +508,14 @@ describe('PlayersService', () => {
       prisma.team.findUnique.mockResolvedValue({ id: 'team-1', name: 'U19', category: 'U19', club_id: 'club-1', created_at: new Date(), updated_at: new Date() });
       prisma.teamUser.findFirst.mockResolvedValue(null);
       prisma.clubUser.findFirst.mockResolvedValue({ role: club_role.PRESIDENT });
-      prisma.player.delete.mockResolvedValue(player);
+      const archivedPlayer = { ...player, status: player_status.RETIRED };
+      prisma.player.update.mockResolvedValue(archivedPlayer);
 
       // Act
       const result = await service.remove(playerId, userId);
 
       // Assert
-      expect(result).toEqual(player);
+      expect(result).toEqual(archivedPlayer);
     });
 
     it('devrait refuser si non autorisé', async () => {

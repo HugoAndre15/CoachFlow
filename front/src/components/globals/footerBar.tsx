@@ -5,25 +5,12 @@ export default function FooterBar() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           {/* Logo/Nom */}
           <div className="text-lg font-semibold text-dark dark:text-neutral-lightest">
-            MatchFlow
-          </div>
-
-          {/* Liens */}
-          <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-dark-lighter dark:text-neutral">
-            <a href="/about" className="hover:text-accent-green transition-colors">
-              À propos
-            </a>
-            <a href="/terms" className="hover:text-accent-green transition-colors">
-              Conditions d&apos;utilisation
-            </a>
-            <a href="/privacy" className="hover:text-accent-green transition-colors">
-              Confidentialité
-            </a>
+            CoachFlow
           </div>
 
           {/* Copyright */}
           <div className="text-sm text-dark-lighter dark:text-neutral">
-            © 2026 MatchFlow
+            © 2026 CoachFlow
           </div>
         </div>
       </div>

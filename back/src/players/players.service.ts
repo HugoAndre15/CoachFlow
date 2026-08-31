@@ -7,7 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
-import { club_role, team_role } from '@prisma/client';
+import { club_role, player_status, team_role } from '@prisma/client';
 
 @Injectable()
 export class PlayersService {
@@ -165,9 +165,7 @@ export class PlayersService {
       where.team_id = { in: accessibleTeamIds };
     }
 
-    if (status) {
-      where.status = status;
-    }
+    where.status = status || { not: player_status.RETIRED };
 
     if (position) {
       where.position = position;
@@ -287,7 +285,7 @@ export class PlayersService {
   }
 
   /**
-   * Supprimer un joueur
+   * Retirer un joueur de l'effectif sans supprimer son historique
    */
   async remove(id: string, userId: string) {
     const player = await this.prisma.player.findUnique({
@@ -301,11 +299,12 @@ export class PlayersService {
     // Vérifier les permissions
     const canManage = await this.canManagePlayers(player.team_id, userId);
     if (!canManage) {
-      throw new ForbiddenException('Seuls le coach, l\'assistant ou le président du club peuvent supprimer un joueur');
+      throw new ForbiddenException('Seuls le coach, l\'assistant ou le président du club peuvent archiver un joueur');
     }
 
-    return this.prisma.player.delete({
+    return this.prisma.player.update({
       where: { id },
+      data: { status: player_status.RETIRED },
     });
   }
   

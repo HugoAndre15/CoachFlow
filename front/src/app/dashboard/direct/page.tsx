@@ -19,7 +19,7 @@ import {
   BodyPart,
   CreateMatchEventPayload,
 } from '@/services/matchService';
-import { Team } from '@/services/teamService';
+import { useClubTeam } from '@/contexts/ClubTeamContext';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -797,7 +797,7 @@ type EventFlowStep = 'idle' | 'pick-player' | 'pick-opponent-jersey' | 'pick-zon
 
 export default function DirectPage() {
   // Team & match selection
-  const [activeTeam, setActiveTeam] = useState<Team | null>(null);
+  const { activeTeam } = useClubTeam();
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<MatchDetail | null>(null);
   const [matchPlayers, setMatchPlayers] = useState<MatchPlayerEntry[]>([]);
@@ -812,6 +812,8 @@ export default function DirectPage() {
   const chronoInterval = useRef<NodeJS.Timeout | null>(null);
   const chronoSecondsRef = useRef(0);
   const selectedMatchIdRef = useRef<string | null>(null);
+  const matchesRequestId = useRef(0);
+  const selectionRequestId = useRef(0);
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -849,47 +851,64 @@ export default function DirectPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matches, searchParams]);
 
-  // ── Team restore ──────────────────────────────────────────────────────
+  // Reset the live workspace when the globally selected team changes.
   useEffect(() => {
-    const id = localStorage.getItem('activeTeamId');
-    const name = localStorage.getItem('activeTeamName');
-    const cat = localStorage.getItem('activeTeamCategory');
-    if (id && name) setActiveTeam({ id, name, category: cat || '', club_id: '' });
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: CustomEvent<Team>) => {
-      setActiveTeam(e.detail);
-      setSelectedMatch(null);
-      setMatchEvents([]);
-      setMatchPlayers([]);
-      setOpponentEvents([]);
-      resetChrono();
-    };
-    window.addEventListener('activeTeamChanged', handler as EventListener);
-    return () => window.removeEventListener('activeTeamChanged', handler as EventListener);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (selectedMatchIdRef.current) {
+      localStorage.removeItem(`chrono_${selectedMatchIdRef.current}`);
+      localStorage.removeItem('direct_matchId');
+    }
+    if (chronoInterval.current) {
+      clearInterval(chronoInterval.current);
+      chronoInterval.current = null;
+    }
+    selectedMatchIdRef.current = null;
+    selectionRequestId.current += 1;
+    chronoSecondsRef.current = 0;
+    autoSelectDone.current = false;
+    setSelectedMatch(null);
+    setMatchEvents([]);
+    setMatchPlayers([]);
+    setOpponentEvents([]);
+    setChronoSeconds(0);
+    setIsChronoRunning(false);
+    setFlowStep('idle');
+    setError(null);
+  }, [activeTeam?.id]);
 
   // ── Fetch matches when team changes ───────────────────────────────────
   const fetchMatches = useCallback(async (teamId: string) => {
+    const requestId = ++matchesRequestId.current;
     try {
       setIsLoading(true);
+      setError(null);
+      setMatches([]);
       const data = await matchService.getMatchesByTeam(teamId);
+      if (requestId !== matchesRequestId.current) return;
       setMatches(data);
     } catch {
+      if (requestId !== matchesRequestId.current) return;
       setError('Erreur lors du chargement des matchs');
     } finally {
-      setIsLoading(false);
+      if (requestId === matchesRequestId.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (activeTeam?.id) fetchMatches(activeTeam.id);
+    if (activeTeam?.id) {
+      void fetchMatches(activeTeam.id);
+    } else {
+      matchesRequestId.current += 1;
+      setMatches([]);
+      setError(null);
+      setIsLoading(false);
+    }
   }, [activeTeam?.id, fetchMatches]);
 
   // ── Select a match ────────────────────────────────────────────────────
   const handleSelectMatch = async (match: Match) => {
+    const requestId = ++selectionRequestId.current;
     try {
       setIsLoading(true);
       setError(null);
@@ -897,6 +916,7 @@ export default function DirectPage() {
       if (match.status === 'UPCOMING') {
         // Vérifier le nombre de titulaires avant de passer en LIVE
         const players = await matchService.getMatchPlayers(match.id);
+        if (requestId !== selectionRequestId.current) return;
         const startersCount = players.filter(p => p.status === 'STARTER').length;
 
         if (startersCount < 2) {
@@ -908,9 +928,11 @@ export default function DirectPage() {
         }
 
         await matchService.updateStatus(match.id, 'LIVE');
+        if (requestId !== selectionRequestId.current) return;
       }
 
       const detail = await matchService.getMatch(match.id);
+      if (requestId !== selectionRequestId.current) return;
       setSelectedMatch(detail);
       selectedMatchIdRef.current = detail.id;
       setMatchPlayers(detail.matchPlayers || []);
@@ -957,9 +979,12 @@ export default function DirectPage() {
         if (chronoInterval.current) clearInterval(chronoInterval.current);
       }
     } catch (err: any) {
+      if (requestId !== selectionRequestId.current) return;
       setError(err.response?.data?.message || 'Erreur lors du chargement du match');
     } finally {
-      setIsLoading(false);
+      if (requestId === selectionRequestId.current) {
+        setIsLoading(false);
+      }
     }
   };
 

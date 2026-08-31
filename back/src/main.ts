@@ -29,7 +29,7 @@ async function bootstrap() {
   // ==================== SWAGGER (DEV UNIQUEMENT) ====================
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('MatchFlow API')
+      .setTitle('CoachFlow API')
       .setDescription('API de gestion de matchs, équipes, joueurs et clubs de football')
       .setVersion('1.0')
       .addBearerAuth(

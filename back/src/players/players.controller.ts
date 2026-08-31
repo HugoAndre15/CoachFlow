@@ -90,9 +90,9 @@ export class PlayersController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Supprimer un joueur' })
+  @ApiOperation({ summary: 'Archiver un joueur', description: 'Le retire de l’effectif tout en conservant son historique de match' })
   @ApiParam({ name: 'id', description: 'UUID du joueur' })
-  @ApiResponse({ status: 200, description: 'Joueur supprimé' })
+  @ApiResponse({ status: 200, description: 'Joueur archivé' })
   @ApiResponse({ status: 403, description: 'Non autorisé' })
   remove(
     @Param('id') id: string,

@@ -1,19 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Eye, Edit2, Trash2, Plus, Users, Crown, Clipboard, Shield } from 'lucide-react';
 import CreateClubModal from './parts/CreateClubModal';
 import EditClubModal from './parts/EditClubModal';
 import DeleteClubModal from './parts/DeleteClubModal';
-import { clubService } from '@/services/clubService';
-
-// Types
-interface Club {
-  id: string;
-  name: string;
-  role: string;
-  created_at: string;
-}
+import { type Club } from '@/services/clubService';
+import { useClubTeam } from '@/contexts/ClubTeamContext';
 
 type RoleFilter = 'Tous' | 'Président' | 'Responsable' | 'Entraîneur';
 
@@ -32,33 +26,21 @@ const mapRole = (role: string): string => {
 };
 
 export default function ClubsPage() {
+  const router = useRouter();
+  const {
+    activeClub,
+    allClubs: clubs,
+    setActiveClub,
+    isLoadingClubs: isLoading,
+    clubsError: error,
+    refetchClubs,
+  } = useClubTeam();
   const [activeFilter, setActiveFilter] = useState<RoleFilter>('Tous');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [clubs, setClubs] = useState<Club[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
   // États pour les modales d'édition et suppression
   const [editingClub, setEditingClub] = useState<{ id: string; name: string } | null>(null);
   const [deletingClub, setDeletingClub] = useState<{ id: string; name: string } | null>(null);
-
-  const fetchClubs = async () => {
-    try {
-      setIsLoading(true);
-      const data = await clubService.getMyClubs();
-      setClubs(data);
-      setError(null);
-    } catch (err: any) {
-      console.error('Error fetching clubs:', err);
-      setError(err.message || 'Erreur lors du chargement des clubs');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClubs();
-  }, []);
 
   const filteredClubs = activeFilter === 'Tous' 
     ? clubs 
@@ -185,7 +167,7 @@ export default function ClubsPage() {
               {error}
             </p>
             <button 
-              onClick={fetchClubs}
+              onClick={() => void refetchClubs()}
               className="px-5 py-2.5 bg-accent-green hover:bg-accent-green/90 text-white rounded-lg font-medium transition-colors"
             >
               Réessayer
@@ -231,7 +213,17 @@ export default function ClubsPage() {
 
                 {/* Actions */}
                 <div className="flex gap-2 mt-4">
-                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-green hover:bg-accent-green/90 text-white rounded-lg font-medium transition-colors">
+                  <button
+                    onClick={() => {
+                      setActiveClub(club);
+                      router.push('/dashboard/teams');
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-lg font-medium transition-colors ${
+                      activeClub?.id === club.id
+                        ? 'bg-accent-blue hover:bg-accent-blue/90'
+                        : 'bg-accent-green hover:bg-accent-green/90'
+                    }`}
+                  >
                     <Eye className="w-4 h-4" />
                     <span>Voir</span>
                   </button>
@@ -290,7 +282,7 @@ export default function ClubsPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => {
           setIsModalOpen(false);
-          fetchClubs(); // Rafraîchir la liste après création
+          void refetchClubs();
         }}
       />
 
@@ -301,7 +293,7 @@ export default function ClubsPage() {
           onClose={() => setEditingClub(null)}
           onSuccess={() => {
             setEditingClub(null);
-            fetchClubs(); // Rafraîchir la liste après modification
+            void refetchClubs();
           }}
           clubId={editingClub.id}
           currentName={editingClub.name}
@@ -315,7 +307,7 @@ export default function ClubsPage() {
           onClose={() => setDeletingClub(null)}
           onSuccess={() => {
             setDeletingClub(null);
-            fetchClubs(); // Rafraîchir la liste après suppression
+            void refetchClubs();
           }}
           clubId={deletingClub.id}
           clubName={deletingClub.name}

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Calendar, MapPin, Clock, Users, Play, ChevronRight,
   Shield, Radio, Trophy, Search, ChevronDown, ChevronUp, X, AlertTriangle,
 } from 'lucide-react';
 import { matchService, Match, MatchStatus } from '@/services/matchService';
-import { Team } from '@/services/teamService';
+import { useClubTeam } from '@/contexts/ClubTeamContext';
 import CreateMatchModal from './parts/CreateMatchModal';
 import CompositionModal from './parts/CompositionModal';
 import MatchSummaryModal from './parts/MatchSummaryModal';
@@ -286,7 +286,7 @@ function MatchCard({
 // ─── Main page ──────────────────────────────────────────────────────────────
 
 export default function MatchsPage() {
-  const [activeTeam, setActiveTeam]         = useState<Team | null>(null);
+  const { activeTeam } = useClubTeam();
   const [matches, setMatches]               = useState<Match[]>([]);
   const [isLoading, setIsLoading]           = useState(false);
   const [error, setError]                   = useState<string | null>(null);
@@ -299,41 +299,37 @@ export default function MatchsPage() {
   const [collapsedLive, setCollapsedLive]           = useState(false);
   const [collapsedUpcoming, setCollapsedUpcoming]   = useState(false);
   const [collapsedFinished, setCollapsedFinished]   = useState(false);
-
-  // ── Restore team from localStorage ────────────────────────────────────
-  useEffect(() => {
-    const id   = localStorage.getItem('activeTeamId');
-    const name = localStorage.getItem('activeTeamName');
-    const cat  = localStorage.getItem('activeTeamCategory');
-    if (id && name) setActiveTeam({ id, name, category: cat || '', club_id: '' });
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: CustomEvent<Team>) => {
-      setActiveTeam(e.detail);
-      localStorage.setItem('activeTeamName', e.detail.name);
-      localStorage.setItem('activeTeamCategory', e.detail.category);
-    };
-    window.addEventListener('activeTeamChanged', handler as EventListener);
-    return () => window.removeEventListener('activeTeamChanged', handler as EventListener);
-  }, []);
+  const matchesRequestId = useRef(0);
 
   // ── Fetch matches ─────────────────────────────────────────────────────
   const fetchMatches = useCallback(async (teamId: string) => {
+    const requestId = ++matchesRequestId.current;
     try {
       setIsLoading(true);
       setError(null);
+      setMatches([]);
       const data = await matchService.getMatchesByTeam(teamId);
+      if (requestId !== matchesRequestId.current) return;
       setMatches(data);
     } catch (err: any) {
+      if (requestId !== matchesRequestId.current) return;
       setError(err.response?.data?.message || 'Erreur lors du chargement des matchs');
     } finally {
-      setIsLoading(false);
+      if (requestId === matchesRequestId.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (activeTeam?.id) fetchMatches(activeTeam.id);
+    if (activeTeam?.id) {
+      void fetchMatches(activeTeam.id);
+    } else {
+      matchesRequestId.current += 1;
+      setMatches([]);
+      setError(null);
+      setIsLoading(false);
+    }
   }, [activeTeam?.id, fetchMatches]);
 
   // ── Go live ───────────────────────────────────────────────────────────

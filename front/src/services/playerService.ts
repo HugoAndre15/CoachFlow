@@ -84,7 +84,7 @@ export const playerService = {
         return response.data;
     },
 
-    deletePlayer: async (playerId: string): Promise<void> => {
+    archivePlayer: async (playerId: string): Promise<void> => {
         await api.delete(`/players/${playerId}`);
     },
 };

@@ -6,12 +6,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClubTeam } from '@/contexts/ClubTeamContext';
 import { 
   ChevronDown, 
-  Bell, 
   User, 
-  Settings, 
   LogOut, 
   ChevronRight,
   Shield,
+  Users,
   Menu,
 } from 'lucide-react';
 
@@ -221,14 +220,8 @@ export default function DashboardHeader({ onToggleSidebar }: DashboardHeaderProp
         </div>
       </div>
 
-      {/* Right - Notifications + Profile */}
+      {/* Right - Profile */}
       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-        {/* Notifications — desktop only */}
-        <button className="relative p-2 rounded-lg hover:bg-dark-lighter transition-colors text-grey-medium hover:text-white hidden sm:block">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent-red rounded-full" />
-        </button>
-
         {/* Profile */}
         <div className="relative" ref={profileRef}>
           <button
@@ -260,36 +253,25 @@ export default function DashboardHeader({ onToggleSidebar }: DashboardHeaderProp
 
               {/* Menu items */}
               <div className="py-1">
-                {/* Notifications — mobile only, inside profile dropdown */}
                 <button
                   onClick={() => {
-                    setProfileOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-neutral hover:bg-dark-light/50 hover:text-white transition-colors sm:hidden"
-                >
-                  <Bell className="w-4 h-4" />
-                  Notifications
-                  <span className="ml-auto w-2 h-2 bg-accent-red rounded-full" />
-                </button>
-                <button
-                  onClick={() => {
-                    router.push('/dashboard/mon-compte');
+                    router.push('/dashboard/clubs');
                     setProfileOpen(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-neutral hover:bg-dark-light/50 hover:text-white transition-colors"
                 >
-                  <User className="w-4 h-4" />
-                  Mon Compte
+                  <Shield className="w-4 h-4" />
+                  Mes clubs
                 </button>
                 <button
                   onClick={() => {
-                    router.push('/dashboard/parametres');
+                    router.push('/dashboard/teams');
                     setProfileOpen(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-neutral hover:bg-dark-light/50 hover:text-white transition-colors"
                 >
-                  <Settings className="w-4 h-4" />
-                  Paramètres
+                  <Users className="w-4 h-4" />
+                  Mes équipes
                 </button>
               </div>
 

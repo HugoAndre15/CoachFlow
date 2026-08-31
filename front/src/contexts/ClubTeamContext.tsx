@@ -1,23 +1,32 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useAuth } from './AuthContext';
-import { clubService, Club } from '@/services/clubService';
-import { teamService, Team } from '@/services/teamService';
+import { clubService, type Club } from '@/services/clubService';
+import { teamService, type Team } from '@/services/teamService';
+
+const ACTIVE_CLUB_KEY = 'activeClubId';
+const ACTIVE_TEAM_KEY = 'activeTeamId';
 
 interface ClubTeamContextType {
-  // Club
   activeClub: Club | null;
   allClubs: Club[];
   setActiveClub: (club: Club) => void;
-  // Team
   activeTeam: Team | null;
   allTeams: Team[];
   setActiveTeam: (team: Team) => void;
-  // Loading
   isLoadingClubs: boolean;
   isLoadingTeams: boolean;
-  // Actions
+  clubsError: string | null;
+  teamsError: string | null;
   refetchClubs: () => Promise<void>;
   refetchTeams: () => Promise<void>;
 }
@@ -26,135 +35,163 @@ const ClubTeamContext = createContext<ClubTeamContextType | undefined>(undefined
 
 export function ClubTeamProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  
-  // Always initialize empty — hydrate from cache in useEffect to avoid SSR mismatch
+  const userId = user?.id;
   const [activeClub, setActiveClubState] = useState<Club | null>(null);
   const [allClubs, setAllClubs] = useState<Club[]>([]);
   const [activeTeam, setActiveTeamState] = useState<Team | null>(null);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [isLoadingClubs, setIsLoadingClubs] = useState(false);
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
-  
-  const hasFetchedClubs = useRef(false);
-  const hasMounted = useRef(false);
+  const [clubsError, setClubsError] = useState<string | null>(null);
+  const [teamsError, setTeamsError] = useState<string | null>(null);
 
-  // Hydrate from localStorage cache after mount (avoids hydration mismatch)
-  useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
-    try {
-      const cachedClub = localStorage.getItem('cachedActiveClub');
-      const cachedClubs = localStorage.getItem('cachedAllClubs');
-      const cachedTeam = localStorage.getItem('cachedActiveTeam');
-      const cachedTeams = localStorage.getItem('cachedAllTeams');
-      if (cachedClub) setActiveClubState(JSON.parse(cachedClub));
-      if (cachedClubs) setAllClubs(JSON.parse(cachedClubs));
-      if (cachedTeam) setActiveTeamState(JSON.parse(cachedTeam));
-      if (cachedTeams) setAllTeams(JSON.parse(cachedTeams));
-    } catch { /* ignore parse errors */ }
-  }, []);
+  const fetchedUserId = useRef<string | null>(null);
+  const activeClubIdRef = useRef<string | null>(null);
+  const clubsRequestId = useRef(0);
+  const teamsRequestId = useRef(0);
 
-  // Set active club and persist
-  const setActiveClub = useCallback((club: Club) => {
-    setActiveClubState(club);
-    localStorage.setItem('activeClubId', club.id);
-    localStorage.setItem('cachedActiveClub', JSON.stringify(club));
-    // Reset team when club changes
+  const clearTeamState = useCallback((clearPersistedSelection: boolean) => {
+    teamsRequestId.current += 1;
     setActiveTeamState(null);
-    localStorage.removeItem('activeTeamId');
-    localStorage.removeItem('cachedActiveTeam');
-    localStorage.removeItem('cachedAllTeams');
-    // Dispatch event for any legacy listeners
-    window.dispatchEvent(new CustomEvent('activeClubChanged', { detail: club }));
-  }, []);
-
-  // Set active team and persist
-  const setActiveTeam = useCallback((team: Team) => {
-    setActiveTeamState(team);
-    localStorage.setItem('activeTeamId', team.id);
-    localStorage.setItem('cachedActiveTeam', JSON.stringify(team));
-    window.dispatchEvent(new CustomEvent('activeTeamChanged', { detail: team }));
-  }, []);
-
-  // Fetch clubs
-  const refetchClubs = useCallback(async () => {
-    if (!user) return;
-    try {
-      setIsLoadingClubs(true);
-      const clubs = await clubService.getMyClubs();
-      setAllClubs(clubs);
-      localStorage.setItem('cachedAllClubs', JSON.stringify(clubs));
-      
-      // Resolve active club
-      const savedId = localStorage.getItem('activeClubId');
-      let active = savedId ? clubs.find(c => c.id === savedId) : undefined;
-      const resolved = active || clubs[0] || null;
-      
-      if (resolved) {
-        setActiveClubState(resolved);
-        localStorage.setItem('activeClubId', resolved.id);
-        localStorage.setItem('cachedActiveClub', JSON.stringify(resolved));
-      } else {
-        setActiveClubState(null);
-      }
-    } catch (err) {
-      console.error('Error fetching clubs:', err);
-    } finally {
-      setIsLoadingClubs(false);
+    setAllTeams([]);
+    setTeamsError(null);
+    setIsLoadingTeams(false);
+    if (clearPersistedSelection) {
+      localStorage.removeItem(ACTIVE_TEAM_KEY);
     }
-  }, [user]);
+  }, []);
 
-  // Fetch teams for active club
-  const refetchTeams = useCallback(async () => {
-    if (!activeClub) {
-      setAllTeams([]);
-      setActiveTeamState(null);
+  const setActiveClub = useCallback((club: Club) => {
+    const clubChanged = activeClubIdRef.current !== club.id;
+    activeClubIdRef.current = club.id;
+    setActiveClubState(club);
+    localStorage.setItem(ACTIVE_CLUB_KEY, club.id);
+
+    if (clubChanged) {
+      clearTeamState(true);
+    }
+  }, [clearTeamState]);
+
+  const setActiveTeam = useCallback((team: Team) => {
+    if (activeClubIdRef.current && team.club_id !== activeClubIdRef.current) {
       return;
     }
+    setActiveTeamState(team);
+    localStorage.setItem(ACTIVE_TEAM_KEY, team.id);
+  }, []);
+
+  const refetchClubs = useCallback(async () => {
+    if (!userId) return;
+
+    const requestId = ++clubsRequestId.current;
+    setIsLoadingClubs(true);
+    setClubsError(null);
+
     try {
-      setIsLoadingTeams(true);
-      const teams = await teamService.getTeamsByClub(activeClub.id);
-      setAllTeams(teams);
-      localStorage.setItem('cachedAllTeams', JSON.stringify(teams));
+      const clubs = await clubService.getMyClubs();
+      if (requestId !== clubsRequestId.current) return;
 
-      // Resolve active team
-      const savedId = localStorage.getItem('activeTeamId');
-      let active = savedId ? teams.find(t => t.id === savedId) : undefined;
-      const resolved = active || teams[0] || null;
-      
+      setAllClubs(clubs);
+      const savedId = localStorage.getItem(ACTIVE_CLUB_KEY);
+      const resolved = clubs.find((club) => club.id === savedId) ?? clubs[0] ?? null;
+      const previousClubId = activeClubIdRef.current;
+
+      activeClubIdRef.current = resolved?.id ?? null;
+      setActiveClubState(resolved);
+
       if (resolved) {
-        setActiveTeamState(resolved);
-        localStorage.setItem('activeTeamId', resolved.id);
-        localStorage.setItem('cachedActiveTeam', JSON.stringify(resolved));
+        localStorage.setItem(ACTIVE_CLUB_KEY, resolved.id);
       } else {
-        setActiveTeamState(null);
+        localStorage.removeItem(ACTIVE_CLUB_KEY);
       }
-    } catch (err) {
-      console.error('Error fetching teams:', err);
-    } finally {
-      setIsLoadingTeams(false);
-    }
-  }, [activeClub]);
 
-  // Fetch clubs on mount (once) when user is available
-  useEffect(() => {
-    if (user && !hasFetchedClubs.current) {
-      hasFetchedClubs.current = true;
-      refetchClubs();
+      if (!resolved || (previousClubId !== null && previousClubId !== resolved.id)) {
+        clearTeamState(true);
+      }
+    } catch (error) {
+      if (requestId !== clubsRequestId.current) return;
+      console.error('Error fetching clubs:', error);
+      setClubsError('Impossible de charger les clubs.');
+    } finally {
+      if (requestId === clubsRequestId.current) {
+        setIsLoadingClubs(false);
+      }
     }
-    if (!user) {
-      hasFetchedClubs.current = false;
+  }, [clearTeamState, userId]);
+
+  const refetchTeams = useCallback(async () => {
+    const clubId = activeClub?.id;
+    if (!clubId) {
+      clearTeamState(false);
+      return;
+    }
+
+    const requestId = ++teamsRequestId.current;
+    setIsLoadingTeams(true);
+    setTeamsError(null);
+
+    try {
+      const teams = await teamService.getTeamsByClub(clubId);
+      if (requestId !== teamsRequestId.current || activeClubIdRef.current !== clubId) return;
+
+      setAllTeams(teams);
+      const savedId = localStorage.getItem(ACTIVE_TEAM_KEY);
+      const resolved = teams.find((team) => team.id === savedId) ?? teams[0] ?? null;
+      setActiveTeamState(resolved);
+
+      if (resolved) {
+        localStorage.setItem(ACTIVE_TEAM_KEY, resolved.id);
+      } else {
+        localStorage.removeItem(ACTIVE_TEAM_KEY);
+      }
+    } catch (error) {
+      if (requestId !== teamsRequestId.current) return;
+      console.error('Error fetching teams:', error);
+      setTeamsError('Impossible de charger les équipes.');
+      setAllTeams([]);
+      setActiveTeamState(null);
+    } finally {
+      if (requestId === teamsRequestId.current) {
+        setIsLoadingTeams(false);
+      }
+    }
+  }, [activeClub?.id, clearTeamState]);
+
+  useEffect(() => {
+    if (!userId) {
+      clubsRequestId.current += 1;
+      teamsRequestId.current += 1;
+      fetchedUserId.current = null;
+      activeClubIdRef.current = null;
       setActiveClubState(null);
       setAllClubs([]);
       setActiveTeamState(null);
       setAllTeams([]);
+      setClubsError(null);
+      setTeamsError(null);
+      setIsLoadingClubs(false);
+      setIsLoadingTeams(false);
+      return;
     }
-  }, [user, refetchClubs]);
 
-  // Fetch teams when active club changes
+    if (fetchedUserId.current !== userId) {
+      clubsRequestId.current += 1;
+      teamsRequestId.current += 1;
+      fetchedUserId.current = userId;
+      activeClubIdRef.current = null;
+      setActiveClubState(null);
+      setAllClubs([]);
+      setActiveTeamState(null);
+      setAllTeams([]);
+      setClubsError(null);
+      setTeamsError(null);
+      void refetchClubs();
+    }
+  }, [refetchClubs, userId]);
+
   useEffect(() => {
-    if (activeClub) {
-      refetchTeams();
+    if (activeClub?.id) {
+      void refetchTeams();
     }
   }, [activeClub?.id, refetchTeams]);
 
@@ -169,6 +206,8 @@ export function ClubTeamProvider({ children }: { children: ReactNode }) {
         setActiveTeam,
         isLoadingClubs,
         isLoadingTeams,
+        clubsError,
+        teamsError,
         refetchClubs,
         refetchTeams,
       }}

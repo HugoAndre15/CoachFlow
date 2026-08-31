@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Users, Shield, ChevronRight } from 'lucide-react';
-import { teamService, Team } from '@/services/teamService';
+import { useState } from 'react';
+import { Check, Plus, Users, Shield, ChevronRight } from 'lucide-react';
 import { useClubTeam } from '@/contexts/ClubTeamContext';
 import CreateTeamModal from './parts/CreateTeamModal';
 
@@ -20,38 +19,22 @@ const CATEGORIES = [
 ];
 
 export default function TeamsPage() {
-  const { activeClub, allClubs, setActiveClub } = useClubTeam();
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    activeClub,
+    allClubs,
+    setActiveClub,
+    activeTeam,
+    allTeams,
+    setActiveTeam,
+    isLoadingTeams,
+    teamsError,
+    refetchTeams,
+  } = useClubTeam();
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Charger les équipes du club actif
-  const fetchTeams = async (clubId: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const data = await teamService.getTeamsByClub(clubId);
-      setTeams(data);
-    } catch (err: any) {
-      console.error('Error fetching teams:', err);
-      setError(err.message || 'Erreur lors du chargement des équipes');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeClub) {
-      fetchTeams(activeClub.id);
-    } else {
-      setIsLoading(false);
-    }
-  }, [activeClub?.id]);
 
   const handleCreateSuccess = () => {
     setIsModalOpen(false);
-    if (activeClub) fetchTeams(activeClub.id);
+    void refetchTeams();
   };
 
   return (
@@ -111,7 +94,7 @@ export default function TeamsPage() {
             Rejoignez ou créez un club pour gérer vos équipes
           </p>
         </div>
-      ) : isLoading ? (
+      ) : isLoadingTeams ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="bg-white dark:bg-dark-lighter rounded-xl p-5 border border-neutral/20 dark:border-dark-light animate-pulse">
@@ -120,17 +103,17 @@ export default function TeamsPage() {
             </div>
           ))}
         </div>
-      ) : error ? (
+      ) : teamsError ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-accent-red font-medium">{error}</p>
+          <p className="text-accent-red font-medium">{teamsError}</p>
           <button
-            onClick={() => fetchTeams(activeClub.id)}
+            onClick={() => void refetchTeams()}
             className="mt-3 text-sm text-accent-green hover:underline"
           >
             Réessayer
           </button>
         </div>
-      ) : teams.length === 0 ? (
+      ) : allTeams.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Users className="w-12 h-12 text-neutral mb-4" />
           <p className="text-dark-light dark:text-neutral font-medium">Aucune équipe</p>
@@ -147,16 +130,26 @@ export default function TeamsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {teams.map((team) => (
-            <div
+          {allTeams.map((team) => (
+            <button
+              type="button"
               key={team.id}
-              className="group bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-2xl p-5 hover:border-accent-green/50 dark:hover:border-accent-green/40 hover:shadow-sm transition-all cursor-pointer"
+              onClick={() => setActiveTeam(team)}
+              className={`group bg-white dark:bg-dark-lighter border rounded-2xl p-5 hover:shadow-sm transition-all text-left ${
+                activeTeam?.id === team.id
+                  ? 'border-accent-green ring-2 ring-accent-green/15'
+                  : 'border-neutral/20 dark:border-dark-light hover:border-accent-green/50 dark:hover:border-accent-green/40'
+              }`}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="w-10 h-10 rounded-xl bg-accent-green/10 dark:bg-accent-green/20 flex items-center justify-center">
                   <Shield className="w-5 h-5 text-accent-green" />
                 </div>
-                {team.myRole && (
+                {activeTeam?.id === team.id ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-accent-green/10 text-accent-green">
+                    <Check className="w-3 h-3" /> Active
+                  </span>
+                ) : team.myRole && (
                   <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-neutral/10 dark:bg-dark-light text-dark-light dark:text-neutral">
                     {mapRole(team.myRole)}
                   </span>
@@ -190,7 +183,7 @@ export default function TeamsPage() {
                   <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
