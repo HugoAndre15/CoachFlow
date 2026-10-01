@@ -41,6 +41,8 @@ export interface MatchPlayerEntry {
   match_id: string;
   player_id: string;
   status: MatchPlayerStatus;
+  /** Current role after saved substitutions; status remains the starting role. */
+  current_status?: MatchPlayerStatus;
   presence: MatchPresenceStatus;
   player: {
     id: string;

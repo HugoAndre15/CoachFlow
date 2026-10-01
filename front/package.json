@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:match-flow": "node --test --require ./test/register-typescript.cjs test/match-flow.test.cjs"
   },
   "dependencies": {
     "@vercel/analytics": "^1.6.1",

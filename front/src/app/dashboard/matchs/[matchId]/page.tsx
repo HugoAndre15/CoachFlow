@@ -15,7 +15,6 @@ import {
   Radio,
   Save,
   Shield,
-  Trophy,
   UserCheck,
   UserMinus,
   Users,
@@ -28,6 +27,7 @@ import {
   MatchPresenceStatus,
 } from '@/services/matchService';
 import { playerService, Player } from '@/services/playerService';
+import MatchSummary from '@/components/matches/MatchSummary';
 
 type PreparationStep = 'presence' | 'lineup';
 
@@ -40,39 +40,6 @@ const PRESENCE_OPTIONS: {
   { value: 'UNCERTAIN', label: 'Incertain', active: 'border-amber-500 bg-amber-500 text-white' },
   { value: 'ABSENT', label: 'Absent', active: 'border-accent-red bg-accent-red text-white' },
 ];
-
-const EVENT_LABELS: Record<string, string> = {
-  GOAL: 'But',
-  ASSIST: 'Passe décisive',
-  YELLOW_CARD: 'Carton jaune',
-  RED_CARD: 'Carton rouge',
-  RECOVERY: 'Récupération',
-  BALL_LOSS: 'Perte de balle',
-  SUBSTITUTION: 'Changement',
-};
-
-const ZONE_LABELS: Record<string, string> = {
-  DEF_LEFT: 'Défense gauche',
-  DEF_CENTER: 'Défense axe',
-  DEF_RIGHT: 'Défense droite',
-  MID_LEFT: 'Milieu gauche',
-  MID_CENTER: 'Milieu axe',
-  MID_RIGHT: 'Milieu droite',
-  ATT_LEFT: 'Attaque gauche',
-  ATT_CENTER: 'Attaque axe',
-  ATT_RIGHT: 'Attaque droite',
-  BOX: 'Surface',
-  OUTSIDE: 'Hors surface',
-  LEFT: 'Gauche',
-  RIGHT: 'Droite',
-  AXIS: 'Axe',
-};
-
-const BODY_LABELS: Record<string, string> = {
-  LEFT_FOOT: 'Pied gauche',
-  RIGHT_FOOT: 'Pied droit',
-  HEAD: 'Tête',
-};
 
 function formatMatchDate(value: string) {
   return new Date(value).toLocaleDateString('fr-FR', {
@@ -160,7 +127,7 @@ export default function MatchPreparationPage() {
       const entriesByPlayer = new Map(matchData.matchPlayers.map(entry => [entry.player_id, entry]));
       roster.forEach(player => {
         const entry = entriesByPlayer.get(player.id);
-        nextPresences[player.id] = entry?.presence ?? (entry ? 'PRESENT' : 'UNKNOWN');
+        nextPresences[player.id] = player.status !== 'ACTIVE' ? (entry?.presence === 'UNCERTAIN' ? 'UNCERTAIN' : 'ABSENT') : entry?.presence ?? (entry ? 'PRESENT' : 'UNKNOWN');
         nextRoles[player.id] = entry?.status ?? 'SUBSTITUTE';
       });
 
@@ -200,6 +167,8 @@ export default function MatchPreparationPage() {
   const startersCount = presentPlayers.filter(player => roles[player.id] === 'STARTER').length;
 
   const changePresence = (playerId: string, presence: MatchPresenceStatus) => {
+    if (presence === 'PRESENT' && players.find(player => player.id === playerId)?.status !== 'ACTIVE') return;
+    setError(null);
     setSavedMessage(null);
     setPresences(current => ({ ...current, [playerId]: presence }));
     if (presence !== 'PRESENT') {
@@ -209,7 +178,9 @@ export default function MatchPreparationPage() {
 
   const setEveryonePresent = () => {
     setSavedMessage(null);
-    setPresences(Object.fromEntries(players.map(player => [player.id, 'PRESENT'])));
+    setError(null);
+    setPresences(Object.fromEntries(players.map(player => [player.id, player.status === 'ACTIVE' ? 'PRESENT' : 'ABSENT'])));
+    setRoles(current => Object.fromEntries(players.map(player => [player.id, player.status === 'ACTIVE' ? current[player.id] : 'SUBSTITUTE'])));
   };
 
   const changeRole = (playerId: string, role: MatchPlayerStatus) => {
@@ -223,9 +194,10 @@ export default function MatchPreparationPage() {
   };
 
   const persistPreparation = async (showConfirmation = true) => {
-    if (players.length === 0) return;
+    if (players.length === 0) return false;
     setIsSaving(true);
     setError(null);
+    setSavedMessage(null);
     try {
       await matchService.addPlayersToMatch(
         matchId,
@@ -236,10 +208,11 @@ export default function MatchPreparationPage() {
         })),
       );
       if (showConfirmation) setSavedMessage('Préparation enregistrée');
+      return true;
     } catch (requestError: any) {
       const message = requestError.response?.data?.message || 'Impossible d’enregistrer la préparation.';
       setError(message);
-      throw requestError;
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -258,11 +231,11 @@ export default function MatchPreparationPage() {
     }
     try {
       setIsStarting(true);
-      await persistPreparation(false);
+      if (!await persistPreparation(false)) return;
       await matchService.updateStatus(matchId, 'LIVE');
       router.push(`/dashboard/direct?matchId=${matchId}`);
-    } catch {
-      // The actionable API message is already displayed by persistPreparation.
+    } catch (requestError: any) {
+      setError(requestError.response?.data?.message || 'Impossible de lancer le direct. Réessayez.');
     } finally {
       setIsStarting(false);
     }
@@ -327,24 +300,7 @@ export default function MatchPreparationPage() {
             <div className="rounded-xl border border-neutral/20 bg-white p-3 text-center dark:border-dark-light dark:bg-dark-lighter"><p className="text-xl font-black text-dark dark:text-white">{match.matchEvents.filter(event => event.event_type === 'GOAL').length}</p><p className="text-[11px] text-dark-light/60 dark:text-neutral/60">Buts</p></div>
             <div className="rounded-xl border border-neutral/20 bg-white p-3 text-center dark:border-dark-light dark:bg-dark-lighter"><p className="text-xl font-black text-accent-blue">{match.matchEvents.filter(event => event.event_type === 'ASSIST').length}</p><p className="text-[11px] text-dark-light/60 dark:text-neutral/60">Passes dé.</p></div>
           </div>
-          <div className="rounded-2xl border border-neutral/20 bg-white p-5 dark:border-dark-light dark:bg-dark-lighter">
-            <div className="mb-4 flex items-center gap-2"><Trophy className="h-5 w-5 text-accent-green" /><h2 className="font-bold text-dark dark:text-white">Résumé du match</h2></div>
-            {match.matchEvents.length === 0 ? (
-              <p className="py-8 text-center text-sm text-dark-light/50 dark:text-neutral/50">Aucun événement enregistré.</p>
-            ) : (
-              <div className="space-y-2">
-                {match.matchEvents.map(event => (
-                  <div key={event.id} className="flex items-start gap-3 rounded-xl bg-neutral-lighter/40 p-3 dark:bg-dark-secondary/30">
-                    <span className="w-10 shrink-0 text-sm font-black text-dark dark:text-white">{event.minute}&apos;</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-dark dark:text-white">{EVENT_LABELS[event.event_type] || event.event_type} · {event.player.first_name} {event.player.last_name}</p>
-                      {(event.zone || event.body_part) && <p className="mt-0.5 text-xs text-dark-light/50 dark:text-neutral/50">{[event.zone ? ZONE_LABELS[event.zone] || event.zone : null, event.body_part ? BODY_LABELS[event.body_part] || event.body_part : null].filter(Boolean).join(' · ')}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <MatchSummary match={match} />
         </div>
       )}
 
@@ -366,7 +322,7 @@ export default function MatchPreparationPage() {
             <section className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div><h2 className="text-lg font-bold text-dark dark:text-white">Qui sera là ?</h2><p className="text-sm text-dark-light/60 dark:text-neutral/60">Une réponse par joueur. Vous pourrez la modifier avant le direct.</p></div>
-                {players.length > 0 && <button onClick={setEveryonePresent} className="min-h-11 rounded-xl border border-accent-green/30 px-4 text-sm font-semibold text-accent-green">Tout le monde présent</button>}
+                {players.length > 0 && <button onClick={setEveryonePresent} className="min-h-11 rounded-xl border border-accent-green/30 px-4 text-sm font-semibold text-accent-green">Marquer les disponibles présents</button>}
               </div>
               <div className="grid grid-cols-4 gap-2">
                 <div className="rounded-xl bg-accent-green/10 p-2 text-center"><p className="font-black text-accent-green">{counts.present}</p><p className="text-[10px] text-accent-green">Présents</p></div>
@@ -384,11 +340,11 @@ export default function MatchPreparationPage() {
                       <div key={player.id} className="rounded-2xl border border-neutral/20 bg-white p-3 dark:border-dark-light dark:bg-dark-lighter sm:flex sm:items-center sm:gap-4">
                         <div className="mb-3 flex min-w-0 items-center gap-3 sm:mb-0 sm:flex-1">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral/10 text-sm font-black text-dark dark:text-white">{player.jersey_number ?? '–'}</div>
-                          <div className="min-w-0"><p className="truncate text-sm font-bold text-dark dark:text-white">{player.first_name} {player.last_name}</p><p className="text-xs text-dark-light/50 dark:text-neutral/50">{presence === 'UNKNOWN' ? 'Présence à renseigner' : PRESENCE_OPTIONS.find(option => option.value === presence)?.label}</p></div>
+                          <div className="min-w-0"><p className="truncate text-sm font-bold text-dark dark:text-white">{player.first_name} {player.last_name}</p><p className="text-xs text-dark-light/50 dark:text-neutral/50">{player.status === 'INJURED' ? 'Blessé · ' : player.status === 'SUSPENDED' ? 'Suspendu · ' : ''}{presence === 'UNKNOWN' ? 'Présence à renseigner' : PRESENCE_OPTIONS.find(option => option.value === presence)?.label}</p></div>
                         </div>
                         <div className="grid grid-cols-3 gap-1.5 sm:w-[330px]">
                           {PRESENCE_OPTIONS.map(option => (
-                            <button key={option.value} onClick={() => changePresence(player.id, option.value)} aria-pressed={presence === option.value} className={`min-h-10 rounded-xl border px-2 text-xs font-bold transition-colors ${presence === option.value ? option.active : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>{option.label}</button>
+                            <button key={option.value} onClick={() => changePresence(player.id, option.value)} aria-pressed={presence === option.value} disabled={option.value === 'PRESENT' && player.status !== 'ACTIVE'} className={`min-h-11 disabled:cursor-not-allowed disabled:opacity-40 rounded-xl border px-2 text-xs font-bold transition-colors ${presence === option.value ? option.active : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>{option.label}</button>
                           ))}
                         </div>
                       </div>
@@ -410,12 +366,12 @@ export default function MatchPreparationPage() {
                   {presentPlayers.map(player => {
                     const isStarter = roles[player.id] === 'STARTER';
                     return (
-                      <div key={player.id} className="flex items-center gap-3 rounded-2xl border border-neutral/20 bg-white p-3 dark:border-dark-light dark:bg-dark-lighter">
+                      <div key={player.id} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-neutral/20 bg-white p-3 dark:border-dark-light dark:bg-dark-lighter sm:flex">
                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black ${isStarter ? 'bg-accent-green text-white' : 'bg-neutral/10 text-dark dark:text-white'}`}>{player.jersey_number ?? '–'}</div>
                         <p className="min-w-0 flex-1 truncate text-sm font-bold text-dark dark:text-white">{player.first_name} {player.last_name}</p>
-                        <div className="grid w-40 grid-cols-2 gap-1.5 sm:w-52">
-                          <button onClick={() => changeRole(player.id, 'STARTER')} aria-pressed={isStarter} className={`min-h-10 rounded-xl border px-2 text-xs font-bold ${isStarter ? 'border-accent-green bg-accent-green text-white' : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>Titulaire</button>
-                          <button onClick={() => changeRole(player.id, 'SUBSTITUTE')} aria-pressed={!isStarter} className={`min-h-10 rounded-xl border px-2 text-xs font-bold ${!isStarter ? 'border-accent-blue bg-accent-blue text-white' : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>Remplaçant</button>
+                        <div className="col-span-2 grid grid-cols-2 gap-1.5 sm:w-52 sm:shrink-0">
+                          <button onClick={() => changeRole(player.id, 'STARTER')} aria-pressed={isStarter} className={`min-h-11 rounded-xl border px-2 text-xs font-bold ${isStarter ? 'border-accent-green bg-accent-green text-white' : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>Titulaire</button>
+                          <button onClick={() => changeRole(player.id, 'SUBSTITUTE')} aria-pressed={!isStarter} className={`min-h-11 rounded-xl border px-2 text-xs font-bold ${!isStarter ? 'border-accent-blue bg-accent-blue text-white' : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>Remplaçant</button>
                         </div>
                       </div>
                     );

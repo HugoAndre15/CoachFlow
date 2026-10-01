@@ -272,8 +272,8 @@ function PlayerPickerOverlay({
 }) {
   const [search, setSearch] = useState('');
 
-  const starters = players.filter(p => p.status === 'STARTER');
-  const substitutes = players.filter(p => p.status === 'SUBSTITUTE');
+  const starters = players.filter(p => (p.current_status ?? p.status) === 'STARTER');
+  const substitutes = players.filter(p => (p.current_status ?? p.status) === 'SUBSTITUTE');
 
   const filterBySearch = (list: MatchPlayerEntry[]) => {
     if (!search) return list;
@@ -724,7 +724,7 @@ function AssistPickerOverlay({
   onClose: () => void;
   disabledPlayerIds?: Set<string>;
 }) {
-  const filteredPlayers = players.filter(p => p.player_id !== scorerPlayerId && p.status === 'STARTER');
+  const filteredPlayers = players.filter(p => p.player_id !== scorerPlayerId && (p.current_status ?? p.status) === 'STARTER');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -914,7 +914,7 @@ export default function DirectPage() {
         const players = await matchService.getMatchPlayers(match.id);
         if (requestId !== selectionRequestId.current) return;
         const startersCount = players.filter(
-          p => p.status === 'STARTER' && (!p.presence || p.presence === 'PRESENT'),
+          p => (p.current_status ?? p.status) === 'STARTER' && (!p.presence || p.presence === 'PRESENT'),
         ).length;
 
         if (startersCount < 2) {
@@ -1178,15 +1178,6 @@ export default function DirectPage() {
       const inName = playerIn ? `${playerIn.first_name} ${playerIn.last_name}` : '';
       showToast(`Changement — ${outName} ↔ ${inName} (${minute}')`);
 
-      // Update local matchPlayers: swap statuses
-      setMatchPlayers(prev =>
-        prev.map(mp => {
-          if (mp.player_id === pendingPlayerId) return { ...mp, status: 'SUBSTITUTE' as const };
-          if (mp.player_id === playerInId) return { ...mp, status: 'STARTER' as const };
-          return mp;
-        })
-      );
-
       await refreshEvents();
     } catch (err: any) {
       showToast(err.response?.data?.message || 'Erreur lors du changement');
@@ -1283,10 +1274,13 @@ export default function DirectPage() {
   const refreshEvents = async () => {
     if (!selectedMatch) return;
     try {
-      const events = await matchService.getMatchEvents(selectedMatch.id);
-      setMatchEvents(events);
+      const matchId = selectedMatch.id;
+      const detail = await matchService.getMatch(matchId);
+      if (selectedMatchIdRef.current !== matchId) return;
+      setMatchEvents(detail.matchEvents);
+      setMatchPlayers(detail.matchPlayers.filter(player => !player.presence || player.presence === 'PRESENT'));
     } catch {
-      // silent
+      showToast('Le direct n’a pas pu être actualisé. Rechargez la page avant de poursuivre.');
     }
   };
 
@@ -1724,14 +1718,14 @@ export default function DirectPage() {
           onSelect={handlePlayerSelected}
           onClose={cancelFlow}
           disabledPlayerIds={redCardedPlayerIds}
-          onlyStarters={pendingEventType !== 'SUBSTITUTION'}
+          onlyStarters
           title={pendingEventType === 'SUBSTITUTION' ? 'Joueur sortant' : 'Choisir un joueur'}
         />
       )}
 
       {flowStep === 'pick-sub-player-in' && (
         <PlayerPickerOverlay
-          players={matchPlayers.filter(p => p.status === 'SUBSTITUTE')}
+          players={matchPlayers.filter(p => (p.current_status ?? p.status) === 'SUBSTITUTE' && p.player_id !== pendingPlayerId)}
           onSelect={handleSubPlayerInSelected}
           onClose={cancelFlow}
           disabledPlayerIds={redCardedPlayerIds}
