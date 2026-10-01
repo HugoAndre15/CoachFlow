@@ -16,11 +16,13 @@ import { UpdateMatchEventDto } from './dto/update-match-event.dto';
 import { CreateOpponentEventDto } from './dto/create-opponent-event.dto';
 import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
 import {
+  Prisma,
   club_role,
   team_role,
   match_status,
   match_event_type,
 } from '@prisma/client';
+import { withCurrentLineup } from './current-lineup';
 
 const MATCH_PRESENCE = {
   UNKNOWN: 'UNKNOWN',
@@ -334,6 +336,7 @@ export class MatchesService {
 
     return {
       ...match,
+      matchPlayers: withCurrentLineup(match.matchPlayers, match.matchEvents),
       score,
     };
   }
@@ -463,31 +466,37 @@ export class MatchesService {
       );
     }
 
-    // Vérifier que tous les joueurs ont le statut ACTIVE
-    const inactivePlayers = players.filter(p => p.status !== 'ACTIVE');
+    const existingEntries = await this.prisma.matchPlayer.findMany({ where: { match_id: matchId } });
+    const existingByPlayer = new Map(existingEntries.map(entry => [entry.player_id, entry]));
+    const presenceFor = (playerId: string) => addPlayersDto.players.find(entry => entry.player_id === playerId)?.presence
+      ?? existingByPlayer.get(playerId)?.presence ?? MATCH_PRESENCE.PRESENT;
+    // Injured/suspended players still belong on the attendance sheet, but cannot play.
+    const inactivePlayers = players.filter(p => p.status === 'RETIRED' ||
+      (p.status !== 'ACTIVE' && presenceFor(p.id) === MATCH_PRESENCE.PRESENT));
     if (inactivePlayers.length > 0) {
       const details = inactivePlayers.map(p => `${p.last_name} (${p.status})`).join(', ');
       throw new BadRequestException(
-        `Impossible de convoquer des joueurs non actifs: ${details}`,
+        `Ces joueurs ne peuvent pas être présents : ${details}. Notez-les absents ou incertains, ou rendez-les actifs dans l’effectif.`,
       );
     }
 
     // Créer les convocations (upsert pour gérer les doublons)
-    const results: any[] = [];
-    for (const playerToAdd of addPlayersDto.players) {
-      try {
-        const presence = playerToAdd.presence ?? MATCH_PRESENCE.PRESENT;
+    return this.prisma.$transaction(async tx => {
+      const results: any[] = [];
+      for (const playerToAdd of addPlayersDto.players) {
+        const presence = presenceFor(playerToAdd.player_id);
+        const status = presence === MATCH_PRESENCE.PRESENT ? playerToAdd.status : 'SUBSTITUTE' as const;
         const updateData = {
-          status: playerToAdd.status,
-          ...(playerToAdd.presence ? { presence } : {}),
+          status,
+          presence,
         };
         const createData = {
           match_id: matchId,
           player_id: playerToAdd.player_id,
-          status: playerToAdd.status,
+          status,
           presence,
         };
-        const mp = await this.prisma.matchPlayer.upsert({
+        const mp = await tx.matchPlayer.upsert({
           where: {
             match_id_player_id: {
               match_id: matchId,
@@ -509,12 +518,9 @@ export class MatchesService {
           },
         });
         results.push(mp);
-      } catch (error) {
-        throw new ConflictException(`Erreur lors de la convocation du joueur ${playerToAdd.player_id}`);
       }
-    }
-
-    return results;
+      return results;
+    });
   }
 
   async getMatchPlayers(matchId: string, userId: string) {
@@ -532,7 +538,7 @@ export class MatchesService {
       throw new ForbiddenException('Vous devez être membre du club pour voir les joueurs convoqués');
     }
 
-    return this.prisma.matchPlayer.findMany({
+    const players = await this.prisma.matchPlayer.findMany({
       where: { match_id: matchId },
       include: {
         player: {
@@ -551,6 +557,10 @@ export class MatchesService {
         { player: { last_name: 'asc' } },
       ],
     });
+    const events = await this.prisma.matchEvent.findMany({
+      where: { match_id: matchId, event_type: 'SUBSTITUTION' },
+    });
+    return withCurrentLineup(players, events);
   }
 
   async updateMatchPlayerStatus(matchId: string, playerId: string, updateDto: UpdateMatchPlayerDto, userId: string) {
@@ -588,8 +598,13 @@ export class MatchesService {
       throw new BadRequestException('Indiquez une présence ou un rôle à modifier');
     }
 
+    const presence = updateDto.presence ?? matchPlayer.presence;
+    const player = await this.prisma.player.findUnique({ where: { id: playerId } });
+    if (player && (player.status === 'RETIRED' || (player.status !== 'ACTIVE' && presence === 'PRESENT'))) {
+      throw new BadRequestException('Ce joueur est indisponible. Notez-le absent ou incertain, ou rendez-le actif dans l’effectif.');
+    }
     const updateData = {
-      status: updateDto.status,
+      status: presence && presence !== 'PRESENT' ? 'SUBSTITUTE' as const : updateDto.status,
       presence: updateDto.presence,
     };
 
@@ -697,6 +712,10 @@ export class MatchesService {
       );
     }
 
+    if (createEventDto.event_type === match_event_type.SUBSTITUTION) {
+      return this.addSubstitution(matchId, createEventDto);
+    }
+
     // 3. Vérifier que le joueur est convoqué pour ce match
     const matchPlayer = await this.prisma.matchPlayer.findUnique({
       where: {
@@ -735,37 +754,6 @@ export class MatchesService {
       if (!relatedGoal || relatedGoal.match_id !== matchId || relatedGoal.event_type !== match_event_type.GOAL) {
         throw new BadRequestException(
           'Le related_event_id doit référencer un GOAL existant dans le même match',
-        );
-      }
-    }
-
-    // 4b. Si c'est une SUBSTITUTION, vérifier que related_player_id est fourni et convoqué
-    if (createEventDto.event_type === match_event_type.SUBSTITUTION) {
-      if (!createEventDto.related_player_id) {
-        throw new BadRequestException(
-          'Une SUBSTITUTION doit inclure related_player_id (joueur entrant)',
-        );
-      }
-
-      const incomingPlayer = await this.prisma.matchPlayer.findUnique({
-        where: {
-          match_id_player_id: {
-            match_id: matchId,
-            player_id: createEventDto.related_player_id,
-          },
-        },
-      });
-
-      if (!incomingPlayer) {
-        throw new BadRequestException(
-          'Le joueur entrant doit être convoqué pour ce match',
-        );
-      }
-
-      const incomingPlayerWithPresence = incomingPlayer as typeof incomingPlayer & MatchPlayerWithPresence;
-      if (incomingPlayerWithPresence.presence && incomingPlayerWithPresence.presence !== MATCH_PRESENCE.PRESENT) {
-        throw new BadRequestException(
-          'Le joueur entrant doit être marqué présent pour ce match',
         );
       }
     }
@@ -836,6 +824,50 @@ export class MatchesService {
     }
 
     return event;
+  }
+
+  private async addSubstitution(matchId: string, dto: CreateMatchEventDto) {
+    if (!dto.related_player_id || dto.related_player_id === dto.player_id) {
+      throw new BadRequestException('Choisissez deux joueurs différents pour le changement.');
+    }
+    try {
+      return await this.prisma.$transaction(async tx => {
+        const match = await tx.match.findUnique({
+          where: { id: matchId },
+          include: { matchPlayers: true, matchEvents: true },
+        });
+        if (!match) throw new NotFoundException('Match non trouvé');
+        if (match.status !== 'LIVE') throw new BadRequestException('Les changements se font pendant le direct.');
+        const lineup = withCurrentLineup(match.matchPlayers, match.matchEvents);
+        const outgoing = lineup.find(player => player.player_id === dto.player_id);
+        const incoming = lineup.find(player => player.player_id === dto.related_player_id);
+        if (!outgoing || !incoming ||
+          (outgoing.presence && outgoing.presence !== 'PRESENT') ||
+          (incoming.presence && incoming.presence !== 'PRESENT')) {
+          throw new BadRequestException('Les deux joueurs doivent être convoqués et marqués présents.');
+        }
+        if (outgoing.current_status !== 'STARTER' || incoming.current_status !== 'SUBSTITUTE') {
+          throw new BadRequestException('Choisissez un joueur sur le terrain et un remplaçant. Actualisez le direct si la composition a changé.');
+        }
+        if (match.matchEvents.some(event => event.event_type === 'RED_CARD' &&
+          [dto.player_id, dto.related_player_id].includes(event.player_id))) {
+          throw new BadRequestException('Un joueur exclu ne peut pas participer à un changement.');
+        }
+        if (match.matchEvents.some(event => event.event_type === 'SUBSTITUTION' && event.minute > dto.minute)) {
+          throw new BadRequestException('La minute du changement ne peut pas précéder un changement déjà enregistré.');
+        }
+        return tx.matchEvent.create({
+          data: { match_id: matchId, player_id: dto.player_id, related_player_id: dto.related_player_id,
+            event_type: 'SUBSTITUTION', minute: dto.minute },
+          include: { player: { select: { id: true, first_name: true, last_name: true, jersey_number: true, position: true } } },
+        });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+        throw new ConflictException('La composition vient de changer. Actualisez le direct puis réessayez.');
+      }
+      throw error;
+    }
   }
 
   /**
@@ -911,6 +943,10 @@ export class MatchesService {
 
     if (!event || event.match_id !== matchId) {
       throw new NotFoundException('Événement non trouvé dans ce match');
+    }
+
+    if (event.event_type === 'SUBSTITUTION' || updateDto.event_type === 'SUBSTITUTION') {
+      throw new BadRequestException('Pour corriger un changement, supprimez-le puis enregistrez le bon changement.');
     }
 
     // Si on change le player_id, vérifier que le nouveau joueur est convoqué
@@ -1002,6 +1038,25 @@ export class MatchesService {
 
     if (!event || event.match_id !== matchId) {
       throw new NotFoundException('Événement non trouvé dans ce match');
+    }
+
+    if (event.event_type === 'SUBSTITUTION') {
+      // Undo in reverse order when later changes depend on either player.
+      await this.prisma.$transaction(async tx => {
+        const changes = await tx.matchEvent.findMany({
+          where: { match_id: matchId, event_type: 'SUBSTITUTION' },
+          orderBy: [{ minute: 'asc' }, { created_at: 'asc' }, { id: 'asc' }],
+        });
+        const index = changes.findIndex(change => change.id === eventId);
+        if (index < 0) throw new NotFoundException('Ce changement a déjà été supprimé.');
+        const involvedPlayers = [event.player_id, event.related_player_id];
+        if (changes.slice(index + 1).some(change => involvedPlayers.includes(change.player_id) ||
+          (change.related_player_id && involvedPlayers.includes(change.related_player_id)))) {
+          throw new BadRequestException('Supprimez d’abord les changements suivants concernant ces joueurs.');
+        }
+        await tx.matchEvent.delete({ where: { id: eventId } });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      return { message: 'Changement annulé, composition rétablie' };
     }
 
     // Si c'est un GOAL, supprimer d'abord les ASSIST liés à ce goal

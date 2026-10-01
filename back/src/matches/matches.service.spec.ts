@@ -34,6 +34,8 @@ describe('MatchesService', () => {
 
   beforeEach(async () => {
     prisma = createMockPrisma();
+    prisma.matchPlayer.findMany.mockResolvedValue([]);
+    prisma.matchEvent.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -631,6 +633,41 @@ describe('MatchesService', () => {
         service.addPlayersToMatch(mockMatchId, addPlayersDto, mockUserId),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it.each([player_status.INJURED, player_status.SUSPENDED])('should save an absent %s player without making them a starter', async status => {
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId, status: match_status.UPCOMING });
+      mockCoachPermissions();
+      prisma.player.findMany.mockResolvedValue([{ ...mockPlayers[0], status }]);
+      const result = await service.addPlayersToMatch(mockMatchId, { players: [{
+        player_id: 'player1', status: MatchPlayerStatus.STARTER, presence: MatchPresenceStatus.ABSENT,
+      }] }, mockUserId);
+      expect(result).toHaveLength(1);
+      expect(prisma.matchPlayer.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        create: expect.objectContaining({ presence: 'ABSENT', status: 'SUBSTITUTE' }),
+        update: expect.objectContaining({ presence: 'ABSENT', status: 'SUBSTITUTE' }),
+      }));
+    });
+
+    it('should preserve an injured player’s saved absence when only their role is sent', async () => {
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId, status: match_status.UPCOMING });
+      mockCoachPermissions();
+      prisma.player.findMany.mockResolvedValue([{ ...mockPlayers[0], status: player_status.INJURED }]);
+      prisma.matchPlayer.findMany.mockResolvedValue([{ player_id: 'player1', presence: 'ABSENT' }]);
+      await service.addPlayersToMatch(mockMatchId, { players: [{ player_id: 'player1', status: MatchPlayerStatus.STARTER }] }, mockUserId);
+      expect(prisma.matchPlayer.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        update: expect.objectContaining({ presence: 'ABSENT', status: 'SUBSTITUTE' }),
+      }));
+    });
+
+    it('should keep retired players out of new match sheets', async () => {
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId, status: match_status.UPCOMING });
+      mockCoachPermissions();
+      prisma.player.findMany.mockResolvedValue([{ ...mockPlayers[0], status: player_status.RETIRED }]);
+      await expect(service.addPlayersToMatch(mockMatchId, { players: [{
+        player_id: 'player1', status: MatchPlayerStatus.SUBSTITUTE, presence: MatchPresenceStatus.ABSENT,
+      }] }, mockUserId)).rejects.toThrow(BadRequestException);
+      expect(prisma.matchPlayer.upsert).not.toHaveBeenCalled();
+    });
   });
 
   // ==================== GET MATCH PLAYERS ====================
@@ -682,6 +719,26 @@ describe('MatchesService', () => {
   // ==================== UPDATE MATCH PLAYER STATUS ====================
 
   describe('updateMatchPlayerStatus', () => {
+    it('should demote an absent starter when attendance is updated individually', async () => {
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId, status: 'UPCOMING' });
+      mockCoachPermissions();
+      prisma.matchPlayer.findUnique.mockResolvedValue({ player_id: mockPlayerId, status: 'STARTER', presence: 'PRESENT' });
+      prisma.player.findUnique.mockResolvedValue({ id: mockPlayerId, status: 'INJURED' });
+      await service.updateMatchPlayerStatus(mockMatchId, mockPlayerId, { presence: MatchPresenceStatus.ABSENT }, mockUserId);
+      expect(prisma.matchPlayer.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: { presence: 'ABSENT', status: 'SUBSTITUTE' },
+      }));
+    });
+
+    it('should reject marking an injured player present through the individual endpoint', async () => {
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId, status: 'UPCOMING' });
+      mockCoachPermissions();
+      prisma.matchPlayer.findUnique.mockResolvedValue({ player_id: mockPlayerId, status: 'SUBSTITUTE', presence: 'ABSENT' });
+      prisma.player.findUnique.mockResolvedValue({ id: mockPlayerId, status: 'INJURED' });
+      await expect(service.updateMatchPlayerStatus(mockMatchId, mockPlayerId, { presence: MatchPresenceStatus.PRESENT }, mockUserId)).rejects.toThrow('indisponible');
+      expect(prisma.matchPlayer.update).not.toHaveBeenCalled();
+    });
+
     it('should update match player status when user is COACH', async () => {
       prisma.match.findUnique.mockResolvedValue({
         id: mockMatchId,
@@ -945,6 +1002,103 @@ describe('MatchesService', () => {
   });
 
   // ==================== GET MATCH EVENTS ====================
+
+  describe('saved substitutions', () => {
+    const players = [
+      { player_id: 'out', status: match_player_status.STARTER, presence: 'PRESENT' },
+      { player_id: 'in', status: match_player_status.SUBSTITUTE, presence: 'PRESENT' },
+    ];
+    const substitution = { id: 'sub1', match_id: mockMatchId, player_id: 'out', related_player_id: 'in',
+      event_type: match_event_type.SUBSTITUTION, minute: 30, created_at: new Date('2026-10-01T08:00:00Z') };
+    beforeEach(() => {
+      mockCoachPermissions();
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId,
+        status: match_status.LIVE, matchPlayers: players, matchEvents: [],
+        opponentEvents: [], team: { club_id: mockClubId } });
+      prisma.matchEvent.create.mockResolvedValue(substitution);
+    });
+
+    it('should reload the current lineup while retaining the starting lineup', async () => {
+      mockClubMemberPermissions();
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId,
+        status: match_status.LIVE, matchPlayers: players, matchEvents: [substitution],
+        opponentEvents: [], team: { club_id: mockClubId } });
+      prisma.matchPlayer.findMany.mockResolvedValue(players);
+      prisma.matchEvent.findMany.mockResolvedValue([substitution]);
+      const detail = await service.findOne(mockMatchId, mockUserId);
+      const roster = await service.getMatchPlayers(mockMatchId, mockUserId);
+      for (const entries of [detail.matchPlayers, roster]) {
+        expect(entries).toEqual(expect.arrayContaining([
+          expect.objectContaining({ player_id: 'out', status: 'STARTER', current_status: 'SUBSTITUTE' }),
+          expect.objectContaining({ player_id: 'in', status: 'SUBSTITUTE', current_status: 'STARTER' }),
+        ]));
+      }
+      expect(prisma.matchPlayer.update).not.toHaveBeenCalled();
+    });
+
+    it('should accept a valid substitution', async () => {
+      expect(await service.addEventToMatch(mockMatchId, substitution, mockUserId)).toEqual(substitution);
+      expect(prisma.$transaction).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['same player', { ...substitution, related_player_id: 'out' }],
+      ['outgoing substitute', { ...substitution, player_id: 'in', related_player_id: 'out' }],
+      ['unknown incoming player', { ...substitution, related_player_id: 'missing' }],
+    ])('should reject %s', async (_, dto) => {
+      await expect(service.addEventToMatch(mockMatchId, dto, mockUserId)).rejects.toThrow(BadRequestException);
+      expect(prisma.matchEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('should reject an absent incoming player', async () => {
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId, status: 'LIVE',
+        matchPlayers: [players[0], { ...players[1], presence: 'ABSENT' }], matchEvents: [] });
+      await expect(service.addEventToMatch(mockMatchId, substitution, mockUserId)).rejects.toThrow('marqués présents');
+      expect(prisma.matchEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('should reject a duplicate substitution after a reload', async () => {
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId, status: 'LIVE',
+        matchPlayers: players, matchEvents: [substitution] });
+      await expect(service.addEventToMatch(mockMatchId, substitution, mockUserId)).rejects.toThrow('sur le terrain');
+      expect(prisma.matchEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('should accept a returning player based on current roles', async () => {
+      prisma.match.findUnique.mockResolvedValue({ id: mockMatchId, team_id: mockTeamId, status: 'LIVE',
+        matchPlayers: players, matchEvents: [substitution] });
+      await service.addEventToMatch(mockMatchId, { ...substitution, player_id: 'in', related_player_id: 'out', minute: 40 }, mockUserId);
+      expect(prisma.matchEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ player_id: 'in', related_player_id: 'out' }),
+      }));
+    });
+
+    it('should undo the most recent change so a fresh read restores the lineup', async () => {
+      prisma.matchEvent.findUnique.mockResolvedValue(substitution);
+      prisma.matchEvent.findMany.mockResolvedValue([substitution]);
+      await service.removeMatchEvent(mockMatchId, substitution.id, mockUserId);
+      expect(prisma.matchEvent.delete).toHaveBeenCalledWith({ where: { id: substitution.id } });
+      prisma.matchPlayer.findMany.mockResolvedValue(players);
+      prisma.matchEvent.findMany.mockResolvedValue([]);
+      mockClubMemberPermissions();
+      const roster = await service.getMatchPlayers(mockMatchId, mockUserId);
+      expect(roster.map(player => player.current_status)).toEqual(['STARTER', 'SUBSTITUTE']);
+    });
+
+    it('should prevent deleting a change required by a later substitution', async () => {
+      prisma.matchEvent.findUnique.mockResolvedValue(substitution);
+      prisma.matchEvent.findMany.mockResolvedValue([substitution,
+        { ...substitution, id: 'sub2', player_id: 'in', related_player_id: 'out', minute: 40 }]);
+      await expect(service.removeMatchEvent(mockMatchId, substitution.id, mockUserId)).rejects.toThrow('changements suivants');
+      expect(prisma.matchEvent.delete).not.toHaveBeenCalled();
+    });
+
+    it('should require undoing a substitution before changing its player or minute', async () => {
+      prisma.matchEvent.findUnique.mockResolvedValue(substitution);
+      await expect(service.updateMatchEvent(mockMatchId, substitution.id, { minute: 10 }, mockUserId)).rejects.toThrow('supprimez-le');
+      expect(prisma.matchEvent.update).not.toHaveBeenCalled();
+    });
+  });
 
   describe('getMatchEvents', () => {
     const mockEvents = [
