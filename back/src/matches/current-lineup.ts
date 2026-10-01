@@ -16,8 +16,10 @@ type Event = {
 };
 
 /** Keep the starting lineup for statistics; derive the current lineup from saved changes. */
-export function withCurrentLineup<T extends Player>(players: T[], events: Event[]) {
+function replayLineup<T extends Player>(players: T[], events: Event[]) {
   const lineup = new Map(players.map(player => [player.player_id, { ...player, current_status: player.status }]));
+  const participants = new Set(players.filter(player => player.status === 'STARTER' &&
+    (!player.presence || player.presence === 'PRESENT')).map(player => player.player_id));
   const substitutions = events.filter(event => event.event_type === 'SUBSTITUTION').sort((a, b) =>
     a.minute - b.minute ||
     (a.created_at?.getTime() ?? 0) - (b.created_at?.getTime() ?? 0) ||
@@ -34,7 +36,16 @@ export function withCurrentLineup<T extends Player>(players: T[], events: Event[
       outgoing.current_status !== 'STARTER' || incoming.current_status !== 'SUBSTITUTE') continue;
     outgoing.current_status = 'SUBSTITUTE';
     incoming.current_status = 'STARTER';
+    participants.add(incoming.player_id);
   }
 
-  return [...lineup.values()];
+  return { players: [...lineup.values()], participants };
+}
+
+export function withCurrentLineup<T extends Player>(players: T[], events: Event[]) {
+  return replayLineup(players, events).players;
+}
+
+export function matchParticipants(players: Player[], events: Event[]) {
+  return replayLineup(players, events).participants;
 }

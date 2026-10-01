@@ -1,249 +1,220 @@
-'use client';
+import { Archive, Pencil } from "lucide-react";
+import type { PlayerOverview } from "@/services/playerService";
+import RosterDialog from "./RosterDialog";
+import { Jersey, PlayerStatusBadge } from "./PlayerTable";
+import { buttonClass, FEET, POSITIONS, primaryClass } from "./roster";
 
-import { X, User, Target, Handshake, ShieldAlert, ShieldX, RotateCcw, TrendingDown, Trophy } from 'lucide-react';
-import { Player, PlayerStats } from '@/services/playerService';
-
-interface PlayerDetailModalProps {
-  isOpen: boolean;
-  player: Player | null;
-  stats: PlayerStats | undefined;
-  onClose: () => void;
-}
-
-const POSITION_LABELS: Record<string, { label: string; bg: string; text: string }> = {
-  GOALKEEPER: { label: 'Gardien',   bg: 'bg-orange-500/15', text: 'text-orange-400' },
-  DEFENDER:   { label: 'Défenseur', bg: 'bg-blue-500/15',   text: 'text-blue-400' },
-  MIDFIELDER: { label: 'Milieu',    bg: 'bg-accent-green/15', text: 'text-accent-green' },
-  FORWARD:    { label: 'Attaquant', bg: 'bg-red-500/15',    text: 'text-red-400' },
+const ZONES: Record<string, string> = {
+  LEFT: "Gauche",
+  RIGHT: "Droite",
+  AXIS: "Axe",
+  BOX: "Surface",
+  OUTSIDE: "Extérieur",
+  DEF_LEFT: "Défense · gauche",
+  DEF_CENTER: "Défense · centre",
+  DEF_RIGHT: "Défense · droite",
+  MID_LEFT: "Milieu · gauche",
+  MID_CENTER: "Milieu · centre",
+  MID_RIGHT: "Milieu · droite",
+  ATT_LEFT: "Attaque · gauche",
+  ATT_CENTER: "Attaque · centre",
+  ATT_RIGHT: "Attaque · droite",
+};
+const BODY_PARTS: Record<string, string> = {
+  LEFT_FOOT: "Pied gauche",
+  RIGHT_FOOT: "Pied droit",
+  HEAD: "Tête",
 };
 
-const STATUS_STYLE: Record<string, string> = {
-  ACTIVE:    'bg-accent-green/10 text-accent-green border-accent-green/20',
-  INJURED:   'bg-red-500/10 text-red-400 border-red-500/20',
-  SUSPENDED: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  RETIRED:   'bg-neutral/10 text-dark-light dark:text-neutral border-neutral/20',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Actif', INJURED: 'Blessé', SUSPENDED: 'Suspendu', RETIRED: 'Retraité',
-};
-
-const FOOT_LABEL: Record<string, string> = {
-  RIGHT: 'Pied droit', LEFT: 'Pied gauche', BOTH: 'Les deux pieds',
-};
-
-const ZONE_LABEL: Record<string, string> = {
-  INSIDE_BOX: 'Dans la surface',
-  OUTSIDE_BOX: 'Hors surface',
-  HEADER: 'Tête',
-};
-
-const BODY_LABEL: Record<string, string> = {
-  LEFT_FOOT: 'Pied gauche',
-  RIGHT_FOOT: 'Pied droit',
-  HEAD: 'Tête',
-};
-
-interface StatItemProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  accent: string;
-}
-
-function StatItem({ icon, label, value, accent }: StatItemProps) {
+function StatLine({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-xl bg-dark/30 dark:bg-dark/50 border border-dark-light/10`}>
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accent}`}>
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-neutral">{label}</p>
-        <p className="text-sm font-bold text-dark dark:text-white">{value}</p>
-      </div>
+    <div className="flex items-center justify-between gap-4 py-2.5 text-sm">
+      <dt className="text-slate-400">{label}</dt>
+      <dd className="font-medium tabular-nums text-white">{value}</dd>
     </div>
   );
 }
 
-export default function PlayerDetailModal({ isOpen, player, stats, onClose }: PlayerDetailModalProps) {
-  if (!isOpen || !player) return null;
-
-  const pos = player.position ? POSITION_LABELS[player.position] : null;
-
+export default function PlayerDetailModal({
+  player,
+  periodLabel,
+  onClose,
+  onEdit,
+  onArchive,
+}: {
+  player: PlayerOverview;
+  periodLabel: string;
+  onClose: () => void;
+  onEdit: () => void;
+  onArchive: () => void;
+}) {
+  const s = player.stats,
+    a = s.attendance;
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-dark-lighter rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-        {/* Header */}
-        <div className="relative p-6 pb-4 border-b border-dark-light/10 dark:border-dark-light/20">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-lg text-neutral hover:text-dark dark:hover:text-white hover:bg-dark-light/10 transition-colors"
-          >
-            <X className="w-4 h-4" />
+    <RosterDialog
+      title={`${player.first_name} ${player.last_name}`}
+      subtitle="Fiche joueur"
+      drawer
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onEdit} className={`${primaryClass} flex-1`}>
+            <Pencil size={16} aria-hidden="true" />
+            {player.status === "RETIRED"
+              ? "Modifier / réintégrer"
+              : "Modifier la fiche"}
           </button>
-
-          <div className="flex items-center gap-4">
-            {/* Avatar */}
-            <div className="w-14 h-14 rounded-2xl bg-accent-blue/10 dark:bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
-              <User className="w-7 h-7 text-accent-blue" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-dark dark:text-white leading-tight">
-                {player.first_name} {player.last_name}
-              </h2>
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                {player.jersey_number && (
-                  <span className="text-xs font-semibold bg-dark-light/10 dark:bg-dark-light/30 text-dark-light dark:text-neutral px-2 py-0.5 rounded-full">
-                    #{player.jersey_number}
-                  </span>
-                )}
-                {pos && (
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pos.bg} ${pos.text}`}>
-                    {pos.label}
-                  </span>
-                )}
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLE[player.status] ?? STATUS_STYLE.ACTIVE}`}>
-                  {STATUS_LABEL[player.status] ?? player.status}
-                </span>
-                {player.strong_foot && (
-                  <span className="text-xs text-neutral">{FOOT_LABEL[player.strong_foot]}</span>
-                )}
-              </div>
+          {player.status !== "RETIRED" && (
+            <button onClick={onArchive} className={buttonClass}>
+              <Archive size={16} aria-hidden="true" />
+              Archiver
+            </button>
+          )}
+        </>
+      }
+    >
+      <div className="space-y-7">
+        <div className="flex items-center gap-4">
+          <Jersey number={player.jersey_number} />
+          <div>
+            <p className="text-sm text-slate-200">
+              {POSITIONS[player.position ?? ""] ?? "Poste à renseigner"}{" "}
+              <span className="text-slate-600">/</span>{" "}
+              <span className="text-slate-400">
+                Pied : {FEET[player.strong_foot ?? ""] ?? "non renseigné"}
+              </span>
+            </p>
+            <div className="mt-1.5">
+              <PlayerStatusBadge status={player.status} />
             </div>
           </div>
         </div>
-
-        {/* Stats */}
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
-          {!stats ? (
-            <p className="text-center text-sm text-neutral py-6">Aucune statistique disponible</p>
-          ) : (
-            <div className="space-y-5">
-              {/* Matchs */}
-              <div>
-                <h3 className="text-xs font-semibold text-neutral uppercase tracking-wider mb-3">Participations</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  <StatItem
-                    icon={<Trophy className="w-4 h-4" />}
-                    label="Matchs joués"
-                    value={stats.total_matches ?? 0}
-                    accent="bg-accent-blue/10 text-accent-blue"
-                  />
-                  <StatItem
-                    icon={<Trophy className="w-4 h-4" />}
-                    label="Titulaire"
-                    value={stats.matches_as_starter ?? 0}
-                    accent="bg-accent-green/10 text-accent-green"
-                  />
-                  <StatItem
-                    icon={<Trophy className="w-4 h-4" />}
-                    label="Remplaçant"
-                    value={stats.matches_as_substitute ?? 0}
-                    accent="bg-yellow-500/10 text-yellow-400"
-                  />
-                </div>
-              </div>
-
-              {/* Offensif */}
-              <div>
-                <h3 className="text-xs font-semibold text-neutral uppercase tracking-wider mb-3">Offensif</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <StatItem
-                    icon={<Target className="w-4 h-4" />}
-                    label="Buts"
-                    value={stats.goals ?? 0}
-                    accent="bg-yellow-400/10 text-yellow-400"
-                  />
-                  <StatItem
-                    icon={<Handshake className="w-4 h-4" />}
-                    label="Passes décisives"
-                    value={stats.assists ?? 0}
-                    accent="bg-accent-blue/10 text-accent-blue"
-                  />
-                </div>
-              </div>
-
-              {/* Défensif */}
-              <div>
-                <h3 className="text-xs font-semibold text-neutral uppercase tracking-wider mb-3">Défensif</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <StatItem
-                    icon={<RotateCcw className="w-4 h-4" />}
-                    label="Récupérations"
-                    value={stats.recoveries ?? 0}
-                    accent="bg-accent-green/10 text-accent-green"
-                  />
-                  <StatItem
-                    icon={<TrendingDown className="w-4 h-4" />}
-                    label="Pertes de balle"
-                    value={stats.ball_losses ?? 0}
-                    accent="bg-red-500/10 text-red-400"
-                  />
-                </div>
-              </div>
-
-              {/* Cartons */}
-              <div>
-                <h3 className="text-xs font-semibold text-neutral uppercase tracking-wider mb-3">Discipline</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <StatItem
-                    icon={<ShieldAlert className="w-4 h-4" />}
-                    label="Cartons jaunes"
-                    value={stats.yellow_cards ?? 0}
-                    accent="bg-yellow-500/10 text-yellow-400"
-                  />
-                  <StatItem
-                    icon={<ShieldX className="w-4 h-4" />}
-                    label="Cartons rouges"
-                    value={stats.red_cards ?? 0}
-                    accent="bg-red-500/10 text-red-400"
-                  />
-                </div>
-              </div>
-
-              {/* Buts par zone */}
-              {stats.goals_by_zone && Object.keys(stats.goals_by_zone).length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold text-neutral uppercase tracking-wider mb-3">Buts par zone</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {Object.entries(stats.goals_by_zone).map(([zone, count]) => (
-                      <div key={zone} className="flex flex-col items-center p-3 rounded-xl bg-dark/30 dark:bg-dark/50 border border-dark-light/10">
-                        <span className="text-lg font-bold text-dark dark:text-white">{count}</span>
-                        <span className="text-xs text-neutral text-center mt-0.5">{ZONE_LABEL[zone] ?? zone}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Buts par partie du corps */}
-              {stats.goals_by_body_part && Object.keys(stats.goals_by_body_part).length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold text-neutral uppercase tracking-wider mb-3">Buts par partie du corps</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {Object.entries(stats.goals_by_body_part).map(([part, count]) => (
-                      <div key={part} className="flex flex-col items-center p-3 rounded-xl bg-dark/30 dark:bg-dark/50 border border-dark-light/10">
-                        <span className="text-lg font-bold text-dark dark:text-white">{count}</span>
-                        <span className="text-xs text-neutral text-center mt-0.5">{BODY_LABEL[part] ?? part}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+        <div className="rounded-lg border border-white/10 bg-dark px-4 py-3 text-xs text-slate-400">
+          {periodLabel} <span className="mx-1 text-slate-600">·</span> Matchs
+          terminés uniquement
         </div>
-
-        {/* Footer */}
-        <div className="px-6 pb-5 pt-0">
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 border border-dark-light/20 dark:border-dark-light rounded-xl text-sm font-medium text-dark-light dark:text-neutral hover:bg-dark-light/5 dark:hover:bg-dark-light/10 transition-colors"
+        <section aria-labelledby="presence-title">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h3 id="presence-title" className="font-semibold">
+              Présences
+            </h3>
+            <span className="text-xl font-semibold tabular-nums text-emerald-300">
+              {a.rate === null ? "—" : `${a.rate} %`}
+            </span>
+          </div>
+          <div
+            className="mb-2 flex h-1.5 overflow-hidden rounded-full bg-white/10"
+            aria-hidden="true"
           >
-            Fermer
-          </button>
-        </div>
+            <div
+              className="bg-accent-green"
+              style={{ width: `${a.rate ?? 0}%` }}
+            />
+            <div
+              className="bg-rose-400/70"
+              style={{ width: `${a.rate === null ? 0 : 100 - a.rate}%` }}
+            />
+          </div>
+          <dl className="divide-y divide-white/[0.06]">
+            <StatLine label="Présent" value={a.present} />
+            <StatLine label="Absent" value={a.absent} />
+            <StatLine label="Présence incertaine" value={a.uncertain} />
+            <StatLine label="Non renseignée" value={a.unknown} />
+          </dl>
+          <p className="mt-2 text-xs leading-relaxed text-slate-400">
+            Taux calculé sur {a.recorded} présence{a.recorded > 1 ? "s" : ""}{" "}
+            renseignée{a.recorded > 1 ? "s" : ""} : présent ou absent. Les
+            feuilles où le joueur ne figure pas sont exclues.
+          </p>
+        </section>
+        <section aria-labelledby="participation-title">
+          <h3 id="participation-title" className="mb-2 font-semibold">
+            Participation
+          </h3>
+          <dl className="divide-y divide-white/[0.06]">
+            <StatLine label="Matchs joués" value={s.total_matches} />
+            <StatLine label="Titularisations" value={s.matches_as_starter} />
+            <StatLine label="Entrées en jeu" value={s.matches_as_substitute} />
+            <StatLine
+              label="Sur le banc, sans entrer"
+              value={s.unused_substitute}
+            />
+          </dl>
+        </section>
+        <section aria-labelledby="contribution-title">
+          <h3 id="contribution-title" className="mb-3 font-semibold">
+            Avec le ballon
+          </h3>
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10">
+            {[
+              ["Buts", s.goals],
+              ["Passes décisives", s.assists],
+            ].map(([label, value]) => (
+              <div key={label} className="bg-dark p-4">
+                <dt className="text-xs text-slate-400">{label}</dt>
+                <dd className="mt-2 text-3xl font-semibold tabular-nums text-white">
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <dl className="mt-2 divide-y divide-white/[0.06]">
+            <StatLine label="Récupérations" value={s.recoveries} />
+            <StatLine label="Pertes de balle" value={s.ball_losses} />
+          </dl>
+        </section>
+        <section aria-labelledby="discipline-title">
+          <h3 id="discipline-title" className="mb-2 font-semibold">
+            Discipline
+          </h3>
+          <dl className="divide-y divide-white/[0.06]">
+            <StatLine label="Cartons jaunes" value={s.yellow_cards} />
+            <StatLine label="Cartons rouges" value={s.red_cards} />
+          </dl>
+        </section>
+        {s.goals > 0 && (
+          <details className="rounded-lg border border-white/10 px-4">
+            <summary className="cursor-pointer py-4 text-sm font-medium text-slate-200 focus-visible:outline-2 focus-visible:outline-accent-green">
+              Détail des buts
+            </summary>
+            <div className="space-y-4 pb-4">
+              {[
+                { values: s.goals_by_zone, labels: ZONES, title: "Zone" },
+                {
+                  values: s.goals_by_body_part,
+                  labels: BODY_PARTS,
+                  title: "Partie du corps",
+                },
+              ].map(({ values: counts, labels, title }) => {
+                const missing =
+                  s.goals -
+                  Object.values(counts).reduce((sum, value) => sum + value, 0);
+                return (
+                  <div key={title}>
+                    <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                      {title}
+                    </p>
+                    <dl>
+                      {Object.entries(counts)
+                        .filter(([, count]) => count > 0)
+                        .map(([key, count]) => (
+                          <StatLine
+                            key={key}
+                            label={labels[key] ?? key}
+                            value={count}
+                          />
+                        ))}
+                      {missing > 0 && (
+                        <StatLine label="Non renseignée" value={missing} />
+                      )}
+                    </dl>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        )}
       </div>
-    </div>
+    </RosterDialog>
   );
 }

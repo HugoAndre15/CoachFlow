@@ -8,6 +8,8 @@ import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
 import { club_role, player_status, team_role } from '@prisma/client';
+import { PlayerStatsPeriod } from './dto/player-overview-query.dto';
+import { buildPlayerOverview, statsPeriodStart } from './player-overview';
 
 @Injectable()
 export class PlayersService {
@@ -74,6 +76,25 @@ export class PlayersService {
   }
 
   // ==================== CRUD ====================
+
+  async getTeamOverview(teamId: string, userId: string, period: PlayerStatsPeriod = PlayerStatsPeriod.ALL) {
+    if (!await this.canManagePlayers(teamId, userId)) {
+      throw new ForbiddenException('Vous n’avez pas accès aux statistiques de cette équipe.');
+    }
+    const now = new Date();
+    const from = statsPeriodStart(period, now);
+    const [players, matches] = await Promise.all([
+      this.prisma.player.findMany({ where: { team_id: teamId }, orderBy: [{ last_name: 'asc' }, { first_name: 'asc' }] }),
+      this.prisma.match.findMany({
+        where: { team_id: teamId, status: 'FINISHED', match_date: { ...(from ? { gte: from } : {}), lte: now } },
+        include: { matchPlayers: true, matchEvents: true },
+      }),
+    ]);
+    return {
+      players: buildPlayerOverview(players, matches),
+      meta: { team_id: teamId, period, from: from?.toISOString() ?? null, to: now.toISOString(), completed_matches: matches.length },
+    };
+  }
 
   /**
    * Créer un joueur dans une équipe
