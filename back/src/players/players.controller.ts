@@ -16,6 +16,7 @@ import { UpdatePlayerDto } from './dto/update-player.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PlayerOverviewQueryDto } from './dto/player-overview-query.dto';
 
 @ApiTags('Players')
 @ApiBearerAuth('JWT-auth')
@@ -50,6 +51,12 @@ export class PlayersController {
     @CurrentUser() user?: any
   ) {
     return this.playersService.findAll(teamId, user.id, paginationQuery, status, position);
+  }
+
+  @Get('overview')
+  @ApiOperation({ summary: 'Tableau de l’effectif', description: 'Joueurs et statistiques des matchs terminés, incluant présences et entrées en jeu. Accès réservé au staff.' })
+  getTeamOverview(@Query() query: PlayerOverviewQueryDto, @CurrentUser() user: any) {
+    return this.playersService.getTeamOverview(query.teamId, user.id, query.period);
   }
 
   @Get(':id/stats')

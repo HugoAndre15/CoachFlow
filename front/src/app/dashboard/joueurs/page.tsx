@@ -1,284 +1,442 @@
-﻿'use client';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Users, Target, Award, Star, TrendingUp, Activity, Zap } from 'lucide-react';
-import { playerService, Player, PlayerStats } from '@/services/playerService';
-import { useClubTeam } from '@/contexts/ClubTeamContext';
-import CreatePlayerModal from './parts/CreatePlayerModal';
-import PlayerDetailModal from './parts/PlayerDetailModal';
-import EditPlayerModal from './parts/EditPlayerModal';
-import JoueursHeader from './parts/JoueursHeader';
-import JoueursFilters from './parts/JoueursFilters';
-import JoueursLoadingState from './parts/JoueursLoadingState';
-import NoTeamState from './parts/NoTeamState';
-import NoPlayersState from './parts/NoPlayersState';
-import PlayerTable from './parts/PlayerTable';
-import DeleteConfirmModal from './parts/DeleteConfirmModal';
-import StatCard from './parts/StatCard';
-import TopCard from './parts/TopCard';
-// --- Component ---------------------------------------------------------------
-export default function JoueursPage() {
-  const { activeTeam } = useClubTeam();
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [statsMap, setStatsMap] = useState<Record<string, PlayerStats>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [positionFilter, setPositionFilter] = useState<string>('');
-  const [search, setSearch] = useState('');
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [viewingPlayer, setViewingPlayer] = useState<Player | null>(null);
-  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
-  const playersRequestId = useRef(0);
+"use client";
 
-  const fetchPlayers = useCallback(async (teamId: string) => {
-    const requestId = ++playersRequestId.current;
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, Check, Plus, RefreshCw, Users } from "lucide-react";
+import { useClubTeam } from "@/contexts/ClubTeamContext";
+import {
+  playerService,
+  type PlayerOverview,
+  type PlayerStatsPeriod,
+  type TeamPlayerOverview,
+} from "@/services/playerService";
+import type { Team } from "@/services/teamService";
+import PlayerTable from "./parts/PlayerTable";
+import JoueursFilters from "./parts/JoueursFilters";
+import PlayerDetailModal from "./parts/PlayerDetailModal";
+import PlayerForm from "./parts/PlayerForm";
+import ArchivePlayerDialog from "./parts/ArchivePlayerDialog";
+import {
+  buttonClass,
+  DEFAULT_FILTERS,
+  fieldClass,
+  filterAndSortPlayers,
+  PERIODS,
+  primaryClass,
+  requestError,
+  type RosterFilters,
+  type SortKey,
+  type StatusFilter,
+} from "./parts/roster";
+
+type DialogState =
+  | { type: "create" }
+  | { type: "details" | "edit" | "archive"; player: PlayerOverview }
+  | null;
+
+export default function JoueursPage() {
+  const {
+    activeTeam,
+    isLoadingClubs,
+    isLoadingTeams,
+    clubsError,
+    teamsError,
+    refetchClubs,
+    refetchTeams,
+  } = useClubTeam();
+  if (activeTeam) return <TeamRoster key={activeTeam.id} team={activeTeam} />;
+  if (isLoadingClubs || isLoadingTeams) return <RosterLoading />;
+  return (
+    <div className="mx-auto max-w-md py-20 text-center text-white">
+      <Users
+        size={32}
+        className="mx-auto mb-5 text-accent-green"
+        aria-hidden="true"
+      />
+      <h1 className="text-2xl font-semibold">Votre effectif commence ici</h1>
+      {clubsError || teamsError ? (
+        <>
+          <p role="alert" className="mt-3 text-sm text-rose-300">
+            {clubsError || teamsError}
+          </p>
+          <button
+            onClick={() => void (clubsError ? refetchClubs() : refetchTeams())}
+            className={`${buttonClass} mt-5`}
+          >
+            Réessayer
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="mt-3 text-sm leading-relaxed text-slate-400">
+            Sélectionnez une équipe dans la barre du haut, ou créez votre
+            première équipe pour ajouter vos joueurs.
+          </p>
+          <Link href="/dashboard/teams" className={`${primaryClass} mt-6`}>
+            Mes équipes
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </>
+      )}
+    </div>
+  );
+}
+
+function RosterLoading() {
+  return (
+    <div role="status" className="space-y-4 p-5 text-sm text-slate-400">
+      <p>Chargement de l’effectif…</p>
+      <div aria-hidden="true" className="space-y-3 motion-safe:animate-pulse">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-16 rounded-lg bg-white/[0.04]" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TeamRoster({ team }: { team: Team }) {
+  const [data, setData] = useState<TeamPlayerOverview | null>(null);
+  const [period, setPeriod] = useState<PlayerStatsPeriod>("ALL");
+  const [filters, setFilters] = useState<RosterFilters>(DEFAULT_FILTERS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [dialog, setDialog] = useState<DialogState>(null);
+  const requestId = useRef(0);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  const refresh = useCallback(async () => {
+    const id = ++requestId.current;
+    setLoading(true);
+    setError("");
     try {
-      setIsLoading(true);
-      setIsLoadingStats(false);
-      setError(null);
-      setPlayers([]);
-      setStatsMap({});
-      const data = await playerService.getPlayersByTeam(teamId);
-      if (requestId !== playersRequestId.current) return;
-      setPlayers(data);
-      if (data.length > 0) {
-        setIsLoadingStats(true);
-        const statsResults = await Promise.allSettled(
-          data.map(p => playerService.getPlayerStats(p.id).then(s => ({ id: p.id, stats: s })))
+      const result = await playerService.getTeamOverview(team.id, period);
+      if (id === requestId.current) setData(result);
+    } catch (error) {
+      if (id === requestId.current)
+        setError(
+          requestError(
+            error,
+            "Impossible de charger l’effectif. Vérifiez votre connexion puis réessayez.",
+          ),
         );
-        if (requestId !== playersRequestId.current) return;
-        const map: Record<string, PlayerStats> = {};
-        statsResults.forEach(r => {
-          if (r.status === 'fulfilled') map[r.value.id] = r.value.stats;
-        });
-        setStatsMap(map);
-      }
-    } catch (err: any) {
-      if (requestId !== playersRequestId.current) return;
-      setError(err.response?.data?.message || 'Erreur lors du chargement des joueurs');
     } finally {
-      if (requestId === playersRequestId.current) {
-        setIsLoading(false);
-        setIsLoadingStats(false);
-      }
+      if (id === requestId.current) setLoading(false);
     }
-  }, []);
+  }, [team.id, period]);
 
   useEffect(() => {
-    if (activeTeam?.id) {
-      void fetchPlayers(activeTeam.id);
-    } else {
-      playersRequestId.current += 1;
-      setPlayers([]);
-      setStatsMap({});
-      setError(null);
-      setIsLoading(false);
-      setIsLoadingStats(false);
-    }
-  }, [activeTeam?.id, fetchPlayers]);
-  // Filtres
-  const filtered = useMemo(() => players.filter(p => {
-    if (positionFilter && p.position !== positionFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      if (
-        !p.first_name.toLowerCase().includes(q) &&
-        !p.last_name.toLowerCase().includes(q) &&
-        !(p.jersey_number?.toString() ?? '').includes(q)
-      ) return false;
-    }
-    return true;
-  }), [players, positionFilter, search]);
-  // Stats globales
-  const globalStats = useMemo(() => {
-    const allStats = Object.values(statsMap);
-    return {
-      totalGoals:   allStats.reduce((s, x) => s + (x.goals ?? 0), 0),
-      totalAssists: allStats.reduce((s, x) => s + (x.assists ?? 0), 0),
-      totalRecov:   allStats.reduce((s, x) => s + (x.recoveries ?? 0), 0),
+    void refresh();
+    return () => {
+      requestId.current++;
     };
-  }, [statsMap]);
-  // Top performers
-  const topPerformers = useMemo(() => {
-    const entries = Object.entries(statsMap);
-    const byGoals   = [...entries].sort((a, b) => (b[1].goals ?? 0) - (a[1].goals ?? 0))[0];
-    const byAssists = [...entries].sort((a, b) => (b[1].assists ?? 0) - (a[1].assists ?? 0))[0];
-    const byRecov   = [...entries].sort((a, b) => (b[1].recoveries ?? 0) - (a[1].recoveries ?? 0))[0];
-    const findName  = (id: string) => {
-      const p = players.find(x => x.id === id);
-      return p ? p.first_name + ' ' + p.last_name : '-';
-    };
-    return {
-      scorer: byGoals   ? { name: findName(byGoals[0]),   value: byGoals[1].goals + ' but' + (byGoals[1].goals !== 1 ? 's' : '') }         : null,
-      assist: byAssists ? { name: findName(byAssists[0]), value: byAssists[1].assists + ' passe' + (byAssists[1].assists !== 1 ? 's' : '') } : null,
-      recov:  byRecov   ? { name: findName(byRecov[0]),   value: byRecov[1].recoveries + ' recup.' }                                         : null,
-    };
-  }, [statsMap, players]);
-  const handleCreateSuccess = () => {
-    setIsModalOpen(false);
-    if (activeTeam?.id) fetchPlayers(activeTeam.id);
-  };
-  const handleDelete = async (playerId: string) => {
-    try {
-      await playerService.archivePlayer(playerId);
-      setPlayers(prev => prev.filter(p => p.id !== playerId));
-      setStatsMap(prev => {
-        const next = { ...prev };
-        delete next[playerId];
-        return next;
-      });
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de l’archivage');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-  // --- Render ------------------------------------------------------------------
+  }, [refresh]);
+
+  const currentData = data?.meta.period === period ? data : null;
+  const filtered = useMemo(
+    () => filterAndSortPlayers(currentData?.players ?? [], filters),
+    [currentData, filters],
+  );
+  const counts = data?.players.reduce(
+    (acc, p) => {
+      acc[p.status]++;
+      if (p.status !== "RETIRED") acc.CURRENT++;
+      return acc;
+    },
+    { CURRENT: 0, ACTIVE: 0, INJURED: 0, SUSPENDED: 0, RETIRED: 0 },
+  );
+
+  function open(next: DialogState) {
+    triggerRef.current = document.activeElement as HTMLElement | null;
+    setDialog(next);
+  }
+  function close() {
+    setDialog(null);
+    requestAnimationFrame(() => {
+      if (triggerRef.current?.isConnected) triggerRef.current.focus();
+      else titleRef.current?.focus();
+    });
+  }
+  function saved(message: string, status?: StatusFilter) {
+    close();
+    setNotice(message);
+    if (status) setFilters({ ...DEFAULT_FILTERS, status });
+    void refresh();
+  }
+  function sort(key: SortKey) {
+    setFilters((previous) => ({
+      ...previous,
+      sort: key,
+      direction:
+        previous.sort === key
+          ? previous.direction === "asc"
+            ? "desc"
+            : "asc"
+          : key === "name" || key === "number"
+            ? "asc"
+            : "desc",
+    }));
+  }
+
+  const countItems: { key: StatusFilter; label: string; color: string }[] = [
+    { key: "CURRENT", label: "dans l’effectif", color: "text-white" },
+    { key: "ACTIVE", label: "disponibles", color: "text-emerald-300" },
+    { key: "INJURED", label: "blessés", color: "text-rose-300" },
+    { key: "SUSPENDED", label: "suspendus", color: "text-amber-300" },
+  ];
+
   return (
-    <div className="relative min-h-screen">
-      {/* Background orbs */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-40 -left-32 w-96 h-96 bg-accent-green rounded-full blur-3xl opacity-[0.06] dark:opacity-[0.09] animate-[landing-float_8s_ease-in-out_infinite]" />
-        <div className="absolute top-1/3 -right-40 w-80 h-80 bg-accent-blue rounded-full blur-3xl opacity-[0.05] dark:opacity-[0.07] animate-[landing-float-delayed_10s_ease-in-out_infinite]" />
-        <div className="absolute -bottom-32 left-1/3 w-72 h-72 bg-red-500 rounded-full blur-3xl opacity-[0.04] dark:opacity-[0.06] animate-[landing-float_12s_ease-in-out_infinite_2s]" />
-        <div className="absolute top-2/3 left-10 w-48 h-48 bg-accent-green rounded-full blur-2xl opacity-[0.03] dark:opacity-[0.05] animate-[landing-float-delayed_9s_ease-in-out_infinite_1s]" />
-      </div>
-      <div className="relative z-10 space-y-6">
-        {/* Header */}
-        <JoueursHeader
-          activeTeam={activeTeam}
-          isLoading={isLoading}
-          onRefresh={() => activeTeam && fetchPlayers(activeTeam.id)}
-          onAdd={() => setIsModalOpen(true)}
-        />
-        {/* No team / Loading / Error / Content */}
-        {!activeTeam ? (
-          <NoTeamState />
-        ) : isLoading ? (
-          <JoueursLoadingState />
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-red-400 font-medium">{error}</p>
-            <button onClick={() => fetchPlayers(activeTeam.id)} className="mt-3 text-sm text-accent-green hover:underline">
-              Reessayer
+    <div className="min-w-0 space-y-6 pb-6 text-white">
+      <header>
+        <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-accent-green">
+          {team.name} <span className="px-1 text-slate-600">/</span>{" "}
+          {team.category}
+        </p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1
+              ref={titleRef}
+              tabIndex={-1}
+              className="text-3xl font-semibold tracking-tight focus:outline-none sm:text-4xl"
+            >
+              L’effectif
+            </h1>
+            <p className="mt-2 text-sm text-slate-400">
+              Vos joueurs, leur présence, leur contribution.
+            </p>
+          </div>
+          <button
+            onClick={() => open({ type: "create" })}
+            className={primaryClass}
+          >
+            <Plus size={18} aria-hidden="true" />
+            Ajouter un joueur
+          </button>
+        </div>
+        {counts && (
+          <div
+            className="mt-6 flex flex-wrap gap-x-5 gap-y-1 border-y border-white/10 py-2 sm:gap-x-8"
+            aria-label="Disponibilité de l’effectif"
+          >
+            {countItems.map((item) => (
+              <button
+                key={item.key}
+                aria-pressed={filters.status === item.key}
+                onClick={() =>
+                  setFilters((previous) => ({ ...previous, status: item.key }))
+                }
+                className={`flex min-h-11 items-baseline gap-2 rounded py-1 text-sm focus-visible:outline-2 focus-visible:outline-accent-green ${filters.status === item.key ? "text-slate-200" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                <span
+                  className={`text-xl font-semibold tabular-nums ${item.color}`}
+                >
+                  {counts[item.key]}
+                </span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </header>
+
+      {notice && (
+        <p
+          role="status"
+          className="flex items-center gap-2 text-sm text-emerald-300"
+        >
+          <Check size={17} aria-hidden="true" />
+          {notice}
+        </p>
+      )}
+
+      <section
+        aria-label="Tableau de l’effectif"
+        className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-dark-secondary"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 p-4 sm:p-5">
+          <div>
+            <h2 className="font-semibold">Le suivi des joueurs</h2>
+            <p className="mt-1 text-xs text-slate-400">
+              {currentData
+                ? `${currentData.meta.completed_matches} match${currentData.meta.completed_matches > 1 ? "s" : ""} terminé${currentData.meta.completed_matches > 1 ? "s" : ""} sur la période`
+                : "Statistiques des matchs terminés"}
+            </p>
+          </div>
+          <div className="flex w-full items-end gap-2 sm:w-auto">
+            <div className="min-w-0 flex-1">
+              <label
+                htmlFor="roster-period"
+                className="mb-1.5 block text-xs text-slate-400"
+              >
+                Période
+              </label>
+              <select
+                id="roster-period"
+                value={period}
+                onChange={(e) => {
+                  setPeriod(e.target.value as PlayerStatsPeriod);
+                  setNotice("");
+                }}
+                className={`${fieldClass} sm:min-w-48 sm:text-sm`}
+              >
+                {Object.entries(PERIODS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => void refresh()}
+              disabled={loading}
+              className={`${buttonClass} px-3`}
+              aria-label="Actualiser l’effectif"
+              title="Actualiser"
+            >
+              <RefreshCw
+                size={17}
+                aria-hidden="true"
+                className={loading ? "motion-safe:animate-spin" : ""}
+              />
             </button>
           </div>
-        ) : (
+        </div>
+        <JoueursFilters filters={filters} onChange={setFilters} />
+        {loading || (!currentData && !error) ? (
+          <RosterLoading />
+        ) : error ? (
+          <div className="border-t border-white/10 px-5 py-12 text-center">
+            <p role="alert" className="text-sm text-rose-300">
+              {error}
+            </p>
+            <button
+              onClick={() => void refresh()}
+              className={`${buttonClass} mt-4`}
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : filtered.length ? (
           <>
-            {/* Global stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard
-                icon={<Users className="w-4 h-4 text-accent-green" />}
-                label="Effectif total"
-                value={players.length}
-                sub={players.filter(p => p.status === 'ACTIVE').length + ' actifs'}
-                barColor="bg-accent-green"
-              />
-              <StatCard
-                icon={<Target className="w-4 h-4 text-yellow-400" />}
-                label="Buts marques"
-                value={globalStats.totalGoals}
-                sub={'moy. ' + (players.length > 0 ? (globalStats.totalGoals / players.length).toFixed(1) : 0) + ' / joueur'}
-                barColor="bg-yellow-400"
-              />
-              <StatCard
-                icon={<Award className="w-4 h-4 text-accent-blue" />}
-                label="Passes decisives"
-                value={globalStats.totalAssists}
-                sub={'moy. ' + (players.length > 0 ? (globalStats.totalAssists / players.length).toFixed(1) : 0) + ' / joueur'}
-                barColor="bg-accent-blue"
-              />
-              <StatCard
-                icon={<Zap className="w-4 h-4 text-purple-400" />}
-                label="Recuperations"
-                value={globalStats.totalRecov}
-                sub={'moy. ' + (players.length > 0 ? (globalStats.totalRecov / players.length).toFixed(1) : 0) + ' / joueur'}
-                barColor="bg-purple-400"
-              />
-            </div>
-            {/* Top performers */}
-            {Object.keys(statsMap).length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <TopCard
-                  icon={<Star className="w-4 h-4 text-yellow-400" />}
-                  title="Meilleur Buteur"
-                  name={topPerformers.scorer?.name ?? '-'}
-                  value={topPerformers.scorer?.value ?? '0 but'}
-                  accentText="text-yellow-400"
-                />
-                <TopCard
-                  icon={<TrendingUp className="w-4 h-4 text-accent-blue" />}
-                  title="Plus de passes decisives"
-                  name={topPerformers.assist?.name ?? '-'}
-                  value={topPerformers.assist?.value ?? '0 passe'}
-                  accentText="text-accent-blue"
-                />
-                <TopCard
-                  icon={<Activity className="w-4 h-4 text-accent-green" />}
-                  title="Plus de recuperations"
-                  name={topPerformers.recov?.name ?? '-'}
-                  value={topPerformers.recov?.value ?? '0 recup.'}
-                  accentText="text-accent-green"
-                />
-              </div>
-            )}
-            {/* Filters */}
-            <JoueursFilters
-              search={search}
-              onSearchChange={setSearch}
-              positionFilter={positionFilter}
-              onPositionChange={setPositionFilter}
-              filteredCount={filtered.length}
+            <PlayerTable
+              players={filtered}
+              filters={filters}
+              onSort={sort}
+              onOpen={(player) => open({ type: "details", player })}
             />
-            {/* Table / Empty */}
-            {filtered.length === 0 ? (
-              <NoPlayersState
-                hasFilters={!!(search || positionFilter)}
-                onAdd={() => setIsModalOpen(true)}
-              />
-            ) : (
-              <PlayerTable
-                players={filtered}
-                statsMap={statsMap}
-                isLoadingStats={isLoadingStats}
-                onView={setViewingPlayer}
-                onEdit={setEditingPlayer}
-                onDelete={setDeletingId}
-              />
-            )}
+            <div className="flex flex-wrap justify-between gap-2 border-t border-white/10 px-5 py-3 text-xs text-slate-400">
+              <span aria-live="polite">
+                {filtered.length} joueur{filtered.length > 1 ? "s" : ""} affiché
+                {filtered.length > 1 ? "s" : ""}
+              </span>
+              <span>Ouvrez une fiche pour voir le détail.</span>
+            </div>
           </>
+        ) : (
+          <div className="border-t border-white/10 px-5 py-12 text-center">
+            <Users
+              className="mx-auto mb-3 text-slate-400"
+              size={28}
+              aria-hidden="true"
+            />
+            <h3 className="font-medium">
+              {currentData?.players.length
+                ? "Aucun joueur dans cette sélection"
+                : "À vous de composer l’effectif"}
+            </h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-400">
+              {currentData?.players.length
+                ? "Changez vos filtres pour retrouver vos joueurs, y compris les joueurs archivés."
+                : "Ajoutez votre premier joueur. Ses statistiques se rempliront au fil des matchs."}
+            </p>
+            {currentData?.players.length ? (
+              <button
+                onClick={() =>
+                  setFilters({
+                    ...DEFAULT_FILTERS,
+                    status: counts?.CURRENT ? "CURRENT" : "RETIRED",
+                  })
+                }
+                className={`${buttonClass} mt-5`}
+              >
+                Voir{" "}
+                {counts?.CURRENT ? "l’effectif actuel" : "les joueurs archivés"}
+              </button>
+            ) : (
+              <button
+                onClick={() => open({ type: "create" })}
+                className={`${primaryClass} mt-5`}
+              >
+                <Plus size={16} aria-hidden="true" />
+                Ajouter un joueur
+              </button>
+            )}
+          </div>
         )}
-      </div>
-      {/* Modals */}
-      {activeTeam && (
-        <CreatePlayerModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSuccess={handleCreateSuccess}
-          teamId={activeTeam.id}
+      </section>
+
+      <details className="text-sm text-slate-400">
+        <summary className="w-fit cursor-pointer rounded py-2 text-xs font-medium hover:text-slate-200 focus-visible:outline-2 focus-visible:outline-accent-green">
+          Comment lire ces statistiques ?
+        </summary>
+        <div className="mt-2 grid gap-4 rounded-xl border border-white/10 bg-dark-secondary p-5 text-xs leading-relaxed sm:grid-cols-3">
+          <p>
+            <strong className="mb-1 block text-slate-200">Présences</strong>
+            Présent / présent + absent sur les feuilles de match. Les présences
+            incertaines ou non renseignées ne baissent pas le taux. « — »
+            signifie qu’aucune présence n’est renseignée.
+          </p>
+          <p>
+            <strong className="mb-1 block text-slate-200">Matchs joués</strong>
+            Le joueur était présent et titulaire, ou est entré en jeu. Rester
+            sur le banc ne compte pas comme un match joué.
+          </p>
+          <p>
+            <strong className="mb-1 block text-slate-200">Période</strong>Seuls
+            les matchs terminés à ce jour sont pris en compte. La saison débute
+            le 1er juillet. Les actions facultatives sont comptées uniquement si
+            elles ont été saisies.
+          </p>
+        </div>
+      </details>
+
+      {dialog?.type === "details" && (
+        <PlayerDetailModal
+          player={dialog.player}
+          periodLabel={PERIODS[period]}
+          onClose={close}
+          onEdit={() => setDialog({ type: "edit", player: dialog.player })}
+          onArchive={() =>
+            setDialog({ type: "archive", player: dialog.player })
+          }
         />
       )}
-      <PlayerDetailModal
-        isOpen={!!viewingPlayer}
-        player={viewingPlayer}
-        stats={viewingPlayer ? statsMap[viewingPlayer.id] : undefined}
-        onClose={() => setViewingPlayer(null)}
-      />
-      <EditPlayerModal
-        isOpen={!!editingPlayer}
-        player={editingPlayer}
-        onClose={() => setEditingPlayer(null)}
-        onSuccess={(updated) => {
-          setPlayers(prev => prev.map(p => p.id === updated.id ? updated : p));
-          setEditingPlayer(null);
-        }}
-      />
-      {deletingId && (
-        <DeleteConfirmModal
-          playerId={deletingId}
-          onCancel={() => setDeletingId(null)}
-          onConfirm={handleDelete}
+      {(dialog?.type === "create" || dialog?.type === "edit") && (
+        <PlayerForm
+          key={dialog.type === "edit" ? dialog.player.id : "create"}
+          teamId={team.id}
+          teamName={team.name}
+          player={dialog.type === "edit" ? dialog.player : undefined}
+          onClose={close}
+          onSaved={(player) =>
+            saved(
+              `${player.first_name} ${player.last_name} : fiche enregistrée.`,
+              player.status === "RETIRED" ? "RETIRED" : "CURRENT",
+            )
+          }
+        />
+      )}
+      {dialog?.type === "archive" && (
+        <ArchivePlayerDialog
+          player={dialog.player}
+          onClose={close}
+          onArchived={() =>
+            saved(
+              `${dialog.player.first_name} ${dialog.player.last_name} a été archivé. Son historique est conservé.`,
+            )
+          }
         />
       )}
     </div>

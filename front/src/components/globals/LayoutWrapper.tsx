@@ -34,7 +34,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         <DashboardHeader onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <main className="flex-1 overflow-y-auto bg-dark p-4 sm:p-6 lg:p-8">
+          <main className="min-w-0 flex-1 overflow-y-auto bg-dark p-4 sm:p-6 lg:p-8">
             <div className="max-w-screen-xl mx-auto">
               {children}
             </div>

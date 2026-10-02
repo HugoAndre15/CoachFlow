@@ -38,6 +38,22 @@ export interface PlayerStats {
     goals_by_body_part: Record<string, number>;
 }
 
+export type PlayerStatsPeriod = 'ALL' | 'SEASON' | 'LAST_30_DAYS';
+export interface PlayerOverviewStats extends PlayerStats {
+    unused_substitute: number;
+    attendance: { present: number; absent: number; uncertain: number; unknown: number; recorded: number; rate: number | null };
+}
+export interface PlayerOverview extends Player { stats: PlayerOverviewStats }
+export interface TeamPlayerOverview {
+    players: PlayerOverview[];
+    meta: { team_id: string; period: PlayerStatsPeriod; from: string | null; to: string; completed_matches: number };
+}
+export type UpdatePlayerPayload = Omit<Partial<CreatePlayerPayload>, 'position' | 'strong_foot' | 'jersey_number'> & {
+    position?: PlayerPosition | null;
+    strong_foot?: PlayerStrongFoot | null;
+    jersey_number?: number | null;
+};
+
 export interface CreatePlayerPayload {
     first_name: string;
     last_name: string;
@@ -59,6 +75,10 @@ export interface PlayersResponse {
 }
 
 export const playerService = {
+    getTeamOverview: async (teamId: string, period: PlayerStatsPeriod): Promise<TeamPlayerOverview> => {
+        const response = await api.get<TeamPlayerOverview>('/players/overview', { params: { teamId, period } });
+        return response.data;
+    },
     getPlayersByTeam: async (teamId: string): Promise<Player[]> => {
         const response = await api.get<PlayersResponse>(`/players?teamId=${teamId}&limit=100`);
         return response.data.data;
@@ -79,7 +99,7 @@ export const playerService = {
         return response.data;
     },
 
-    updatePlayer: async (playerId: string, payload: Partial<CreatePlayerPayload>): Promise<Player> => {
+    updatePlayer: async (playerId: string, payload: UpdatePlayerPayload): Promise<Player> => {
         const response = await api.patch<Player>(`/players/${playerId}`, payload);
         return response.data;
     },
