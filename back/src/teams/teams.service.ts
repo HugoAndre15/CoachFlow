@@ -12,6 +12,9 @@ import { AddTeamMemberDto } from './dto/add-team-member.dto';
 import { UpdateTeamMemberRoleDto } from './dto/update-team-member-role.dto';
 import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
 import { club_role, team_role, match_event_type } from '@prisma/client';
+import { PlayerStatsPeriod } from '../players/dto/player-overview-query.dto';
+import { statsPeriodStart } from '../players/player-overview';
+import { buildDashboardStats, dashboardMatch, dashboardMatchInclude } from './team-dashboard';
 
 @Injectable()
 export class TeamsService {
@@ -554,6 +557,42 @@ export class TeamsService {
   }
 
   // ==================== STATISTIQUES DE L'ÉQUIPE ====================
+
+  async getDashboard(teamId: string, userId: string, period = PlayerStatsPeriod.SEASON) {
+    const team = await this.prisma.team.findUnique({ where: { id: teamId } });
+    if (!team) throw new NotFoundException('Équipe non trouvée');
+    if (!await this.canViewStats(teamId, team.club_id, userId)) {
+      throw new ForbiddenException('Vous n’avez pas accès au bilan de cette équipe.');
+    }
+    const now = new Date();
+    const from = statsPeriodStart(period, now);
+    const [players, completed, live, next, overdue] = await Promise.all([
+      this.prisma.player.findMany({ where: { team_id: teamId } }),
+      this.prisma.match.findMany({
+        where: { team_id: teamId, status: 'FINISHED', match_date: { ...(from ? { gte: from } : {}), lte: now } },
+        include: dashboardMatchInclude,
+        orderBy: [{ match_date: 'desc' }, { id: 'asc' }],
+      }),
+      this.prisma.match.findFirst({
+        where: { team_id: teamId, status: 'LIVE' },
+        include: dashboardMatchInclude,
+        orderBy: [{ match_date: 'desc' }, { id: 'asc' }],
+      }),
+      this.prisma.match.findFirst({
+        where: { team_id: teamId, status: 'UPCOMING', match_date: { gte: now } },
+        include: dashboardMatchInclude,
+        orderBy: [{ match_date: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.match.count({ where: { team_id: teamId, status: 'UPCOMING', match_date: { lt: now } } }),
+    ]);
+    return {
+      meta: { team_id: teamId, period, from: from?.toISOString() ?? null, to: now.toISOString() },
+      ...buildDashboardStats(players, completed),
+      live: live ? dashboardMatch(live, players) : null,
+      next: next ? dashboardMatch(next, players) : null,
+      overdue,
+    };
+  }
 
   /**
    * Vérifie si l'utilisateur est COACH, ASSISTANT_COACH de la team OU PRESIDENT du club

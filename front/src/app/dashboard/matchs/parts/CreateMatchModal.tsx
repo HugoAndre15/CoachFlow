@@ -1,8 +1,14 @@
-'use client';
+"use client";
 
-import { useState, FormEvent, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Users as UsersIcon } from 'lucide-react';
-import { matchService, MatchLocation } from '@/services/matchService';
+import { useState, type FormEvent } from "react";
+import { matchService, type MatchLocation } from "@/services/matchService";
+import RosterDialog from "../../joueurs/parts/RosterDialog";
+import {
+  buttonClass,
+  fieldClass,
+  primaryClass,
+  requestError,
+} from "../../joueurs/parts/roster";
 
 interface Props {
   isOpen: boolean;
@@ -11,179 +17,160 @@ interface Props {
   teamId: string;
 }
 
-export default function CreateMatchModal({ isOpen, onClose, onSuccess, teamId }: Props) {
-  const [opponent, setOpponent] = useState('');
-  const [matchDate, setMatchDate] = useState('');
-  const [matchTime, setMatchTime] = useState('15:00');
-  const [location, setLocation] = useState<MatchLocation>('HOME');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+export default function CreateMatchModal(props: Props) {
+  return props.isOpen ? <MatchForm {...props} /> : null;
+}
 
-  // Reset on open
-  useEffect(() => {
-    if (isOpen) {
-      setOpponent('');
-      setMatchDate('');
-      setMatchTime('15:00');
-      setLocation('HOME');
-      setError('');
-    }
-  }, [isOpen]);
+function MatchForm({ onClose, onSuccess, teamId }: Props) {
+  const [opponent, setOpponent] = useState("");
+  const [matchDate, setMatchDate] = useState("");
+  const [matchTime, setMatchTime] = useState("15:00");
+  const [location, setLocation] = useState<MatchLocation>("HOME");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!opponent.trim() || !matchDate) return;
-
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (busy || !opponent.trim() || !matchDate || !matchTime) return;
+    setBusy(true);
+    setError("");
     try {
-      setIsSubmitting(true);
-      setError('');
-      const dateTime = new Date(`${matchDate}T${matchTime}:00`).toISOString();
       await matchService.createMatch({
         team_id: teamId,
         opponent: opponent.trim(),
         location,
-        match_date: dateTime,
+        match_date: new Date(`${matchDate}T${matchTime}:00`).toISOString(),
       });
       onSuccess();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la création');
+    } catch (err) {
+      setError(
+        requestError(
+          err,
+          "Le match n’a pas pu être enregistré. Votre saisie est conservée, vous pouvez réessayer.",
+        ),
+      );
     } finally {
-      setIsSubmitting(false);
+      setBusy(false);
     }
-  };
-
-  if (!isOpen) return null;
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative bg-white dark:bg-dark-lighter rounded-2xl w-full max-w-md shadow-2xl border border-neutral/20 dark:border-dark-light animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral/10 dark:border-dark-light">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-accent-green/10 flex items-center justify-center">
-              <Calendar className="w-4.5 h-4.5 text-accent-green" />
-            </div>
-            <h2 className="text-lg font-bold text-dark dark:text-white">Nouveau match</h2>
-          </div>
+    <RosterDialog
+      title="Nouveau match"
+      subtitle="Le prochain rendez-vous"
+      busy={busy}
+      onClose={onClose}
+      footer={
+        <>
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-neutral/10 dark:hover:bg-dark-light flex items-center justify-center transition-colors"
+            disabled={busy}
+            className={buttonClass}
           >
-            <X className="w-4 h-4 text-dark-light dark:text-neutral" />
+            Annuler
           </button>
+          <button
+            type="submit"
+            form="create-match-form"
+            disabled={busy || !opponent.trim() || !matchDate || !matchTime}
+            className={`${primaryClass} flex-1`}
+          >
+            {busy ? "Enregistrement…" : "Créer le match"}
+          </button>
+        </>
+      }
+    >
+      <form id="create-match-form" onSubmit={submit} className="space-y-5">
+        <div>
+          <label
+            htmlFor="match-opponent"
+            className="mb-2 block text-sm text-slate-300"
+          >
+            Adversaire
+          </label>
+          <input
+            id="match-opponent"
+            value={opponent}
+            onChange={(e) => setOpponent(e.target.value)}
+            placeholder="Ex: FC Barcelona"
+            required
+            autoFocus
+            disabled={busy}
+            className={`${fieldClass} w-full`}
+          />
         </div>
-
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          {/* Adversaire */}
-          <div>
-            <label className="block text-xs font-semibold text-dark-light dark:text-neutral mb-1.5 uppercase tracking-wide">
-              Adversaire
+        <div className="grid grid-cols-1 gap-4 min-[380px]:grid-cols-2">
+          <div className="min-w-0">
+            <label
+              htmlFor="match-date"
+              className="mb-2 block text-sm text-slate-300"
+            >
+              Date
             </label>
-            <div className="relative">
-              <UsersIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-light/40 dark:text-neutral/40 pointer-events-none" />
-              <input
-                type="text"
-                value={opponent}
-                onChange={e => setOpponent(e.target.value)}
-                placeholder="Ex: FC Barcelona"
-                required
-                className="w-full pl-9 pr-4 py-2.5 bg-neutral-lighter/60 dark:bg-dark-secondary/40 border border-neutral/20 dark:border-dark-light text-dark dark:text-white placeholder:text-dark-light/40 dark:placeholder:text-neutral/40 rounded-xl text-sm outline-none focus:border-accent-green transition-colors"
-              />
-            </div>
+            <input
+              id="match-date"
+              type="date"
+              value={matchDate}
+              onChange={(e) => setMatchDate(e.target.value)}
+              required
+              disabled={busy}
+              className={`${fieldClass} min-w-0 w-full [color-scheme:dark]`}
+            />
           </div>
-
-          {/* Date + Heure */}
+          <div className="min-w-0">
+            <label
+              htmlFor="match-time"
+              className="mb-2 block text-sm text-slate-300"
+            >
+              Heure
+            </label>
+            <input
+              id="match-time"
+              type="time"
+              value={matchTime}
+              onChange={(e) => setMatchTime(e.target.value)}
+              required
+              disabled={busy}
+              className={`${fieldClass} min-w-0 w-full [color-scheme:dark]`}
+            />
+          </div>
+        </div>
+        <fieldset disabled={busy}>
+          <legend className="mb-2 text-sm text-slate-300">Lieu</legend>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-dark-light dark:text-neutral mb-1.5 uppercase tracking-wide">
-                Date
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-light/40 dark:text-neutral/40 pointer-events-none" />
+            {(
+              [
+                ["HOME", "Domicile"],
+                ["AWAY", "Extérieur"],
+              ] as const
+            ).map(([value, label]) => (
+              <label
+                key={value}
+                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-3 text-sm ${location === value ? "border-accent-green/60 bg-accent-green/10 text-emerald-300" : "border-white/15 text-slate-300"}`}
+              >
                 <input
-                  type="date"
-                  value={matchDate}
-                  onChange={e => setMatchDate(e.target.value)}
-                  required
-                  className="w-full pl-9 pr-3 py-2.5 bg-neutral-lighter/60 dark:bg-dark-secondary/40 border border-neutral/20 dark:border-dark-light text-dark dark:text-white rounded-xl text-sm outline-none focus:border-accent-green transition-colors"
+                  type="radio"
+                  name="match-location"
+                  value={value}
+                  checked={location === value}
+                  onChange={() => setLocation(value)}
+                  className="accent-emerald-500"
                 />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-dark-light dark:text-neutral mb-1.5 uppercase tracking-wide">
-                Heure
+                {label}
               </label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-light/40 dark:text-neutral/40 pointer-events-none" />
-                <input
-                  type="time"
-                  value={matchTime}
-                  onChange={e => setMatchTime(e.target.value)}
-                  required
-                  className="w-full pl-9 pr-3 py-2.5 bg-neutral-lighter/60 dark:bg-dark-secondary/40 border border-neutral/20 dark:border-dark-light text-dark dark:text-white rounded-xl text-sm outline-none focus:border-accent-green transition-colors"
-                />
-              </div>
-            </div>
+            ))}
           </div>
-
-          {/* Lieu */}
-          <div>
-            <label className="block text-xs font-semibold text-dark-light dark:text-neutral mb-1.5 uppercase tracking-wide">
-              Lieu
-            </label>
-            <div className="flex gap-2">
-              {([['HOME', 'Domicile', '🏠'], ['AWAY', 'Extérieur', '✈️']] as [MatchLocation, string, string][]).map(
-                ([val, label, emoji]) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setLocation(val)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all duration-200 ${
-                      location === val
-                        ? 'bg-accent-green/10 border-accent-green text-accent-green shadow-sm'
-                        : 'bg-neutral-lighter/60 dark:bg-dark-secondary/40 border-neutral/20 dark:border-dark-light text-dark-light dark:text-neutral hover:border-accent-green/40'
-                    }`}
-                  >
-                    <span>{emoji}</span>
-                    {label}
-                  </button>
-                )
-              )}
-            </div>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-accent-red bg-accent-red/10 rounded-lg px-3 py-2">{error}</p>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-neutral/20 dark:border-dark-light text-dark-light dark:text-neutral hover:bg-neutral/10 dark:hover:bg-dark-secondary transition-colors"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !opponent.trim() || !matchDate}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-accent-green text-white hover:bg-accent-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Création...' : 'Créer le match'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </fieldset>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-lg bg-rose-400/10 p-3 text-sm text-rose-200"
+          >
+            {error}
+          </p>
+        )}
+      </form>
+    </RosterDialog>
   );
 }

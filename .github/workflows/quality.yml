@@ -1,0 +1,59 @@
+name: CoachFlow quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            back/package-lock.json
+            front/package-lock.json
+            qa/package-lock.json
+      - run: npm ci
+        working-directory: back
+      - run: npm ci
+        working-directory: front
+      - run: npm ci
+        working-directory: qa
+      - name: Backend unit tests
+        run: npm test -- --runInBand
+        working-directory: back
+      - name: Build backend
+        run: npm run build
+        working-directory: back
+      - name: Frontend regression tests and types
+        run: |
+          npm run test:players
+          npm run test:match-flow
+          npx tsc --noEmit
+        working-directory: front
+      - name: Browser, API, database and accessibility scenarios
+        run: npm test
+        working-directory: qa
+      - name: Test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coachflow-qa-reports
+          path: |
+            qa/results/*.json
+            qa/results/run.log
+          if-no-files-found: ignore
+          retention-days: 7
