@@ -12,7 +12,7 @@ export default async function(q) {
   const metric=label=>p.getByRole('region',{name:'Le bilan de l’équipe',exact:true}).locator('dt').filter({hasText:new RegExp('^'+label+'$')}).locator('..').locator('dd > span');
   const expected=period=>{
     const now=new Date();let from=period==='SEASON'?f.season:period==='LAST_30_DAYS'?new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-29)):new Date(0);
-    const matches=f.fixtures.filter(m=>m.status==='FINISHED'&&new Date(m.match_date)<=now&&new Date(m.match_date)>=from);
+    const matches=f.fixtures.filter(m=>m.status==='FINISHED'&&new Date(m.match_date)>=from);
     return {matches:matches.length,wins:matches.filter(m=>m.scored>m.conceded).length,draws:matches.filter(m=>m.scored===m.conceded).length,losses:matches.filter(m=>m.scored<m.conceded).length,scored:matches.reduce((n,m)=>n+m.scored,0),conceded:matches.reduce((n,m)=>n+m.conceded,0),assists:matches.reduce((n,m)=>n+m.scored,0)};
   };
   for(const period of ['ALL','SEASON','LAST_30_DAYS']){

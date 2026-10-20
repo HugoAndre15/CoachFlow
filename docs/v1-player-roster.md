@@ -16,7 +16,7 @@ La page `/dashboard/joueurs` regroupe l’effectif, les présences et les contri
 
 Le nouveau `GET /api/players/overview?teamId=<uuid>&period=ALL|SEASON|LAST_30_DAYS` fournit les joueurs et leurs statistiques en une requête frontend. L’accès est réservé au coach, à l’assistant de l’équipe et au président du club. Les joueurs archivés restent accessibles, sans la précédente limite frontend de 100 joueurs.
 
-Seuls les matchs **terminés**, datés au plus tard à l’instant de la requête et dans la période sélectionnée sont agrégés.
+Seuls les matchs **terminés**, dans la période sélectionnée sont agrégés.
 
 - **Présences** : nombre de lignes `PRESENT` / nombre de lignes `PRESENT` ou `ABSENT` dans les feuilles. Les états `UNKNOWN` et `UNCERTAIN` sont détaillés séparément, hors dénominateur. Un joueur absent de la feuille n’est pas considéré absent du match. Sans présence renseignée, le taux est `null`, affiché « — ».
 - **Matchs joués** : titulaire présent au départ ou remplaçant entré par un changement valide. Les changements sont rejoués dans l’ordre enregistré ; les anciennes incohérences sont ignorées. Un joueur qui sort puis revient ne compte qu’une fois par match.

@@ -83,10 +83,11 @@ export class PlayersService {
     }
     const now = new Date();
     const from = statsPeriodStart(period, now);
+    // FINISHED is authoritative: a scheduled future match can be played early.
     const [players, matches] = await Promise.all([
       this.prisma.player.findMany({ where: { team_id: teamId }, orderBy: [{ last_name: 'asc' }, { first_name: 'asc' }] }),
       this.prisma.match.findMany({
-        where: { team_id: teamId, status: 'FINISHED', match_date: { ...(from ? { gte: from } : {}), lte: now } },
+        where: { team_id: teamId, status: 'FINISHED', match_date: { ...(from ? { gte: from } : {}) } },
         include: { matchPlayers: true, matchEvents: true },
       }),
     ]);
