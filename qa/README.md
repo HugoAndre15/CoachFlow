@@ -61,3 +61,7 @@ La démo contient 22 joueurs (20 dans l’effectif et 2 archivés), dont 3 bless
 - **UI** : 375, 768 et 1280 px ; absence de débordement ; cibles tactiles ; dialogue sur une petite hauteur ; focus et Échap ; audit axe des règles WCAG A/AA sur le dashboard et son formulaire.
 
 La suite ne prétend pas valider tous les navigateurs, un clavier iOS natif, le déploiement réel ni le fonctionnement totalement hors ligne. Ces contrôles restent à faire sur de vrais appareils et lors de l’étape offline.
+
+## Mode Terrain
+
+La suite inclut `offline.mjs` : préparation, présences, but/passe détaillés, fermeture et réouverture sans réseau, remplacement, clôture, réponse de synchronisation perdue puis réessai, action ajoutée pendant la reprise, statistiques, refus 403, conflit 409, rollback d’un lot invalide, isolation des comptes, déconnexion et accessibilité aux trois largeurs. Voir [le guide hors ligne](../docs/v1-offline.md) pour la recette sur téléphone et la migration requise.

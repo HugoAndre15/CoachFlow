@@ -179,6 +179,7 @@ model Match {
     created_at DateTime       @default(now())
     updated_at DateTime       @updatedAt
 
+    offlineReceipts OfflineReceipt[]
     team           Team                 @relation(fields: [team_id], references: [id], onDelete: Cascade)
     matchEvents    MatchEvent[]
     matchPlayers   MatchPlayer[]
@@ -259,4 +260,15 @@ model TeamUser {
     user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
     @@unique([team_id, user_id])
+}
+
+model OfflineReceipt {
+    id           String @id
+    match_id     String
+    user_id      String
+    request_hash String
+    result       Json
+    created_at   DateTime @default(now())
+    match        Match @relation(fields: [match_id], references: [id], onDelete: Cascade)
+    @@index([match_id])
 }

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { clearOfflineMatches } from '@/services/offlinePrivacy';
 import { authService } from '@/services/authService';
 
 interface User {
@@ -78,8 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   };
 
-  const logout = () => {
-    authService.logout();
+  const logout = async () => {
+    try {
+      if (!await clearOfflineMatches(authService.logout)) return;
+    } catch {
+      window.alert('Impossible d’effacer les données locales. Réessayez avant de quitter cet appareil.');
+      return;
+    }
     setUser(null);
     router.push('/');
   };

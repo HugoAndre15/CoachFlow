@@ -16,6 +16,7 @@ describe('MatchesController', () => {
   let service: MatchesService;
 
   const mockMatchesService = {
+    withLock: jest.fn((id, action) => action(mockMatchesService)),
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),

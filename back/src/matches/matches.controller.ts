@@ -71,7 +71,7 @@ export class MatchesController {
     @Body() addPlayersDto: AddPlayersToMatchDto,
     @CurrentUser() user: any,
   ) {
-    return this.matchesService.addPlayersToMatch(id, addPlayersDto, user.id);
+    return this.matchesService.withLock(id, service => service.addPlayersToMatch(id, addPlayersDto, user.id));
   }
 
   @Get(':id/players')
@@ -96,7 +96,7 @@ export class MatchesController {
     @Body() updateDto: UpdateMatchPlayerDto,
     @CurrentUser() user: any,
   ) {
-    return this.matchesService.updateMatchPlayerStatus(id, playerId, updateDto, user.id);
+    return this.matchesService.withLock(id, service => service.updateMatchPlayerStatus(id, playerId, updateDto, user.id));
   }
 
   @Delete(':id/players/:playerId')
@@ -110,7 +110,7 @@ export class MatchesController {
     @Param('playerId') playerId: string,
     @CurrentUser() user: any,
   ) {
-    return this.matchesService.removePlayerFromMatch(id, playerId, user.id);
+    return this.matchesService.withLock(id, service => service.removePlayerFromMatch(id, playerId, user.id));
   }
 
   // ==================== GESTION DES ÉVÉNEMENTS ====================
@@ -125,7 +125,7 @@ export class MatchesController {
     @Body() createEventDto: CreateMatchEventDto,
     @CurrentUser() user: any,
   ) {
-    return this.matchesService.addEventToMatch(id, createEventDto, user.id);
+    return this.matchesService.withLock(id, service => service.addEventToMatch(id, createEventDto, user.id));
   }
 
   @Get(':id/events')
@@ -150,7 +150,7 @@ export class MatchesController {
     @Body() updateEventDto: UpdateMatchEventDto,
     @CurrentUser() user: any,
   ) {
-    return this.matchesService.updateMatchEvent(id, eventId, updateEventDto, user.id);
+    return this.matchesService.withLock(id, service => service.updateMatchEvent(id, eventId, updateEventDto, user.id));
   }
 
   @Delete(':id/events/:eventId')
@@ -163,7 +163,7 @@ export class MatchesController {
     @Param('eventId') eventId: string,
     @CurrentUser() user: any,
   ) {
-    return this.matchesService.removeMatchEvent(id, eventId, user.id);
+    return this.matchesService.withLock(id, service => service.removeMatchEvent(id, eventId, user.id));
   }
 
   // ==================== ÉVÉNEMENTS ADVERSES ====================
@@ -177,7 +177,7 @@ export class MatchesController {
     @Body() dto: CreateOpponentEventDto,
     @CurrentUser() user: any,
   ) {
-    return this.matchesService.addOpponentEvent(id, dto, user.id);
+    return this.matchesService.withLock(id, service => service.addOpponentEvent(id, dto, user.id));
   }
 
   @Get(':id/opponent-events')
@@ -201,7 +201,7 @@ export class MatchesController {
     @Param('eventId') eventId: string,
     @CurrentUser() user: any,
   ) {
-    return this.matchesService.removeOpponentEvent(id, eventId, user.id);
+    return this.matchesService.withLock(id, service => service.removeOpponentEvent(id, eventId, user.id));
   }
 
   // ==================== STATISTIQUES ====================
@@ -232,7 +232,7 @@ export class MatchesController {
     @CurrentUser() user: any,
     @Body() updateStatusDto: UpdateMatchStatusDto
   ) {
-    return this.matchesService.updateStatus(id, user.id, updateStatusDto);
+    return this.matchesService.withLock(id, service => service.updateStatus(id, user.id, updateStatusDto));
   }
 
   @Get(':id')
@@ -257,7 +257,7 @@ export class MatchesController {
     @CurrentUser() user: any,
     @Body() updateMatchDto: UpdateMatchDto
   ) {
-    return this.matchesService.update(id, user.id, updateMatchDto);
+    return this.matchesService.withLock(id, service => service.update(id, user.id, updateMatchDto));
   }
 
   @Delete(':id')
@@ -269,6 +269,6 @@ export class MatchesController {
     @Param('id') id: string,
     @CurrentUser() user: any
   ) {
-    return this.matchesService.remove(id, user.id);
+    return this.matchesService.withLock(id, service => service.remove(id, user.id));
   }
 }

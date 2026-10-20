@@ -279,6 +279,10 @@ export default function MatchPreparationPage() {
       </div>
 
       <MatchHeader match={match} teamName={activeTeam.name} />
+      <a href={`/terrain/index.html#match=${matchId}`} className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm font-semibold text-emerald-300">
+        <span>Ouvrir le mode terrain <span className="block text-xs font-normal text-slate-300">Préparer ce match pour jouer sans réseau sur cet appareil</span></span>
+        <ChevronRight aria-hidden="true" className="shrink-0" size={20} />
+      </a>
 
       {match.status === 'LIVE' && (
         <div className="space-y-5">

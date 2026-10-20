@@ -40,6 +40,29 @@ type MatchPlayerWithPresence = {
 export class MatchesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Serialize every match write, including offline replay, on the same row lock. */
+  async withLock<T>(id: string, action: (service: MatchesService, tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM "Match" WHERE id = ${id} FOR UPDATE`;
+      // Existing service methods use callback transactions. Within this outer transaction
+      // they must share its connection and rollback boundary, not start a nested transaction.
+      const client = new Proxy(tx, { get(target, key) {
+        if (key === '$transaction') return (callback: (client: Prisma.TransactionClient) => Promise<unknown>) => callback(tx);
+        return Reflect.get(target, key);
+      } });
+      return action(new MatchesService(client as PrismaService), tx);
+    }, { maxWait: 10000, timeout: 30000 });
+  }
+
+  async assertOfflineAccess(id: string, userId: string) {
+    const match = await this.prisma.match.findUnique({ where: { id } });
+    if (!match) throw new NotFoundException('Match non trouvé');
+    if (!await this.canChangeStatus(match.team_id, userId)) {
+      throw new ForbiddenException('Le mode terrain est réservé au coach et au président.');
+    }
+    return match;
+  }
+
   // ==================== HELPERS PRIVÉS ====================
 
   private async getUserRoleInTeam(teamId: string, userId: string): Promise<team_role | null> {
