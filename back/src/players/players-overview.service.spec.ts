@@ -39,7 +39,7 @@ describe('team overview access and scope', () => {
           where: {
             team_id: 'team',
             status: 'FINISHED',
-            match_date: { gte: new Date('2026-07-01T00:00:00Z'), lte: now },
+            match_date: { gte: new Date('2026-07-01T00:00:00Z') },
           },
         }),
       );
@@ -71,7 +71,7 @@ describe('team overview access and scope', () => {
         where: {
           team_id: 'team',
           status: 'FINISHED',
-          match_date: { lte: now },
+          match_date: {},
         },
       }),
     );

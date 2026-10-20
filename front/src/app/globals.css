@@ -46,6 +46,21 @@
     padding: 0;
   }
 
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  [role="button"][aria-disabled="true"],
+  button[aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
   body {
     font-family: var(--font-poppins), "Poppins", sans-serif;
     line-height: 1.6;

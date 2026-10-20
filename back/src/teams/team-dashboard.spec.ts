@@ -212,7 +212,7 @@ describe('team dashboard scope and permissions', () => {
           where: {
             team_id: 'team',
             status: 'FINISHED',
-            match_date: { ...(from ? { gte: from } : {}), lte: now },
+            match_date: { ...(from ? { gte: from } : {}) },
           },
         }),
       );

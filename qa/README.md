@@ -49,7 +49,7 @@ Puis ouvrir `http://127.0.0.1:4300/login` :
 
 Le serveur reste ouvert jusqu’à `Ctrl+C`. La base est en mémoire : fermer le processus efface les données. Relancer la commande recrée le même type de scénarios avec de nouvelles dates et identifiants. Ce compte est local, pas un compte de démonstration sur le site public.
 
-La démo contient 22 joueurs (20 dans l’effectif et 2 archivés), dont 3 blessés et 1 suspendu, ainsi que 13 matchs : 7 résultats récents/anciens, un résultat d’une saison précédente, un match futur terminé volontairement incohérent à exclure du bilan, un match à date passée non clôturé, deux prochains matchs et un direct. Le reste du jeu de données comprend une équipe de recette et une équipe vide.
+La démo contient 22 joueurs (20 dans l’effectif et 2 archivés), dont 3 blessés et 1 suspendu, ainsi que 13 matchs : 7 résultats récents/anciens, un résultat d’une saison précédente, un match prévu à une date future mais déjà terminé, inclus dans le bilan, un match à date passée non clôturé, deux prochains matchs et un direct. Le reste du jeu de données comprend une équipe de recette et une équipe vide.
 
 ## Parcours automatisés
 

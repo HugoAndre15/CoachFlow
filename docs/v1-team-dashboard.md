@@ -15,7 +15,7 @@ La page `/dashboard` rassemble les actions du coach et le bilan de son équipe, 
 
 `GET /api/teams/:id/dashboard?period=ALL|SEASON|LAST_30_DAYS` est réservé au coach, à l’assistant de l’équipe et au président du club. La saison commence le 1er juillet, comme dans le tableau des joueurs.
 
-Le bilan ne retient que les matchs terminés dans la période et datés au plus tard à l’instant de la requête. Le score de notre équipe reste à gauche, même à l’extérieur. Les cinq derniers résultats sont affichés, mais les totaux couvrent toute la période.
+Le bilan ne retient que les matchs terminés dans la période. Un match joué en avance compte dès sa clôture, même si sa date prévue est future. Les filtres utilisent toujours la date prévue comme borne de début de période. Le score de notre équipe reste à gauche, même à l’extérieur. Les cinq derniers résultats sont affichés, mais les totaux couvrent toute la période.
 
 Le taux de présence est pondéré : total des présences / total des présences et absences renseignées. Les incertains et non renseignés sont exclus du dénominateur ; sans données, le taux reste indéfini. Les joueurs archivés conservent leurs contributions historiques mais ne comptent plus dans l’effectif actuel. Pour le prochain match, les joueurs actuels absents de la feuille sont à renseigner.
 
@@ -47,3 +47,7 @@ Ouvrir `http://127.0.0.1:4300/login`, utiliser `coach.qa@example.com` / `CoachFl
 Parcours de review : ouvrir la vue d’équipe, reprendre et terminer le direct, revenir au bilan, changer de période, puis préparer le prochain match et vérifier ses présences. Sur téléphone, créer aussi un nouveau match et ouvrir une fiche joueur.
 
 Limites : Chromium avec tailles d’écran simulées, sans validation sur appareils physiques iOS/Android ni sur le déploiement réel. L’audit automatisé ne remplace pas toute la recette d’accessibilité. Le fonctionnement hors ligne reste prévu à l’étape 6.
+
+## Correctif — matchs joués en avance et curseurs
+
+Le dashboard et le tableau joueurs ne filtrent plus les matchs terminés avec une borne supérieure à la date courante. Les données existantes sont prises en compte au rechargement, sans migration ni nouvelle saisie. La recette couvre un match prévu demain avec but, passe et titulaires dans les trois périodes, ainsi que les curseurs calculés des boutons sur les principales pages. Les boutons actifs utilisent `pointer`, les boutons désactivés `not-allowed`.

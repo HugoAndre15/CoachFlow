@@ -30,7 +30,7 @@ export default async function(q) {
   await make(-50,'AS Lamorlaye',0,0);
   await make(-60,'US Montataire',1,2,'FINISHED',true);
   await make(new Date(+season-45*day),'Ancienne saison',4,1);
-  await make(9,'Futur terminé à exclure',5,0);
+  await make(9,'Match joué en avance',5,0);
   const overdue=await make(-1,'Feuille à vérifier',0,0,'UPCOMING');
   const next=await make(4,'Union Sportive de Saint-Maximin et des Trois Forêts',0,0,'UPCOMING',true);
   await q.call('POST',`/matches/${next.id}/players`,{players:players.slice(0,12).map((p,i)=>({player_id:p.id,presence:i<10?'PRESENT':i===10?'ABSENT':'UNCERTAIN',status:i<10?'STARTER':'SUBSTITUTE'}))});
