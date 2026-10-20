@@ -7,7 +7,8 @@ import {
   Param, 
   Delete, 
   UseGuards,
-  Query 
+  Query,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { TeamsService } from './teams.service';
@@ -18,6 +19,7 @@ import { UpdateTeamMemberRoleDto } from './dto/update-team-member-role.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { TeamDashboardQueryDto } from './dto/team-dashboard-query.dto';
 
 @ApiTags('Teams')
 @ApiBearerAuth('JWT-auth')
@@ -149,6 +151,16 @@ export class TeamsController {
   }
 
   // ==================== STATISTIQUES ====================
+
+  @Get(':id/dashboard')
+  @ApiOperation({ summary: 'Accueil équipe : match à suivre, effectif et bilan des matchs terminés' })
+  getDashboard(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: TeamDashboardQueryDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.teamsService.getDashboard(id, user.id, query.period);
+  }
 
   @Get(':id/stats')
   @ApiOperation({
