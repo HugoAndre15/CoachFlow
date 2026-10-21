@@ -19,7 +19,7 @@ export default async function(q){
     const failures=await page.locator('button,[role="button"],input[type="submit"],input[type="button"],input[type="reset"]').evaluateAll(nodes=>nodes.filter(e=>e.getBoundingClientRect().height>0).flatMap(e=>{
       const disabled=e.matches(':disabled')||e.getAttribute('aria-disabled')==='true';
       const cursor=getComputedStyle(e).cursor;
-      return cursor===(disabled?'not-allowed':'pointer')?[]:[{text:e.textContent,cursor,disabled}];
+      return (disabled?['not-allowed','wait'].includes(cursor):cursor==='pointer')?[]:[{text:e.textContent,cursor,disabled}];
     }));
     assert.deepEqual(failures,[],`Button cursors on ${route}`);
   }

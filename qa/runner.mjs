@@ -28,7 +28,7 @@ for(const name of fs.readdirSync(migrations).sort()) {
 }
 const socket=new PGLiteSocketServer({db,port:54329,host:'127.0.0.1'});
 await socket.start();
-console.log('DATABASE_READY: 12 migrations, isolated PGlite');
+console.log('DATABASE_READY: migrations applied, isolated PGlite');
 const children=[];
 function start(name,args,cwd,env={}) {
   const log=fs.openSync(path.join(out,name+'.log'),'w');
@@ -56,7 +56,7 @@ async function close(code=0){if(closing)return;closing=true;for(const child of c
 process.on('SIGINT',()=>close(130));process.on('SIGTERM',()=>close(143));
 const all=process.argv.includes('--all');
 const demo=process.argv.includes('--demo');
-const names=demo?['seed','dashboard-seed']:['seed','player-management','match-flow','roster-responsive','periods-history','dashboard','dashboard-states','dashboard-accessibility','final-check'];
+const names=demo?['seed','dashboard-seed']:['seed','player-management','match-flow','roster-responsive','periods-history','dashboard','dashboard-states','dashboard-accessibility','offline','final-check'];
 const scripts=all||demo?names.map(s=>path.join(here,s+'.mjs')):readline.createInterface({input:process.stdin});
 for await(const line of scripts) {
   if(!line.trim())continue;
