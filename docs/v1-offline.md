@@ -49,3 +49,16 @@ La validation automatisée utilise Chromium et des tailles mobile/tablette/ordin
 - Session expirée sans effacement des actions ; séparation des comptes ; déconnexion annulée conservant les actions, puis déconnexion confirmée effaçant la copie locale.
 - Mise en page inspectée à 375, 768 et 1280 px ; aucune violation axe WCAG A/AA détectée sur le carnet dans les états testés. Cela ne remplace pas tous les contrôles d’accessibilité ni les essais physiques.
 - Les parcours existants restent intégrés à `npm test --prefix qa`. Les erreurs réseau injectées et la télémétrie Vercel inaccessible dans l’environnement apparaissent dans les rapports bruts, sans être assimilées à des erreurs de l’application.
+
+
+
+## Préparation rapide sur mobile et tablette
+
+- Un appui sur la ligne coche le joueur présent. Les onze premiers sélectionnés sont titulaires, les suivants remplaçants. Les joueurs non cochés sont absents ; les indisponibles restent non sélectionnables.
+- Nom, prénom, numéro et poste sont visibles. Le poste est un champ facultatif de la copie minimale ; les anciennes copies restent compatibles, sans détail médical ajouté.
+- Le bouton de statut ouvre les choix titulaire, remplaçant, incertain ou absent. Promouvoir un remplaçant lorsque onze titulaires sont déjà sélectionnés place le dernier titulaire de la liste sur le banc. Décocher un titulaire libère une place pour la prochaine sélection, sans modifier automatiquement les autres joueurs.
+- Le démarrage depuis le carnet exige au moins onze présents et la résolution des présences incertaines. Les alertes de postes concernent les titulaires : aucun ou plusieurs gardiens, aucune défense, aucun milieu ou aucune attaque. Elles ne bloquent jamais à elles seules le démarrage. Un poste manquant est signalé comme une vérification incomplète.
+- Cette contrainte de onze présents s’applique à la nouvelle préparation Terrain. Les anciens événements déjà enregistrés restent rejouables ; la règle historique du parcours en ligne reste inchangée.
+- Le cache Terrain passe en v2. Après le déploiement, ouvrir le carnet avec Internet puis fermer les anciens onglets Terrain et le rouvrir pour activer la nouvelle version. Ne pas effacer le stockage si des actions restent à synchroniser.
+
+Recette : sélectionner dix joueurs (démarrage désactivé), puis le onzième (activé), puis le douzième (remplaçant) ; modifier un statut, recharger hors ligne, retrouver la sélection et les compteurs ; démarrer malgré les alertes de postes et terminer le parcours match/synchronisation existant. Les tests couvrent également les anciennes copies sans poste et la conservation des matchs v1 en attente.

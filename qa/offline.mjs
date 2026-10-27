@@ -30,6 +30,16 @@ export default async function (q) {
       status: p.status,
     });
   }
+  for (let i = 0; i < 9; i++) {
+    q.players["extra" + i] = await q.call("POST", "/players", {
+      team_id: q.team.id,
+      first_name: "Joueur " + i,
+      last_name: "Terrain",
+      position: ["DEFENDER", "MIDFIELDER", "FORWARD"][i % 3],
+      jersey_number: 20 + i,
+      status: "ACTIVE",
+    });
+  }
   const make = () =>
     q.call("POST", "/matches", {
       team_id: q.team.id,
@@ -58,23 +68,89 @@ export default async function (q) {
     ),
     "Minimal private storage",
   );
+  assert.ok(
+    stored.some((r) =>
+      r.snapshot.players.some((p) => p.position === "MIDFIELDER"),
+    ),
+    "Position in minimal snapshot",
+  );
   await q.context.setOffline(true);
-  for (const [key, player] of Object.entries(q.players)) {
-    const present = ["emile", "hugo", "noah"].includes(key);
+  assert.equal(
+    await p.locator("#start").isDisabled(),
+    true,
+    "11 présents minimum",
+  );
+  for (const key of [
+    "emile",
+    "hugo",
+    ...Array.from({ length: 9 }, (_, i) => "extra" + i),
+    "noah",
+  ]) {
+    await p.locator('[data-pick="' + q.players[key].id + '"]').check();
+    await p.waitForFunction(
+      (id) => !document.querySelector('[data-pick="' + id + '"]').disabled,
+      q.players[key].id,
+    );
+  }
+  assert.equal(await p.locator("#sheet input:checked").count(), 12);
+  assert.match(
+    await p.locator(".roster-counts").innerText(),
+    /11\/11 titulaires/,
+  );
+  assert.equal(
+    (await p.locator("#status-" + q.players.noah.id).textContent()).replace(
+      /\s/g,
+      "",
+    ),
+    "Remplaçant⌄",
+  );
+  // Quick status edits, deselection and reload must preserve the sheet offline.
+  await p.locator("#status-" + q.players.noah.id).click();
+  await p
+    .locator('[data-choice="' + q.players.noah.id + '"]')
+    .selectOption("UNCERTAIN");
+  await p.waitForFunction(() => document.querySelector("#start").disabled);
+  await p.locator("#status-" + q.players.noah.id).click();
+  await p
+    .locator('[data-choice="' + q.players.noah.id + '"]')
+    .selectOption("SUBSTITUTE");
+  await p.waitForFunction(() => !document.querySelector("#start").disabled);
+  await p.reload();
+  await p.locator("#sheet").waitFor();
+  assert.equal(await p.locator("#sheet input:checked").count(), 12);
+  assert.equal(
+    (await p.locator("#status-" + q.players.noah.id).textContent()).replace(
+      /\s/g,
+      "",
+    ),
+    "Remplaçant⌄",
+  );
+  assert.equal(
     await p
-      .getByLabel("Présence de " + player.first_name + " " + player.last_name, {
-        exact: true,
-      })
-      .selectOption(present ? "PRESENT" : "ABSENT");
-    await p
-      .getByRole("button", { name: "Démarrer le match", exact: true })
-      .waitFor({ state: "visible" });
-    if (["emile", "hugo"].includes(key))
-      await p
-        .getByLabel("Rôle de " + player.first_name + " " + player.last_name, {
-          exact: true,
-        })
-        .selectOption("STARTER");
+      .locator('[data-pick="' + q.players.suspended.id + '"]')
+      .isDisabled(),
+    true,
+  );
+  for (const width of [375, 768, 1280]) {
+    await p.setViewportSize({ width, height: 900 });
+    assert.equal(
+      await p.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      true,
+    );
+    const audit = await new AxeBuilder({ page: p })
+      .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      .analyze();
+    assert.deepEqual(
+      audit.violations.map((v) => v.id),
+      [],
+      "Preparation accessibility " + width,
+    );
+    await p.screenshot({
+      path: q.out + "/preparation-" + width + ".png",
+      fullPage: true,
+    });
   }
   await p
     .getByRole("button", { name: "Démarrer le match", exact: true })
@@ -175,12 +251,22 @@ export default async function (q) {
   assert.equal(serverBefore.status, "UPCOMING");
   assert.equal(serverBefore.matchEvents.length, 0);
   // An expired session must not erase the offline copy or redirect away from it.
-  await page.evaluate(() => localStorage.setItem('token', 'expired-test-token'));
+  await page.evaluate(() =>
+    localStorage.setItem("token", "expired-test-token"),
+  );
   await q.context.setOffline(false);
-  await page.locator('#error').filter({hasText:'Session expirée'}).waitFor({state:'visible'});
-  assert.ok(await page.evaluate(async()=>{const {all}=await import('/terrain/store.js');return (await all()).some(r=>r.commands.length>0);}));
+  await page
+    .locator("#error")
+    .filter({ hasText: "Session expirée" })
+    .waitFor({ state: "visible" });
+  assert.ok(
+    await page.evaluate(async () => {
+      const { all } = await import("/terrain/store.js");
+      return (await all()).some((r) => r.commands.length > 0);
+    }),
+  );
   await q.context.setOffline(true);
-  await page.evaluate(token=>localStorage.setItem('token',token),q.token);
+  await page.evaluate((token) => localStorage.setItem("token", token), q.token);
   // The server commits but its response is lost: retry must not duplicate any event.
   let sent;
   const sentPromise = new Promise((resolve) => (sent = resolve));
@@ -328,22 +414,36 @@ export default async function (q) {
   );
   await page.locator("header").first().getByRole("button").last().click();
   page.once("dialog", (d) => d.accept());
+  // Observe the completed logout instead of starting a competing navigation.
+  // AuthContext removes credentials before its client-side redirect commits.
+  // The public destination may be home or login when the dashboard guard wins.
   await page.getByRole("button", { name: "Déconnexion", exact: true }).click();
-  await page.waitForFunction(() => !localStorage.getItem("token"));
-  await page.goto(q.base + "/login");
-  await page.locator("input[type=email]").waitFor();
+  await page.waitForFunction(
+    () =>
+      ["/", "/login"].includes(location.pathname) &&
+      !localStorage.getItem("token") &&
+      !localStorage.getItem("user"),
+  );
+  // Reopen the login in a fresh tab, as a user would after logging out. A
+  // pending router transition in the old document cannot abort this load.
+  const loginPage = await q.context.newPage();
+  q.page = loginPage;
+  await loginPage.goto(q.base + "/login");
+  await loginPage.locator("input[type=email]").waitFor();
   assert.deepEqual(
-    await page.evaluate(async () => {
+    await loginPage.evaluate(async () => {
       const { all } = await import("/terrain/store.js");
       return all();
     }),
     [],
   );
-  await page.goto(q.base + "/login");
-  await page.locator("input[type=email]").fill("coach.qa@example.com");
-  await page.locator("input[type=password]").fill("CoachFlowQA2026!");
-  await page.getByRole("button", { name: "Connexion", exact: true }).click();
-  await page.waitForURL("**/dashboard");
+  await page.close();
+  await loginPage.locator("input[type=email]").fill("coach.qa@example.com");
+  await loginPage.locator("input[type=password]").fill("CoachFlowQA2026!");
+  await loginPage
+    .getByRole("button", { name: "Connexion", exact: true })
+    .click();
+  await loginPage.waitForURL("**/dashboard");
   q.team = previousTeam;
   q.players = previousPlayers;
   q.results.push({

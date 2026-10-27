@@ -83,6 +83,7 @@ export class OfflineController {
         first_name: true,
         last_name: true,
         jersey_number: true,
+        position: true,
         status: true,
       },
       orderBy: [{ last_name: 'asc' }, { id: 'asc' }],
@@ -266,3 +267,4 @@ export class OfflineController {
     });
   }
 }
+

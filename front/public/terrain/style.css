@@ -359,3 +359,118 @@ ul {
 [hidden] {
   display: none !important;
 }
+
+.roster-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 14px 0;
+  color: #a9b7c9;
+}
+.roster-counts strong {
+  color: #6ee7b7;
+}
+.roster-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-top: 1px solid #334155;
+  gap: 0 8px;
+}
+.roster-row.selected {
+  background: #14352e;
+}
+.roster-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 10px 8px;
+  cursor: pointer;
+  min-width: 0;
+}
+.roster-pick input {
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #34d399;
+  cursor: pointer;
+}
+.roster-pick input:disabled {
+  cursor: not-allowed;
+}
+.roster-pick:has(input:disabled) {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.jersey {
+  color: #a9b7c9;
+  width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.player-identity {
+  min-width: 0;
+}
+.player-identity strong {
+  display: block;
+  color: #f1f5f9;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.player-identity small {
+  display: block;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.roster-status {
+  padding: 8px;
+  font-size: 12px;
+  min-width: 98px;
+  background: transparent;
+}
+.roster-editor {
+  grid-column: 1/-1;
+  padding: 8px 12px 14px;
+}
+.roster-editor .foot {
+  margin: 8px 0 0;
+}
+.roster-start {
+  background: #151b26;
+  border-top: 1px solid #334155;
+  margin-top: 16px;
+  padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+  z-index: 2;
+}
+.roster-start p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+.roster-start button {
+  width: 100%;
+}
+.roster-panel .callout {
+  margin-top: 16px;
+  font-size: 13px;
+}
+@media (max-width: 420px) {
+  .roster-panel {
+    padding: 14px 10px;
+  }
+  .roster-pick {
+    gap: 6px;
+    padding-left: 4px;
+  }
+  .jersey {
+    width: 22px;
+  }
+  .roster-status {
+    min-width: 92px;
+    padding: 7px 5px;
+  }
+}

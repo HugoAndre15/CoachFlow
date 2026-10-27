@@ -42,6 +42,7 @@ jobs:
         run: |
           npm run test:players
           npm run test:match-flow
+          node --test test/terrain-roster.test.mjs
           npx tsc --noEmit
         working-directory: front
       - name: Browser, API, database and accessibility scenarios
@@ -57,3 +58,4 @@ jobs:
             qa/results/run.log
           if-no-files-found: ignore
           retention-days: 7
+

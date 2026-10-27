@@ -1,10 +1,11 @@
 /* Cache only the public terrain shell. Never cache API responses or account pages. */
-const CACHE = "coachflow-terrain-v1";
+const CACHE = "coachflow-terrain-v2";
 const FILES = [
   "/terrain/index.html",
   "/terrain/app.js",
   "/terrain/store.js",
   "/terrain/model.js",
+  "/terrain/roster.js",
   "/terrain/style.css",
   "/api/terrain-config",
 ];
@@ -38,3 +39,4 @@ self.addEventListener("fetch", (event) => {
       ),
   );
 });
+
