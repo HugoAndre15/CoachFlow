@@ -98,7 +98,10 @@ export default async function (q) {
     /11\/11 titulaires/,
   );
   assert.equal(
-    (await p.locator("#status-" + q.players.noah.id).textContent()).replace(/\s/g, ""),
+    (await p.locator("#status-" + q.players.noah.id).textContent()).replace(
+      /\s/g,
+      "",
+    ),
     "Remplaçant⌄",
   );
   // Quick status edits, deselection and reload must preserve the sheet offline.
@@ -116,7 +119,10 @@ export default async function (q) {
   await p.locator("#sheet").waitFor();
   assert.equal(await p.locator("#sheet input:checked").count(), 12);
   assert.equal(
-    (await p.locator("#status-" + q.players.noah.id).textContent()).replace(/\s/g, ""),
+    (await p.locator("#status-" + q.players.noah.id).textContent()).replace(
+      /\s/g,
+      "",
+    ),
     "Remplaçant⌄",
   );
   assert.equal(
@@ -408,22 +414,36 @@ export default async function (q) {
   );
   await page.locator("header").first().getByRole("button").last().click();
   page.once("dialog", (d) => d.accept());
+  // Observe the completed logout instead of starting a competing navigation.
+  // AuthContext removes credentials before its client-side redirect commits.
+  // The public destination may be home or login when the dashboard guard wins.
   await page.getByRole("button", { name: "Déconnexion", exact: true }).click();
-  await page.waitForFunction(() => !localStorage.getItem("token"));
-  await page.goto(q.base + "/login");
-  await page.locator("input[type=email]").waitFor();
+  await page.waitForFunction(
+    () =>
+      ["/", "/login"].includes(location.pathname) &&
+      !localStorage.getItem("token") &&
+      !localStorage.getItem("user"),
+  );
+  // Reopen the login in a fresh tab, as a user would after logging out. A
+  // pending router transition in the old document cannot abort this load.
+  const loginPage = await q.context.newPage();
+  q.page = loginPage;
+  await loginPage.goto(q.base + "/login");
+  await loginPage.locator("input[type=email]").waitFor();
   assert.deepEqual(
-    await page.evaluate(async () => {
+    await loginPage.evaluate(async () => {
       const { all } = await import("/terrain/store.js");
       return all();
     }),
     [],
   );
-  await page.goto(q.base + "/login");
-  await page.locator("input[type=email]").fill("coach.qa@example.com");
-  await page.locator("input[type=password]").fill("CoachFlowQA2026!");
-  await page.getByRole("button", { name: "Connexion", exact: true }).click();
-  await page.waitForURL("**/dashboard");
+  await page.close();
+  await loginPage.locator("input[type=email]").fill("coach.qa@example.com");
+  await loginPage.locator("input[type=password]").fill("CoachFlowQA2026!");
+  await loginPage
+    .getByRole("button", { name: "Connexion", exact: true })
+    .click();
+  await loginPage.waitForURL("**/dashboard");
   q.team = previousTeam;
   q.players = previousPlayers;
   q.results.push({
