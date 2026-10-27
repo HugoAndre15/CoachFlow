@@ -1,5 +1,7 @@
 import { read, write, remove, all, lock } from "./store.js";
 import { apply, command, lineup } from "./model.js";
+import { positions, setSelection, preparationSummary } from "./roster.js";
+let editingPlayer = null;
 const app = document.querySelector("#app");
 const error = document.querySelector("#error");
 const notice = document.querySelector("#notice");
@@ -92,7 +94,10 @@ async function run(action, preserveDraft = false) {
   const form = app.querySelector("form");
   let draft = form ? Object.fromEntries(new FormData(form)) : null;
   const focusedName = document.activeElement?.name;
-  app.querySelectorAll("#sheet select").forEach((s) => (s.disabled = true));
+  const focusedId = document.activeElement?.id;
+  app
+    .querySelectorAll("#sheet select, #sheet input")
+    .forEach((s) => (s.disabled = true));
   let failed = false;
   try {
     await action();
@@ -104,6 +109,8 @@ async function run(action, preserveDraft = false) {
       draft = Object.fromEntries(new FormData(form));
     busy = false;
     await render();
+    if (focusedId)
+      document.getElementById(focusedId)?.focus({ preventScroll: true });
     if ((failed || preserveDraft) && draft) {
       const next = app.querySelector("form");
       if (next) {
@@ -220,9 +227,10 @@ async function sync() {
         latest.blocked = true;
         // Server validation may mention a changed medical availability. Do not
         // persist that detail in the offline copy.
-        latest.lastError = e.status === 400
-          ? 'Une action ne peut plus être appliquée. Vérifiez la feuille de match en ligne ; vos saisies sont conservées.'
-          : e.message;
+        latest.lastError =
+          e.status === 400
+            ? "Une action ne peut plus être appliquée. Vérifiez la feuille de match en ligne ; vos saisies sont conservées."
+            : e.message;
         await write(latest);
       }
       record = latest;
@@ -320,7 +328,8 @@ async function render() {
     return;
   }
   const s = apply(record.snapshot, record.commands),
-    roles = lineup(s);
+    roles = lineup(s),
+    preparation = preparationSummary(s);
   const score =
     s.events.filter((e) => e.event_type === "GOAL").length +
     " – " +
@@ -333,23 +342,45 @@ async function render() {
   ${record.blocked ? '<p class="callout">' + escape(record.lastError || "") + "<br>" + "Synchronisation bloquée. Vos actions sont conservées. Exportez une copie avant toute résolution avec le coach ; ne supprimez pas ce match.</p>" : ""}
   ${
     upcoming
-      ? `<section class="panel"><h2>Qui sera là ?</h2><p class="muted">Renseignez les présences et choisissez au moins deux titulaires.</p><div id="sheet">${s.players
+      ? `<section class="panel roster-panel"><h2>Qui sera là ?</h2><p class="muted" id="selection-help">Touchez un joueur pour le sélectionner. Les 11 premiers sont titulaires, les suivants remplaçants. Les non cochés sont absents.</p>
+        <div class="roster-counts" role="status" aria-live="polite"><strong>${preparation.present} présents</strong><span>${preparation.starters}/11 titulaires</span><span>${preparation.substitutes} remplaçants</span></div>
+        <div id="sheet">${s.players
           .map((p) => {
-            const entry = s.sheet.find((e) => e.player_id === p.id) || {
-              presence: "UNKNOWN",
-              status: "SUBSTITUTE",
-            };
-            return `<div class="row player"><div><strong>${escape(p.first_name)} ${escape(p.last_name)}</strong><small>${p.jersey_number ? "N° " + p.jersey_number + " · " : ""}${p.eligible ? "Joueur de l’équipe" : "Non disponible à la préparation"}</small></div><label>Présence<select data-presence="${p.id}" aria-label="Présence de ${escape(p.first_name + " " + p.last_name)}">${options([["UNKNOWN", "À renseigner"], ...(p.eligible ? [["PRESENT", "Présent"]] : []), ["ABSENT", "Absent"], ["UNCERTAIN", "Incertain"]], entry.presence)}</select></label><label>Composition<select data-role="${p.id}" aria-label="Rôle de ${escape(p.first_name + " " + p.last_name)}" ${entry.presence !== "PRESENT" ? "disabled" : ""}>${options(
-              [
-                ["SUBSTITUTE", "Remplaçant"],
-                ["STARTER", "Titulaire"],
-              ],
-              entry.status,
-            )}</select></label></div>`;
+            const entry = preparation.sheet.find((e) => e.player_id === p.id);
+            const selected = entry.presence === "PRESENT";
+            const label = selected
+              ? entry.status === "STARTER"
+                ? "Titulaire"
+                : "Remplaçant"
+              : entry.presence === "UNCERTAIN"
+                ? "Incertain"
+                : "Absent";
+            const fullname = p.last_name + " " + p.first_name;
+            return `<div class="roster-row ${selected ? "selected" : ""}">
+            <label class="roster-pick" for="pick-${escape(p.id)}"><input id="pick-${escape(p.id)}" type="checkbox" data-pick="${escape(p.id)}" aria-label="Sélectionner ${escape(fullname)}" ${selected ? "checked" : ""} ${!p.eligible ? "disabled" : ""} aria-describedby="info-${escape(p.id)}"><span class="jersey">${p.jersey_number != null ? escape(p.jersey_number) : "—"}</span><span class="player-identity"><strong>${escape(p.last_name)} ${escape(p.first_name)}</strong><small id="info-${escape(p.id)}">${escape(positions[p.position] || "Poste non renseigné")}${!p.eligible ? " · Indisponible" : ""}</small></span></label>
+            <button class="roster-status" id="status-${escape(p.id)}" data-edit="${escape(p.id)}" aria-label="Modifier le statut de ${escape(fullname)} : ${label}" aria-expanded="${editingPlayer === p.id}">${label}<span aria-hidden="true">⌄</span></button>
+            ${
+              editingPlayer === p.id
+                ? `<div class="roster-editor"><label>Statut de ${escape(fullname)}<select id="edit-${escape(p.id)}" data-choice="${escape(p.id)}">${options(
+                    [
+                      ...(p.eligible
+                        ? [
+                            ["STARTER", "Présent · titulaire"],
+                            ["SUBSTITUTE", "Présent · remplaçant"],
+                          ]
+                        : []),
+                      ["UNCERTAIN", "Incertain"],
+                      ["ABSENT", "Absent"],
+                    ],
+                    selected ? entry.status : entry.presence,
+                  )}</select></label><p class="foot">Passer titulaire remplace le dernier titulaire de la liste si les 11 places sont prises.</p></div>`
+                : ""
+            }
+          </div>`;
           })
-          .join(
-            "",
-          )}</div><div class="actions" style="margin-top:20px"><button class="primary" id="start">Démarrer le match</button></div></section>`
+          .join("")}</div>
+        ${preparation.warnings.length ? `<aside class="callout" aria-label="Conseils de composition"><strong>À vérifier · non bloquant</strong><ul>${preparation.warnings.map((w) => `<li>${escape(w)}</li>`).join("")}</ul></aside>` : ""}
+        <div class="roster-start"><p id="start-help" class="muted">${escape(preparation.reason || "Votre feuille est prête. Les alertes de postes ne bloquent pas le match.")}</p><button class="primary" id="start" aria-describedby="start-help" ${preparation.canStart ? "" : "disabled"}>Démarrer le match</button></div></section>`
       : ""
   }
   ${
@@ -472,35 +503,56 @@ async function render() {
         })),
   );
   if (upcoming) {
-    app.querySelectorAll("[data-presence],[data-role]").forEach(
-      (select) =>
-        (select.onchange = () =>
-          run(async () => {
-            const players = s.players.map((p) => {
-              const presence = document.querySelector(
-                `[data-presence="${p.id}"]`,
-              ).value;
-              return {
-                player_id: p.id,
-                presence,
-                status:
-                  presence === "PRESENT"
-                    ? document.querySelector(`[data-role="${p.id}"]`).value
-                    : "SUBSTITUTE",
-              };
-            });
-            // Unsent consecutive sheet edits collapse; an in-flight batch stays immutable.
-            await append([command("sheet", { players })]);
-          })),
-    );
+    app.querySelectorAll("[data-pick]").forEach((input) => {
+      input.onchange = () =>
+        run(async () => {
+          editingPlayer = null;
+          await append([
+            command("sheet", {
+              players: setSelection(
+                s,
+                input.dataset.pick,
+                input.checked ? "PRESENT" : "ABSENT",
+              ),
+            }),
+          ]);
+        });
+    });
+    app.querySelectorAll("[data-edit]").forEach((button) => {
+      button.onclick = async () => {
+        editingPlayer =
+          editingPlayer === button.dataset.edit ? null : button.dataset.edit;
+        await render();
+        document
+          .getElementById(editingPlayer ? "edit-" + editingPlayer : button.id)
+          ?.focus({ preventScroll: true });
+      };
+    });
+    app.querySelectorAll("[data-choice]").forEach((select) => {
+      select.onchange = () =>
+        run(async () => {
+          await append([
+            command("sheet", {
+              players: setSelection(s, select.dataset.choice, select.value),
+            }),
+          ]);
+          editingPlayer = null;
+        });
+    });
     document.querySelector("#start").onclick = () =>
-      run(() =>
-        append([command("status", { status: "LIVE" })], {
-          elapsed: 0,
-          startedAt: Date.now(),
-        }),
-      );
+      run(async () => {
+        const summary = preparationSummary(s);
+        if (!summary.canStart) throw new Error(summary.reason);
+        await append(
+          [
+            command("sheet", { players: summary.sheet }),
+            command("status", { status: "LIVE" }),
+          ],
+          { elapsed: 0, startedAt: Date.now() },
+        );
+      });
   }
+
   if (live) {
     document.querySelector("#clock-toggle").onclick = () =>
       run(async () => {
