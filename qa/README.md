@@ -65,3 +65,6 @@ La suite ne prétend pas valider tous les navigateurs, un clavier iOS natif, le 
 ## Mode Terrain
 
 La suite inclut `offline.mjs` : préparation, présences, but/passe détaillés, fermeture et réouverture sans réseau, remplacement, clôture, réponse de synchronisation perdue puis réessai, action ajoutée pendant la reprise, statistiques, refus 403, conflit 409, rollback d’un lot invalide, isolation des comptes, déconnexion et accessibilité aux trois largeurs. Voir [le guide hors ligne](../docs/v1-offline.md) pour la recette sur téléphone et la migration requise.
+
+
+La recette complète commence aussi par `landing.mjs`, dans un contexte anonyme séparé : contrôles responsive/accessibilité, aperçu interactif, FAQ, ancres et accès aux formulaires d’inscription/connexion. Les exemples publics sont fictifs et la page explique la préparation préalable du carnet Terrain.

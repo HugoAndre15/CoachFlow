@@ -56,7 +56,7 @@ async function close(code=0){if(closing)return;closing=true;for(const child of c
 process.on('SIGINT',()=>close(130));process.on('SIGTERM',()=>close(143));
 const all=process.argv.includes('--all');
 const demo=process.argv.includes('--demo');
-const names=demo?['seed','dashboard-seed']:['seed','player-management','match-flow','roster-responsive','periods-history','dashboard','dashboard-states','dashboard-accessibility','offline','final-check'];
+const names=demo?['seed','dashboard-seed']:['landing','seed','player-management','match-flow','roster-responsive','periods-history','dashboard','dashboard-states','dashboard-accessibility','offline','final-check'];
 const scripts=all||demo?names.map(s=>path.join(here,s+'.mjs')):readline.createInterface({input:process.stdin});
 for await(const line of scripts) {
   if(!line.trim())continue;
@@ -66,3 +66,4 @@ for await(const line of scripts) {
 }
 if(all)await close();
 if(demo){await qa.context.tracing.stop();console.log('DEMO_READY http://127.0.0.1:4300/login | coach.qa@example.com | CoachFlowQA2026! | équipe Seniors Démo | Ctrl+C pour arrêter');}
+
