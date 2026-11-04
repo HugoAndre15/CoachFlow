@@ -25,9 +25,11 @@ export default async function (q) {
     for (const width of [375, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       for (const name of ["Préparer", "Jouer", "Retrouver le bilan"]) {
-        const button = page.getByRole("button", {
-          name: new RegExp(name + "$"),
-        });
+        const button = page
+          .getByRole("group", { name: "Explorer les étapes du match" })
+          .getByRole("button", {
+            name: new RegExp(name + "$"),
+          });
         await button.click();
         assert.equal(await button.getAttribute("aria-pressed"), "true");
         assert.equal(
