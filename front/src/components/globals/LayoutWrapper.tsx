@@ -18,7 +18,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const isAuthPage = authPages.includes(pathname);
   const isDashboard = pathname?.startsWith('/dashboard');
 
-  if (isAuthPage) {
+  // The landing page owns its public header, main landmark and footer.
+  if (isAuthPage || pathname === '/') {
     return <>{children}</>;
   }
 
@@ -65,3 +66,4 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     </div>
   );
 }
+
