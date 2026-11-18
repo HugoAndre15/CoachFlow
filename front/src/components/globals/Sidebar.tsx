@@ -1,252 +1,86 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  Users,
-  Swords,
-  Radio,
-  Shield,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  X,
-} from 'lucide-react';
+  CalendarDays, Ellipsis, LayoutDashboard, PanelLeftClose, PanelLeftOpen,
+  Radio, Search, Shield, Users, UsersRound,
+} from "lucide-react";
+import RosterDialog from "@/app/dashboard/joueurs/parts/RosterDialog";
 
-interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-interface SidebarItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  matchExact?: boolean;
-}
-
-const sidebarItems: SidebarItem[] = [
-  {
-    label: 'Dashboard',
-    href: '/dashboard',
-    matchExact: true,
-    icon: <LayoutDashboard className="w-5 h-5" />,
-  },
-  {
-    label: 'Matchs',
-    href: '/dashboard/matchs',
-    icon: <Swords className="w-5 h-5" />,
-  },
-  {
-    label: 'Direct',
-    href: '/dashboard/direct',
-    icon: <Radio className="w-5 h-5" />,
-  },
-  {
-    label: 'Joueurs',
-    href: '/dashboard/joueurs',
-    icon: <Users className="w-5 h-5" />,
-  },
-  {
-    label: 'Équipes',
-    href: '/dashboard/teams',
-    icon: <Shield className="w-5 h-5" />,
-  },
+const pages = [
+  { name: "Vue d’équipe", short: "Équipe", keywords: "tableau de bord dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Matchs", short: "Matchs", href: "/dashboard/matchs", icon: CalendarDays },
+  { name: "Direct", short: "Direct", href: "/dashboard/direct", icon: Radio },
+  { name: "Joueurs", short: "Joueurs", keywords: "effectif", href: "/dashboard/joueurs", icon: Users },
+  { name: "Mes équipes", short: "Équipes", href: "/dashboard/teams", icon: UsersRound },
+  { name: "Mes clubs", short: "Clubs", href: "/dashboard/clubs", icon: Shield },
 ];
+const mainPages = pages.slice(0, 4);
+const management = pages.slice(4);
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    onClose();
-  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Prevent body scroll when mobile sidebar is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [isOpen]);
-
-  const filteredItems = searchQuery
-    ? sidebarItems.filter(item =>
-        item.label.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : sidebarItems;
-
-  const sidebarContent = (
-    <>
-      {/* Search */}
-      <div className={`p-3 ${collapsed ? 'px-2.5' : ''}`}>
-        {collapsed ? (
-          <button
-            onClick={() => setCollapsed(false)}
-            className="w-full flex items-center justify-center py-2 rounded-lg text-grey-medium hover:text-white hover:bg-dark-light/50 transition-colors"
-            title="Rechercher..."
-          >
-            <Search className="w-5 h-5" />
-          </button>
-        ) : (
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-grey-medium pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher..."
-              className="w-full pl-8 pr-3 py-2 rounded-lg text-sm
-                bg-dark-lighter border border-dark-light/40
-                text-white placeholder-grey-medium
-                focus:outline-none focus:border-accent-green/50 focus:ring-1 focus:ring-accent-green/20
-                transition-all duration-200"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-2 pb-3 space-y-0.5">
-        {filteredItems.map((item) => {
-          const isActive = item.matchExact
-            ? pathname === item.href
-            : pathname?.startsWith(item.href);
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={collapsed ? item.label : undefined}
-              className={`
-                group relative flex items-center gap-3 rounded-lg
-                transition-all duration-200 cursor-pointer
-                ${collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'}
-                ${isActive
-                  ? 'bg-accent-green/15 text-accent-green'
-                  : 'text-grey-medium hover:bg-dark-light/40 hover:text-white'
-                }
-              `}
-            >
-              {/* Active indicator bar */}
-              {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-accent-green rounded-r-full" />
-              )}
-
-              {/* Icon */}
-              <span className={`flex-shrink-0 transition-colors duration-200 ${
-                isActive ? 'text-accent-green' : 'text-grey-medium group-hover:text-white'
-              }`}>
-                {item.icon}
-              </span>
-
-              {/* Label */}
-              {!collapsed && (
-                <span className={`text-sm font-medium truncate transition-colors duration-200 ${
-                  isActive ? 'text-accent-green' : ''
-                }`}>
-                  {item.label}
-                </span>
-              )}
-
-              {/* Tooltip for collapsed */}
-              {collapsed && (
-                <span className="
-                  absolute left-full ml-3 px-2.5 py-1 rounded-md
-                  bg-dark-lighter border border-dark-light/50 text-white text-xs font-medium
-                  opacity-0 invisible group-hover:opacity-100 group-hover:visible
-                  transition-all duration-150 whitespace-nowrap z-50 pointer-events-none
-                  shadow-lg
-                ">
-                  {item.label}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Collapse toggle — desktop only */}
-      <div className="hidden lg:block p-2 border-t border-dark-light/30 mt-auto">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg
-            text-grey-medium hover:text-white hover:bg-dark-light/40
-            transition-all duration-200 cursor-pointer"
-          title={collapsed ? 'Agrandir' : 'Réduire'}
-        >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <>
-              <ChevronLeft className="w-4 h-4" />
-              <span className="text-xs font-medium">Réduire</span>
-            </>
-          )}
-        </button>
-      </div>
-    </>
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const active = (href: string) => pathname === href || (href !== "/dashboard" && pathname.startsWith(href + "/"));
+  const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr").trim();
+  const searchTerm = normalize(query);
+  const filteredPages = pages.filter(page => normalize(page.name + " " + (page.keywords ?? "")).includes(searchTerm));
+  const openMenu = () => { setQuery(""); setSearchOpen(true); };
+  const entry = (page: typeof pages[number], compact = false, mobile = false) => (
+    <Link key={page.href} href={page.href} className="nav-entry"
+      aria-current={active(page.href) ? "page" : undefined} title={compact ? page.name : undefined}
+      aria-label={page.name} onClick={() => setSearchOpen(false)}>
+      <page.icon size={20} strokeWidth={1.8} aria-hidden="true" />
+      {!compact && <span>{mobile ? page.short : page.name}</span>}
+    </Link>
   );
 
   return (
     <>
-      {/* Mobile overlay backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Mobile drawer */}
-      <aside
-        className={`
-          fixed top-0 left-0 z-50 h-full w-[260px]
-          bg-dark-secondary border-r border-dark-light/30
-          flex flex-col transition-transform duration-300 ease-in-out
-          lg:hidden
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
-      >
-        {/* Mobile close header */}
-        <div className="h-14 flex items-center justify-between px-4 border-b border-dark-light/30 flex-shrink-0">
-          <span className="text-lg font-bold text-white">CoachFlow</span>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-grey-medium hover:text-white hover:bg-dark-light/40 transition-colors"
-          >
-            <X className="w-5 h-5" />
+      <aside className="workspace-rail" data-compact={collapsed}>
+        <Link className="workspace-brand" href="/" aria-label="CoachFlow, accueil">
+          <Shield size={27} strokeWidth={1.9} aria-hidden="true" />
+          {!collapsed && <span>CoachFlow</span>}
+        </Link>
+        <nav aria-label="Navigation principale">
+          {mainPages.map(page => entry(page, collapsed))}
+          <hr />
+          {management.map(page => entry(page, collapsed))}
+        </nav>
+        <div className="rail-tools">
+          <button type="button" className="nav-entry" onClick={openMenu} aria-label="Rechercher une page" title="Rechercher une page">
+            <Search size={19} aria-hidden="true" />{!collapsed && "Rechercher une page"}
+          </button>
+          <button type="button" className="nav-entry" onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Agrandir le menu" : "Réduire le menu"} title={collapsed ? "Agrandir le menu" : "Réduire le menu"}>
+            {collapsed ? <PanelLeftOpen size={19} /> : <><PanelLeftClose size={19} />Réduire le menu</>}
           </button>
         </div>
-        {sidebarContent}
       </aside>
-
-      {/* Desktop sidebar — fixed, always pinned from header to bottom of viewport */}
-      <aside
-        className={`
-          hidden lg:flex flex-col flex-shrink-0
-          fixed top-14 bottom-0 left-0 z-30
-          bg-dark-secondary border-r border-dark-light/30
-          transition-all duration-300 ease-in-out overflow-hidden
-          ${collapsed ? 'w-[68px]' : 'w-[240px]'}
-        `}
-      >
-        {sidebarContent}
-      </aside>
-
-      {/* Spacer to push main content — matches sidebar width */}
-      <div
-        className={`hidden lg:block flex-shrink-0 transition-all duration-300 ease-in-out ${
-          collapsed ? 'w-[68px]' : 'w-[240px]'
-        }`}
-        aria-hidden="true"
-      />
+      <nav className="workspace-bottom" aria-label="Navigation mobile">
+        {mainPages.map(page => entry(page, false, true))}
+        <button type="button" className="nav-entry" onClick={openMenu} aria-haspopup="dialog"
+          aria-expanded={searchOpen} data-active={management.some(page => active(page.href))}>
+          <Ellipsis size={20} aria-hidden="true" /><span>Plus</span>
+        </button>
+      </nav>
+      {searchOpen && (
+        <RosterDialog title="Navigation" onClose={() => setSearchOpen(false)}>
+          <label className="workspace-search">
+            <Search size={18} aria-hidden="true" />
+            <input type="search" value={query} aria-label="Rechercher une page" placeholder="Rechercher une page"
+              onChange={event => setQuery(event.target.value)} />
+          </label>
+          <nav className="workspace-links" aria-label="Toutes les pages">
+            {filteredPages.map(page => entry(page))}
+            {!filteredPages.length && <p>Aucune page trouvée.</p>}
+          </nav>
+        </RosterDialog>
+      )}
     </>
   );
 }

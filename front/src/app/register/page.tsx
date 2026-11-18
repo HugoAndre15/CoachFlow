@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from "react";
+import AuthFrame from "@/components/form/AuthFrame";
 import InputForm from "../../components/form/inputForm";
-import CheckboxForm from "../../components/form/CheckboxForm";
 import SubmitButtonForm from "../../components/form/SubmitButtonForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { registerSchema } from "@/utils/validationSchemas";
@@ -55,106 +55,29 @@ export default function Register() {
     };
 
   return (
-    <div className="h-screen flex items-center bg-gradient-to-br dark:from-dark-lighter dark:to-dark from-white-100 to-white-200 relative overflow-hidden">
-        {/* Formes décoratives avec effet blur */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden md:w-1/2">
-          {/* Forme verte */}
-          <div className="absolute -top-60 right-20 w-96 h-96 bg-accent-green rounded-full blur-3xl opacity-20 dark:opacity-30"></div>
-          
-          {/* Forme bleue */}
-          <div className="absolute bottom-50 -left-40 w-110 h-110 bg-accent-blue rounded-full blur-3xl opacity-20 dark:opacity-30"></div>
-
-          {/* Forme rouge */}
-          <div className="absolute -bottom-10 -right-50 w-120 h-120 bg-accent-red rounded-full blur-3xl opacity-20 dark:opacity-30"></div>
+    <AuthFrame title="Créer mon espace">
+      <form onSubmit={handleSubmit} className="grid gap-4">
+        {error && <p role="alert" className="text-sm text-accent-red">{error}</p>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <InputForm label="Prénom" type="text" autoComplete="given-name" value={formData.firstName}
+            onChange={e => setFormData({ ...formData, firstName: e.target.value })} error={fieldErrors.firstName} />
+          <InputForm label="Nom" type="text" autoComplete="family-name" value={formData.lastName}
+            onChange={e => setFormData({ ...formData, lastName: e.target.value })} error={fieldErrors.lastName} />
         </div>
-
-        <div className="text-left items-center md:items-start flex flex-col gap-16 w-full md:w-1/2 h-full py-8 px-8 md:px-2 items-center justify-center relative z-10">
-            <form onSubmit={handleSubmit} className="min-w-1/2 flex flex-col items-start justify-center gap-8 mx-auto">
-                <div className="">
-                    <h1 className="text-3xl font-medium text-dark dark:text-neutral-lightest">
-                        Commencez dès maintenant
-                    </h1>
-                    <h2 className="text-base font-medium text-dark-lighter dark:text-neutral">
-                        Entrez vos informations pour créer votre compte
-                    </h2>
-                </div>
-                {error && (
-                    <div className="w-full bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2.5 animate-in slide-in-from-top-2 duration-300">
-                        <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            viewBox="0 0 20 20" 
-                            fill="currentColor" 
-                            className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
-                        >
-                            <path 
-                                fillRule="evenodd" 
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" 
-                                clipRule="evenodd" 
-                            />
-                        </svg>
-                        <p className="text-red-700 text-sm font-medium leading-relaxed">{error}</p>
-                    </div>
-                )}
-                <div className="w-full flex flex-col items-start gap-4 md:pr-20">
-                    <InputForm 
-                        label="Prénom" 
-                        type="text" 
-                        value={formData.firstName}
-                        onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                        error={fieldErrors.firstName}
-                    />
-                    <InputForm 
-                        label="Nom" 
-                        type="text" 
-                        value={formData.lastName}
-                        onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                        error={fieldErrors.lastName}
-                    />
-                    <InputForm 
-                        label="Email" 
-                        type="email" 
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        error={fieldErrors.email}
-                    />
-                    <InputForm 
-                        label="Mot de passe" 
-                        type="password" 
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        error={fieldErrors.password}
-                    />
-                    <InputForm 
-                        label="Confirmer le mot de passe" 
-                        type="password"
-                        value={formData.passwordConfirmation || ''}
-                        onChange={(e) => setFormData({...formData, passwordConfirmation: e.target.value})}
-                        error={fieldErrors.passwordConfirmation}
-                    />
-                    <CheckboxForm 
-                        label="J'accepte les CGV et CGU" 
-                        checked={acceptedTerms}
-                        onChange={setAcceptedTerms}
-                    />
-                    <SubmitButtonForm 
-                        label={loading ? "Inscription..." : "Inscription"}
-                        disabled={!acceptedTerms || loading} 
-                        type="submit"
-                        colorClass="bg-blue-500 hover:bg-blue-600 focus:ring-blue-400/20"
-                    />
-                    <div className="h-0.5 w-2/3 bg-dark-lighter dark:bg-neutral mx-auto my-4"></div>
-                    <div>
-
-                    </div>
-                    <div className="text-sm mx-auto text-dark-lighter dark:text-neutral">
-                        <p>Déjà un compte ? <a className="text-accent-green hover:text-accent-green-dark" href="/login">Se connecter</a></p>
-                    </div>
-                </div>
-            </form>
-        </div>
-        <div className="w-1/2 h-full hidden md:block relative z-10">
-            <img src="/assets/img/fond-stade-auth.jpg" alt="Description" className="rounded-l-[45px] object-cover object-right h-full w-full" />
-        </div>
-    </div>
+        <InputForm label="Adresse e-mail" type="email" autoComplete="username" value={formData.email}
+          onChange={e => setFormData({ ...formData, email: e.target.value })} error={fieldErrors.email} />
+        <InputForm label="Mot de passe" type="password" autoComplete="new-password" value={formData.password}
+          hint="8 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial (@ $ ! % * ? & _ -)."
+          onChange={e => setFormData({ ...formData, password: e.target.value })} error={fieldErrors.password} />
+        <InputForm label="Confirmer le mot de passe" type="password" autoComplete="new-password" value={formData.passwordConfirmation}
+          onChange={e => setFormData({ ...formData, passwordConfirmation: e.target.value })} error={fieldErrors.passwordConfirmation} />
+        <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+          <input type="checkbox" required checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} className="size-5 accent-accent-green" />
+          J’accepte les CGV et CGU
+        </label>
+        <SubmitButtonForm label={loading ? "Inscription…" : "Créer mon compte"} disabled={!acceptedTerms || loading} />
+      </form>
+      <p className="mt-6 text-sm text-muted">Déjà un compte ? <a className="font-semibold text-accent-green underline" href="/login">Se connecter</a></p>
+    </AuthFrame>
   );
 }

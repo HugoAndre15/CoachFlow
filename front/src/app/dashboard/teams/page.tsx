@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from "next/navigation";
 import { useState } from 'react';
 import { Check, Plus, Users, Shield, ChevronRight } from 'lucide-react';
 import { useClubTeam } from '@/contexts/ClubTeamContext';
@@ -19,10 +20,9 @@ const CATEGORIES = [
 ];
 
 export default function TeamsPage() {
+  const router = useRouter();
   const {
     activeClub,
-    allClubs,
-    setActiveClub,
     activeTeam,
     allTeams,
     setActiveTeam,
@@ -44,7 +44,7 @@ export default function TeamsPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-dark dark:text-white leading-tight">Mes Équipes</h1>
           {activeClub && (
-            <p className="text-sm text-dark-light/70 dark:text-neutral mt-1">
+            <p className="text-sm text-muted mt-1">
               {activeClub.name}
               {activeClub.role && (
                 <span className="ml-2 text-[11px] font-medium px-2 py-0.5 rounded-full bg-neutral/10 dark:bg-dark-light text-dark-light dark:text-neutral">
@@ -56,28 +56,10 @@ export default function TeamsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
-          {/* Club selector */}
-          {allClubs.length > 1 && (
-            <select
-              value={activeClub?.id || ''}
-              onChange={(e) => {
-                const club = allClubs.find(c => c.id === e.target.value);
-                if (club) {
-                  setActiveClub(club);
-                }
-              }}
-              className="text-sm bg-white dark:bg-dark-lighter border border-neutral/30 dark:border-dark-light text-dark dark:text-white rounded-lg px-3 py-2 outline-none focus:border-accent-green"
-            >
-              {allClubs.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          )}
-
           <button
             onClick={() => setIsModalOpen(true)}
             disabled={!activeClub}
-            className="flex items-center gap-2 px-4 py-2.5 bg-accent-green text-white rounded-lg text-sm font-medium hover:bg-accent-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2.5 bg-action text-on-action rounded-lg text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             Nouvelle équipe
@@ -90,7 +72,7 @@ export default function TeamsPage() {
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Shield className="w-12 h-12 text-neutral mb-4" />
           <p className="text-dark-light dark:text-neutral font-medium">Aucun club sélectionné</p>
-          <p className="text-sm text-dark-light/50 dark:text-neutral/50 mt-1">
+          <p className="text-sm text-muted mt-1">
             Rejoignez ou créez un club pour gérer vos équipes
           </p>
         </div>
@@ -117,16 +99,10 @@ export default function TeamsPage() {
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Users className="w-12 h-12 text-neutral mb-4" />
           <p className="text-dark-light dark:text-neutral font-medium">Aucune équipe</p>
-          <p className="text-sm text-dark-light/50 dark:text-neutral/50 mt-1 mb-4">
+          <p className="text-sm text-muted mt-1 mb-4">
             Créez votre première équipe pour ce club
           </p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-accent-green text-white rounded-lg text-sm font-medium hover:bg-accent-green/90 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Créer une équipe
-          </button>
+
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -134,7 +110,7 @@ export default function TeamsPage() {
             <button
               type="button"
               key={team.id}
-              onClick={() => setActiveTeam(team)}
+              onClick={() => { setActiveTeam(team); router.push("/dashboard"); }}
               className={`group bg-white dark:bg-dark-lighter border rounded-2xl p-5 hover:shadow-sm transition-all text-left ${
                 activeTeam?.id === team.id
                   ? 'border-accent-green ring-2 ring-accent-green/15'
@@ -168,18 +144,18 @@ export default function TeamsPage() {
               <div className="flex items-center gap-4 mt-4 pt-4 border-t border-neutral/10 dark:border-dark-light">
                 {team._count && (
                   <>
-                    <span className="flex items-center gap-1.5 text-xs text-dark-light/70 dark:text-neutral">
+                    <span className="flex items-center gap-1.5 text-xs text-muted">
                       <Users className="w-3.5 h-3.5" />
                       {team._count.players} joueur{team._count.players !== 1 ? 's' : ''}
                     </span>
-                    <span className="flex items-center gap-1.5 text-xs text-dark-light/70 dark:text-neutral">
+                    <span className="flex items-center gap-1.5 text-xs text-muted">
                       <Shield className="w-3.5 h-3.5" />
                       {team._count.teamUsers} staff
                     </span>
                   </>
                 )}
                 <span className="ml-auto flex items-center gap-1 text-xs text-accent-green opacity-0 group-hover:opacity-100 transition-opacity font-medium">
-                  Voir
+                  Ouvrir l’équipe
                   <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </div>

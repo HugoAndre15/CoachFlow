@@ -1,5 +1,5 @@
 /* Cache only the public terrain shell. Never cache API responses or account pages. */
-const CACHE = "coachflow-terrain-v2";
+const CACHE = "coachflow-terrain-v3";
 const FILES = [
   "/terrain/index.html",
   "/terrain/app.js",
@@ -7,6 +7,8 @@ const FILES = [
   "/terrain/model.js",
   "/terrain/roster.js",
   "/terrain/style.css",
+  "/terrain/theme.css",
+  "/terrain/theme.js",
   "/api/terrain-config",
 ];
 self.addEventListener("install", (event) =>

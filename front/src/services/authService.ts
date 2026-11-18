@@ -12,26 +12,31 @@ export interface LoginData {
     password: string;
 }
 
+interface Session {
+    access_token: string;
+    user: { id: string; email: string; first_name: string; last_name: string };
+}
+
+function saveSession(session: Session) {
+    localStorage.setItem('token', session.access_token);
+    localStorage.setItem('user', JSON.stringify(session.user));
+    return session;
+}
+
 export const authService = {
     register: async (data: RegisterData) => {
-        const response = await api.post('/auth/register', {
+        const response = await api.post<Session>('/auth/register', {
             email: data.email,
             password: data.password,
             first_name: data.firstName,
             last_name: data.lastName,
         });
-        return response.data;
+        return saveSession(response.data);
     },
     
     login: async (data: LoginData) => {
-        const response = await api.post('/auth/login', data);
-        if (response.data.access_token) {
-            localStorage.setItem('token', response.data.access_token);
-        }
-        if (response.data.user) {
-            localStorage.setItem('user', JSON.stringify(response.data.user));
-        }
-        return response.data;
+        const response = await api.post<Session>('/auth/login', data);
+        return saveSession(response.data);
     },
     
     logout: () => {

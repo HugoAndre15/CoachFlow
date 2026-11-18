@@ -1,4 +1,24 @@
 @import "tailwindcss";
+@import "../../public/terrain/theme.css";
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --color-canvas: var(--cf-canvas);
+  --color-surface: var(--cf-surface);
+  --color-subtle: var(--cf-subtle);
+  --color-ink: var(--cf-ink);
+  --color-muted: var(--cf-muted);
+  --color-line: var(--cf-line);
+  --color-wash: var(--cf-wash);
+  --color-action: var(--cf-action);
+  --color-action-hover: var(--cf-action-hover);
+  --color-on-action: var(--cf-on-action);
+  --color-accent-green: var(--cf-green);
+  --color-accent-red: var(--cf-danger);
+  --color-accent-blue: var(--cf-blue);
+  --color-warning: var(--cf-amber);
+  --color-violet-ink: var(--cf-violet);
+}
 
 @theme {
   /* Tons foncés - Textes et fonds sombres */
@@ -7,9 +27,6 @@
   --color-dark-lighter: #1F2937; /* Bleu foncé moyen */
   --color-dark-light: #334155; /* Gris-bleu */
 
-  --color-accent-green: #10B981; /* Vert clair - Accents et éléments interactifs */
-  --color-accent-blue: #60A5FA; /* Bleu clair - Accents */
-  --color-accent-red: #EF4444; /* Rouge clair - Accents et erreurs */
   
   /* Tons clairs - Fonds et surfaces */
   --color-neutral: #E2E8F0; /* Gris clair */
@@ -61,7 +78,11 @@
     cursor: not-allowed;
   }
 
+  :focus-visible { outline: 2px solid var(--cf-green); outline-offset: 3px; }
+
   body {
+    color: var(--cf-ink);
+    background: var(--cf-canvas);
     font-family: var(--font-poppins), "Poppins", sans-serif;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;

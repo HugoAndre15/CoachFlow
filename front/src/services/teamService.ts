@@ -14,7 +14,7 @@ export interface Team {
 
 export interface TeamsResponse {
     data: Team[];
-    pagination: {
+    meta: {
         total: number;
         page: number;
         limit: number;
@@ -30,8 +30,16 @@ export interface CreateTeamPayload {
 
 export const teamService = {
     getTeamsByClub: async (clubId: string): Promise<Team[]> => {
-        const response = await api.get<TeamsResponse>(`/teams?clubId=${clubId}&limit=50`);
-        return response.data.data;
+        const teams: Team[] = [];
+        let page = 1;
+        let totalPages: number;
+        do {
+            const response = await api.get<TeamsResponse>('/teams', { params: { clubId, limit: 50, page } });
+            teams.push(...response.data.data);
+            totalPages = response.data.meta.totalPages;
+            page += 1;
+        } while (page <= totalPages);
+        return teams;
     },
 
     getTeam: async (teamId: string): Promise<Team> => {

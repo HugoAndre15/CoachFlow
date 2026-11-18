@@ -8,10 +8,10 @@ import {
 } from "./roster";
 
 const statusColors: Record<PlayerStatus, string> = {
-  ACTIVE: "text-emerald-300",
-  INJURED: "text-rose-300",
-  SUSPENDED: "text-amber-300",
-  RETIRED: "text-slate-400",
+  ACTIVE: "text-accent-green",
+  INJURED: "text-accent-red",
+  SUSPENDED: "text-warning",
+  RETIRED: "text-muted",
 };
 
 export function PlayerStatusBadge({ status }: { status: PlayerStatus }) {
@@ -29,7 +29,7 @@ export function Jersey({ number }: { number?: number | null }) {
   return (
     <span
       aria-label={number == null ? "Numéro non renseigné" : `Numéro ${number}`}
-      className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] font-mono text-base font-medium tabular-nums text-slate-300"
+      className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-line bg-subtle font-mono text-base font-medium tabular-nums text-muted"
     >
       {number ?? "—"}
     </span>
@@ -47,7 +47,7 @@ export function Attendance({
   return (
     <span className={compact ? "block" : "mx-auto block w-24"}>
       <span
-        className="tabular-nums text-slate-200"
+        className="tabular-nums text-ink"
         aria-label={
           recorded
             ? `${present} présences sur ${recorded} présences renseignées, ${rate} pour cent`
@@ -57,16 +57,16 @@ export function Attendance({
         {recorded ? (
           <>
             {present}
-            <span className="text-slate-400"> / {recorded}</span>
+            <span className="text-muted"> / {recorded}</span>
           </>
         ) : (
-          <span className="text-slate-400">—</span>
+          <span className="text-muted">—</span>
         )}
       </span>
       {!compact && (
         <span
           aria-hidden="true"
-          className="mt-1.5 block h-1 overflow-hidden rounded-full bg-white/10"
+          className="mt-1.5 block h-1 overflow-hidden rounded-full bg-subtle"
         >
           <span
             className="block h-full rounded-full bg-accent-green/80"
@@ -125,7 +125,7 @@ function SortHeading({
         onClick={() => onSort(sortKey)}
         title={hint}
         aria-label={`Trier par ${hint ?? label}`}
-        className={`inline-flex min-h-12 items-center justify-center gap-1.5 whitespace-nowrap rounded px-1 text-xs focus-visible:outline-2 focus-visible:outline-accent-green ${active ? "text-accent-green" : "text-slate-400 hover:text-white"}`}
+        className={`inline-flex min-h-12 items-center justify-center gap-1.5 whitespace-nowrap rounded px-1 text-xs focus-visible:outline-2 focus-visible:outline-accent-green ${active ? "text-accent-green" : "text-muted hover:text-ink"}`}
       >
         {label}
         <Icon size={12} aria-hidden="true" />
@@ -158,7 +158,7 @@ export default function PlayerTable({
             Effectif et statistiques des matchs terminés. Ouvrez le nom du
             joueur pour consulter sa fiche.
           </caption>
-          <thead className="border-y border-white/10 bg-dark">
+          <thead className="border-y border-line bg-subtle">
             <tr>
               <th
                 scope="col"
@@ -169,11 +169,11 @@ export default function PlayerTable({
                       : "descending"
                     : "none"
                 }
-                className="sticky left-0 z-10 bg-dark px-5 text-left"
+                className="sticky left-0 z-10 bg-surface px-5 text-left"
               >
                 <button
                   onClick={() => onSort("name")}
-                  className="min-h-12 text-xs font-medium text-slate-400 hover:text-white focus-visible:outline-2 focus-visible:outline-accent-green"
+                  className="min-h-12 text-xs font-medium text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-accent-green"
                 >
                   Joueur{" "}
                   <ArrowUpDown
@@ -185,7 +185,7 @@ export default function PlayerTable({
               </th>
               <th
                 scope="col"
-                className="px-3 text-left text-xs font-medium text-slate-400"
+                className="px-3 text-left text-xs font-medium text-muted"
               >
                 Disponibilité
               </th>
@@ -201,15 +201,15 @@ export default function PlayerTable({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.06]">
+          <tbody className="divide-y divide-line">
             {players.map((p) => (
               <tr
                 key={p.id}
-                className="group hover:bg-white/[0.025] focus-within:bg-white/[0.025]"
+                className="group hover:bg-subtle focus-within:bg-subtle"
               >
                 <th
                   scope="row"
-                  className="sticky left-0 z-10 w-[260px] min-w-[220px] bg-dark-secondary px-4 text-left font-normal"
+                  className="sticky left-0 z-10 w-[260px] min-w-[220px] bg-surface px-4 text-left font-normal"
                 >
                   <button
                     onClick={() => onOpen(p)}
@@ -219,19 +219,19 @@ export default function PlayerTable({
                     <Jersey number={p.jersey_number} />
                     <span className="min-w-0 flex-1">
                       <span
-                        className="block max-w-52 truncate font-medium text-white group-hover:text-emerald-300"
+                        className="block max-w-52 truncate font-medium text-ink group-hover:text-accent-green"
                         title={`${p.first_name} ${p.last_name}`}
                       >
                         {p.first_name} {p.last_name}
                       </span>
-                      <span className="mt-0.5 block text-xs text-slate-400">
+                      <span className="mt-0.5 block text-xs text-muted">
                         {POSITIONS[p.position ?? ""] ?? "Poste à renseigner"}
                       </span>
                     </span>
                     <ChevronRight
                       size={15}
                       aria-hidden="true"
-                      className="shrink-0 text-slate-600 group-hover:text-accent-green"
+                      className="shrink-0 text-muted group-hover:text-accent-green"
                     />
                   </button>
                 </th>
@@ -241,19 +241,19 @@ export default function PlayerTable({
                 <td className="px-2 text-center">
                   <Attendance player={p} />
                 </td>
-                <td className="px-2 text-center tabular-nums text-slate-200">
+                <td className="px-2 text-center tabular-nums text-ink">
                   {p.stats.total_matches}
                 </td>
-                <td className="px-2 text-center tabular-nums text-slate-400">
+                <td className="px-2 text-center tabular-nums text-muted">
                   {p.stats.matches_as_starter}
                 </td>
                 <td
-                  className={`px-2 text-center font-semibold tabular-nums ${p.stats.goals ? "text-emerald-300" : "text-slate-400"}`}
+                  className={`px-2 text-center font-semibold tabular-nums ${p.stats.goals ? "text-accent-green" : "text-muted"}`}
                 >
                   {p.stats.goals}
                 </td>
                 <td
-                  className={`px-2 text-center tabular-nums ${p.stats.assists ? "text-white" : "text-slate-400"}`}
+                  className={`px-2 text-center tabular-nums ${p.stats.assists ? "text-ink" : "text-muted"}`}
                 >
                   {p.stats.assists}
                 </td>
@@ -263,24 +263,24 @@ export default function PlayerTable({
         </table>
       </div>
       <ul
-        className="divide-y divide-white/10 border-t border-white/10 md:hidden"
+        className="divide-y divide-line border-t border-line md:hidden"
         aria-label="Liste des joueurs"
       >
         {players.map((p) => (
           <li key={p.id}>
             <button
               onClick={() => onOpen(p)}
-              className="block w-full p-4 text-left transition-colors hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-green"
+              className="block w-full p-4 text-left transition-colors hover:bg-subtle focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-green"
             >
               <span className="sr-only">Ouvrir la fiche : </span>
               <span className="flex items-center gap-3">
                 <Jersey number={p.jersey_number} />
                 <span className="min-w-0 flex-1">
-                  <span className="block break-words text-sm font-medium text-white">
+                  <span className="block break-words text-sm font-medium text-ink">
                     {p.first_name} {p.last_name}
                   </span>
                   <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-muted">
                       {POSITIONS[p.position ?? ""] ?? "Poste à renseigner"}
                     </span>
                     <PlayerStatusBadge status={p.status} />
@@ -289,12 +289,12 @@ export default function PlayerTable({
                 <ChevronRight
                   size={18}
                   aria-hidden="true"
-                  className="shrink-0 text-slate-400"
+                  className="shrink-0 text-muted"
                 />
               </span>
-              <span className="mt-4 grid grid-cols-4 gap-1 border-t border-white/[0.06] pt-3 text-center">
+              <span className="mt-4 grid grid-cols-4 gap-1 border-t border-line pt-3 text-center">
                 <span>
-                  <span className="mb-1 block text-[11px] text-slate-400">
+                  <span className="mb-1 block text-[11px] text-muted">
                     Présences
                   </span>
                   <span className="text-sm">
@@ -302,26 +302,26 @@ export default function PlayerTable({
                   </span>
                 </span>
                 <span>
-                  <span className="mb-1 block text-[11px] text-slate-400">
+                  <span className="mb-1 block text-[11px] text-muted">
                     Joués
                   </span>
-                  <span className="text-sm tabular-nums text-slate-200">
+                  <span className="text-sm tabular-nums text-ink">
                     {p.stats.total_matches}
                   </span>
                 </span>
                 <span>
-                  <span className="mb-1 block text-[11px] text-slate-400">
+                  <span className="mb-1 block text-[11px] text-muted">
                     Buts
                   </span>
-                  <span className="text-sm font-semibold tabular-nums text-emerald-300">
+                  <span className="text-sm font-semibold tabular-nums text-accent-green">
                     {p.stats.goals}
                   </span>
                 </span>
                 <span>
-                  <span className="mb-1 block text-[11px] text-slate-400">
+                  <span className="mb-1 block text-[11px] text-muted">
                     Passes D.
                   </span>
-                  <span className="text-sm tabular-nums text-slate-200">
+                  <span className="text-sm tabular-nums text-ink">
                     {p.stats.assists}
                   </span>
                 </span>

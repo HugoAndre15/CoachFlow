@@ -177,6 +177,7 @@ export default async function (q) {
     .getByLabel("Score de notre équipe puis de l’adversaire")
     .filter({ hasText: "1 – 0" })
     .waitFor();
+  await p.getByRole("switch", { name: "Mode sombre", checked: false }).click();
   // Close/reopen the page while offline, not just a client-side navigation.
   await p.close();
   q.page = await q.context.newPage();
@@ -188,6 +189,8 @@ export default async function (q) {
     .getByLabel("Score de notre équipe puis de l’adversaire")
     .filter({ hasText: "1 – 0" })
     .waitFor();
+  assert.equal(await page.locator("html").getAttribute("data-theme"), "dark");
+  await page.getByRole("switch", { name: "Mode sombre", checked: true }).click();
   await page.getByLabel("Action", { exact: true }).selectOption("SUBSTITUTION");
   await page.getByLabel("Minute", { exact: true }).fill("25");
   await page
@@ -400,7 +403,7 @@ export default async function (q) {
   await page.route("**/offline/sync", (route) => route.abort());
   await q.context.setOffline(false);
   await page.goto(q.base + "/dashboard");
-  await page.locator("header").first().getByRole("button").last().click();
+  await page.getByRole("button", { name: "Mon compte", exact: true }).click();
   page.once("dialog", (d) => d.dismiss());
   await page.getByRole("button", { name: "Déconnexion", exact: true }).click();
   await page.waitForFunction(() => !!localStorage.getItem("token"));
@@ -412,7 +415,7 @@ export default async function (q) {
     remaining.some((r) => r.commands.length),
     "Cancelled logout preserves pending data",
   );
-  await page.locator("header").first().getByRole("button").last().click();
+  await page.getByRole("button", { name: "Mon compte", exact: true }).click();
   page.once("dialog", (d) => d.accept());
   // Observe the completed logout instead of starting a competing navigation.
   // AuthContext removes credentials before its client-side redirect commits.

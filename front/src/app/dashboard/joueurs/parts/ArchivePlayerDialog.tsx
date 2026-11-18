@@ -50,26 +50,26 @@ export default function ArchivePlayerDialog({
           <button
             onClick={archive}
             disabled={busy}
-            className={`${buttonClass} flex-1 border-rose-400/30 text-rose-300 hover:bg-rose-400/10`}
+            className={`${buttonClass} flex-1 border-rose-400/30 text-accent-red hover:bg-rose-400/10`}
           >
             {busy ? "Archivage…" : "Archiver"}
           </button>
         </>
       }
     >
-      <p className="text-sm leading-relaxed text-slate-300">
-        <strong className="text-white">
+      <p className="text-sm leading-relaxed text-muted">
+        <strong className="text-ink">
           {player.first_name} {player.last_name}
         </strong>{" "}
         sera retiré de l’effectif actuel. Ses matchs et ses statistiques seront
         conservés.
       </p>
-      <p className="mt-3 text-sm leading-relaxed text-slate-400">
+      <p className="mt-3 text-sm leading-relaxed text-muted">
         Vous pourrez retrouver sa fiche avec le filtre « Archivé » et le
         réintégrer à tout moment.
       </p>
       {error && (
-        <p role="alert" className="mt-4 text-sm text-rose-300">
+        <p role="alert" className="mt-4 text-sm text-accent-red">
           {error}
         </p>
       )}

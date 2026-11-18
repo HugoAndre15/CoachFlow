@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The Next dev badge would otherwise cover the first mobile navigation target during QA.
+  ...(process.env.COACHFLOW_QA === "1" ? { devIndicators: false } : {}),
   async headers() {
     const apiOrigin = new URL(
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api",

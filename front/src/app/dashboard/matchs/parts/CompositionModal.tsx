@@ -6,10 +6,10 @@ import { playerService, Player } from '@/services/playerService';
 import { matchService, PlayerToAdd, MatchPlayerEntry } from '@/services/matchService';
 
 const POSITION_BADGE: Record<string, { label: string; color: string }> = {
-  GOALKEEPER: { label: 'G',  color: 'bg-orange-900/30 text-orange-400' },
-  DEFENDER:   { label: 'D',  color: 'bg-blue-900/30 text-blue-400' },
-  MIDFIELDER: { label: 'M',  color: 'bg-green-900/30 text-green-400' },
-  FORWARD:    { label: 'A',  color: 'bg-red-900/30 text-red-400' },
+  GOALKEEPER: { label: 'G',  color: 'bg-warning/10 text-warning' },
+  DEFENDER:   { label: 'D',  color: 'bg-accent-blue/10 text-accent-blue' },
+  MIDFIELDER: { label: 'M',  color: 'bg-wash text-accent-green' },
+  FORWARD:    { label: 'A',  color: 'bg-accent-red/10 text-accent-red' },
 };
 
 const MAX_STARTERS = 11;
@@ -150,7 +150,7 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
             </div>
             <div>
               <h2 className="text-lg font-bold text-dark dark:text-white">Composition</h2>
-              <p className="text-[11px] text-dark-light/50 dark:text-neutral/50">
+              <p className="text-[11px] text-muted">
                 {selectionOrder.length} joueur{selectionOrder.length !== 1 ? 's' : ''} sélectionné{selectionOrder.length !== 1 ? 's' : ''}
                 <span className="mx-1">·</span>
                 {startersCount} titu. · {substitutesCount} rempl.
@@ -168,7 +168,7 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
         {/* Search */}
         <div className="px-6 pt-4 pb-2 flex-shrink-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-light/40 dark:text-neutral/40 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
             <input
               type="text"
               placeholder="Rechercher un joueur..."
@@ -188,7 +188,7 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
               ))}
             </div>
           ) : filteredPlayers.length === 0 ? (
-            <div className="text-center py-10 text-dark-light/50 dark:text-neutral/50 text-sm">
+            <div className="text-center py-10 text-muted text-sm">
               {search ? 'Aucun joueur trouvé' : 'Aucun joueur actif dans l\'équipe'}
             </div>
           ) : (
@@ -222,7 +222,7 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
 
                     {/* Order number */}
                     {isSelected && (
-                      <span className="w-5 text-center text-[10px] font-bold text-dark-light/60 dark:text-neutral/50">
+                      <span className="w-5 text-center text-[10px] font-bold text-muted">
                         {selIndex + 1}
                       </span>
                     )}
@@ -285,7 +285,7 @@ export default function CompositionModal({ isOpen, onClose, onSuccess, matchId, 
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || selectionOrder.length === 0}
-            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-accent-green text-white hover:bg-accent-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-action text-on-action hover:bg-action-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Sauvegarde...' : 'Valider la composition'}
           </button>

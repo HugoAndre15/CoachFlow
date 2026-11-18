@@ -91,7 +91,7 @@ export default function DeleteClubModal({ isOpen, onClose, onSuccess, clubId, cl
             type="button"
             onClick={handleDelete}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 bg-accent-red text-white rounded-lg font-medium hover:bg-accent-red/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-3 bg-rose-700 text-white rounded-lg font-medium hover:bg-rose-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>

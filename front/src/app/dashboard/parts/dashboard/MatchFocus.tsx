@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CalendarDays, MapPin, Radio } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin, Radio, Smartphone } from "lucide-react";
 import type { TeamDashboardData } from "@/services/dashboardService";
 import { buttonClass, primaryClass } from "../../joueurs/parts/roster";
 
@@ -17,7 +17,7 @@ export default function MatchFocus({
     return (
       <section
         aria-labelledby="match-focus-title"
-        className="flex min-w-0 flex-col items-start justify-center rounded-2xl border border-dashed border-white/20 p-6 sm:p-8"
+        className="flex min-w-0 flex-col items-start justify-center rounded-2xl border border-dashed border-line p-6 sm:p-8"
       >
         <CalendarDays
           size={25}
@@ -27,7 +27,7 @@ export default function MatchFocus({
         <h2 id="match-focus-title" className="text-2xl font-semibold">
           Le prochain match commence ici.
         </h2>
-        <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-400">
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
           Un adversaire, une date, puis les présences. Tout sera prêt pour le
           jour du match.
         </p>
@@ -41,12 +41,12 @@ export default function MatchFocus({
   return (
     <section
       aria-labelledby="match-focus-title"
-      className="relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-accent-green/25 bg-dark-secondary"
+      className="relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-accent-green/25 bg-surface"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-wash px-5 py-4 sm:px-6">
         <h2
           id="match-focus-title"
-          className="flex items-center gap-2 text-sm font-medium text-emerald-300"
+          className="flex items-center gap-2 text-sm font-medium text-accent-green"
         >
           {live ? (
             <Radio size={17} aria-hidden="true" />
@@ -55,7 +55,7 @@ export default function MatchFocus({
           )}
           {live ? "Match en cours" : "Prochain rendez-vous"}
         </h2>
-        <span className="flex items-center gap-1.5 text-xs text-slate-400">
+        <span className="flex items-center gap-1.5 text-xs text-muted">
           <MapPin size={14} aria-hidden="true" />
           {match.location === "HOME" ? "À domicile" : "À l’extérieur"}
         </span>
@@ -64,19 +64,19 @@ export default function MatchFocus({
         <div className="flex items-start gap-4 sm:gap-6">
           <time
             dateTime={match.date}
-            className="flex w-16 shrink-0 flex-col items-center border-r border-white/10 pr-4 sm:w-20 sm:pr-6"
+            className="flex w-16 shrink-0 flex-col items-center border-r border-line pr-4 sm:w-20 sm:pr-6"
             aria-label={date.toLocaleString("fr-FR", {
               dateStyle: "full",
               timeStyle: "short",
             })}
           >
-            <span className="text-xs uppercase text-slate-400">
+            <span className="text-xs uppercase text-muted">
               {date.toLocaleDateString("fr-FR", { month: "short" })}
             </span>
             <span className="my-1 text-4xl font-semibold tabular-nums">
               {date.getDate()}
             </span>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-muted">
               {date.toLocaleTimeString("fr-FR", {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -84,8 +84,8 @@ export default function MatchFocus({
             </span>
           </time>
           <div className="min-w-0 flex-1">
-            <p className="break-words text-sm text-slate-400">{teamName}</p>
-            <p className="mt-1 text-xs text-slate-400">contre</p>
+            <p className="break-words text-sm text-muted">{teamName}</p>
+            <p className="mt-1 text-xs text-muted">contre</p>
             <p className="mt-1 break-words text-xl font-semibold leading-snug sm:text-2xl">
               {match.opponent}
             </p>
@@ -95,28 +95,28 @@ export default function MatchFocus({
                 aria-label={`Score : ${teamName} ${match.scored}, ${match.opponent} ${match.conceded}`}
               >
                 {match.scored}
-                <span className="mx-3 text-slate-600">–</span>
+                <span className="mx-3 text-muted">–</span>
                 {match.conceded}
               </p>
             )}
           </div>
         </div>
         {!live && (
-          <div className="my-5 flex flex-wrap gap-x-5 gap-y-2 border-y border-white/10 py-4 text-xs">
+          <div className="my-5 flex flex-wrap gap-x-5 gap-y-2 border-y border-line py-4 text-xs">
             <span>
-              <strong className="mr-1 text-base text-emerald-300">
+              <strong className="mr-1 text-base text-accent-green">
                 {match.attendance.present}
               </strong>{" "}
               présents
             </span>
             <span>
-              <strong className="mr-1 text-base text-amber-200">
+              <strong className="mr-1 text-base text-warning">
                 {match.attendance.uncertain}
               </strong>{" "}
               incertains
             </span>
             <span>
-              <strong className="mr-1 text-base text-slate-200">
+              <strong className="mr-1 text-base text-ink">
                 {match.attendance.unknown}
               </strong>{" "}
               à renseigner
@@ -145,9 +145,12 @@ export default function MatchFocus({
             {live ? "Reprendre le direct" : "Préparer le match"}
             <ArrowRight size={17} aria-hidden="true" />
           </Link>
+          <Link href={`/terrain/index.html#match=${match.id}`} className={`${buttonClass} flex-1 whitespace-nowrap sm:flex-none`}>
+            <Smartphone size={16} aria-hidden="true" /> Carnet Terrain
+          </Link>
           <Link
             href="/dashboard/matchs"
-            className={`${buttonClass} w-full sm:w-auto`}
+            className="inline-flex min-h-11 flex-1 items-center justify-center text-sm font-medium text-muted underline decoration-line underline-offset-4 hover:text-ink sm:flex-none"
           >
             Tous les matchs
           </Link>
@@ -155,7 +158,7 @@ export default function MatchFocus({
         {live && data.next && (
           <Link
             href={`/dashboard/matchs/${data.next.id}`}
-            className="mt-4 flex min-h-11 items-center justify-between gap-3 border-t border-white/10 pt-3 text-xs text-slate-400 hover:text-white focus-visible:outline-2 focus-visible:outline-accent-green"
+            className="mt-4 flex min-h-11 items-center justify-between gap-3 border-t border-line pt-3 text-xs text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-accent-green"
           >
             <span className="min-w-0 break-words">
               Ensuite : {data.next.opponent} ·{" "}

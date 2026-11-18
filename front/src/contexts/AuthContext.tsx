@@ -75,8 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
   const register = async (data: { firstName: string; lastName: string; email: string; password: string }) => {
-    await authService.register(data);
-    router.push('/login');
+    const session = await authService.register(data);
+    setUser(session.user);
+    router.replace('/dashboard');
   };
 
   const logout = async () => {

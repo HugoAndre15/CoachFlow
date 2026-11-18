@@ -118,7 +118,7 @@ function MatchCard({
               {cfg.label}
             </span>
           </div>
-          <span className="text-xs text-dark-light/50 dark:text-neutral/50">
+          <span className="text-xs text-muted">
             {relativeDate(match.match_date)}
           </span>
         </div>
@@ -132,7 +132,7 @@ function MatchCard({
             </div>
             <p className="text-sm font-bold text-dark dark:text-white truncate">{teamName}</p>
             {match.location === 'HOME' && (
-              <span className="text-[10px] text-dark-light/40 dark:text-neutral/40">Domicile</span>
+              <span className="text-[10px] text-muted">Domicile</span>
             )}
           </div>
 
@@ -143,7 +143,7 @@ function MatchCard({
                 {match.score.home} - {match.score.away}
               </span>
             ) : (
-              <span className="text-lg font-black text-dark-light/30 dark:text-neutral/30">VS</span>
+              <span className="text-lg font-black text-muted">VS</span>
             )}
           </div>
 
@@ -154,13 +154,13 @@ function MatchCard({
             </div>
             <p className="text-sm font-bold text-dark dark:text-white truncate">{match.opponent}</p>
             {match.location === 'AWAY' && (
-              <span className="text-[10px] text-dark-light/40 dark:text-neutral/40">Extérieur</span>
+              <span className="text-[10px] text-muted">Extérieur</span>
             )}
           </div>
         </div>
 
         {/* Info row */}
-        <div className="flex items-center justify-center gap-4 text-xs text-dark-light/60 dark:text-neutral/50 mb-4">
+        <div className="flex items-center justify-center gap-4 text-xs text-muted mb-4">
           <span className="flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5" />
             {formatDate(match.match_date)}
@@ -177,7 +177,7 @@ function MatchCard({
 
         {/* Stats bar */}
         {match._count && (
-          <div className="flex items-center justify-center gap-4 text-xs text-dark-light/50 dark:text-neutral/40 pb-3 border-b border-neutral/10 dark:border-dark-light mb-3">
+          <div className="flex items-center justify-center gap-4 text-xs text-muted pb-3 border-b border-neutral/10 dark:border-dark-light mb-3">
             <span className="flex items-center gap-1">
               <Users className="w-3.5 h-3.5" />
               {match._count.matchPlayers} joueur{match._count.matchPlayers !== 1 ? 's' : ''} suivi{match._count.matchPlayers !== 1 ? 's' : ''}
@@ -196,7 +196,7 @@ function MatchCard({
           {isUpcoming && (
             <button
               onClick={onComposition}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-accent-green text-white hover:bg-accent-green/90 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-action text-on-action hover:bg-action-hover transition-colors"
             >
               <Users className="w-3.5 h-3.5" />
               Préparer le match
@@ -319,7 +319,7 @@ export default function MatchsPage() {
       <div className="flex flex-col items-center justify-center py-32 text-center">
         <Calendar className="w-12 h-12 text-neutral mb-4" />
         <p className="text-dark-light dark:text-neutral font-medium">Aucune équipe sélectionnée</p>
-        <p className="text-sm text-dark-light/50 dark:text-neutral/50 mt-1">
+        <p className="text-sm text-muted mt-1">
           Sélectionnez une équipe dans la barre de navigation
         </p>
       </div>
@@ -368,7 +368,7 @@ export default function MatchsPage() {
             Matchs
           </h1>
           {activeTeam && (
-            <p className="text-sm text-dark-light/70 dark:text-neutral mt-1">
+            <p className="text-sm text-muted mt-1">
               {activeTeam.name}
               {activeTeam.category && (
                 <span className="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-green/10 text-accent-green">
@@ -380,7 +380,7 @@ export default function MatchsPage() {
         </div>
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-accent-green text-white rounded-xl text-sm font-medium hover:bg-accent-green/90 transition-colors shadow-sm hover:shadow-md"
+          className="flex items-center gap-2 px-4 py-2.5 bg-action text-on-action rounded-xl text-sm font-medium hover:bg-action-hover transition-colors shadow-sm hover:shadow-md"
         >
           <Plus className="w-4 h-4" />
           Nouveau match
@@ -391,11 +391,11 @@ export default function MatchsPage() {
       <div className="flex flex-wrap gap-3">
         <div className="bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-xl px-5 py-4 min-w-[100px]">
           <p className="text-2xl font-bold text-dark dark:text-white">{stats.total}</p>
-          <p className="text-xs text-dark-light/60 dark:text-neutral">Total</p>
+          <p className="text-xs text-muted">Total</p>
         </div>
         <div className="bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-xl px-5 py-4 min-w-[100px]">
           <p className="text-2xl font-bold text-accent-blue">{stats.upcoming}</p>
-          <p className="text-xs text-dark-light/60 dark:text-neutral">À venir</p>
+          <p className="text-xs text-muted">À venir</p>
         </div>
         {stats.live > 0 && (
           <div className="bg-accent-green/5 border border-accent-green/30 rounded-xl px-5 py-4 min-w-[100px]">
@@ -408,7 +408,7 @@ export default function MatchsPage() {
         )}
         <div className="bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-xl px-5 py-4 min-w-[100px]">
           <p className="text-2xl font-bold text-dark-light dark:text-neutral">{stats.finished}</p>
-          <p className="text-xs text-dark-light/60 dark:text-neutral">Terminés</p>
+          <p className="text-xs text-muted">Terminés</p>
         </div>
       </div>
 
@@ -416,7 +416,7 @@ export default function MatchsPage() {
       <div className="bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-2xl p-5 space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-light/40 dark:text-neutral/40 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
           <input
             type="text"
             placeholder="Rechercher un adversaire..."
@@ -434,7 +434,7 @@ export default function MatchsPage() {
               onClick={() => setStatusFilter(tab.key)}
               className={`px-3.5 py-1 rounded-full text-xs font-medium transition-colors ${
                 statusFilter === tab.key
-                  ? 'bg-accent-green text-white'
+                  ? 'bg-action text-on-action'
                   : 'bg-neutral/10 dark:bg-dark-light text-dark-light dark:text-neutral hover:bg-neutral/20 dark:hover:bg-dark-secondary'
               }`}
             >
@@ -449,7 +449,7 @@ export default function MatchsPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Calendar className="w-10 h-10 text-neutral mb-3" />
           <p className="text-dark-light dark:text-neutral font-medium">Aucun match</p>
-          <p className="text-sm text-dark-light/50 dark:text-neutral/50 mt-1 mb-4">
+          <p className="text-sm text-muted mt-1 mb-4">
             {statusFilter || searchQuery
               ? 'Aucun match ne correspond aux filtres'
               : 'Planifiez votre premier match'}
@@ -457,7 +457,7 @@ export default function MatchsPage() {
           {!statusFilter && !searchQuery && (
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-green text-white rounded-xl text-sm font-medium hover:bg-accent-green/90 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-action text-on-action rounded-xl text-sm font-medium hover:bg-action-hover transition-colors"
             >
               <Plus className="w-4 h-4" />
               Nouveau match
@@ -502,10 +502,10 @@ export default function MatchsPage() {
                 onClick={() => setCollapsedUpcoming(p => !p)}
                 className="flex items-center gap-2 mb-3 group w-full text-left"
               >
-                <h2 className="text-sm font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide flex-1">
+                <h2 className="text-sm font-semibold text-muted uppercase tracking-wide flex-1">
                   À venir ({grouped.upcoming.length})
                 </h2>
-                {collapsedUpcoming ? <ChevronDown className="w-4 h-4 text-dark-light/40 dark:text-neutral/40" /> : <ChevronUp className="w-4 h-4 text-dark-light/40 dark:text-neutral/40" />}
+                {collapsedUpcoming ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronUp className="w-4 h-4 text-muted" />}
               </button>
               {!collapsedUpcoming && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -530,10 +530,10 @@ export default function MatchsPage() {
                 onClick={() => setCollapsedFinished(p => !p)}
                 className="flex items-center gap-2 mb-3 group w-full text-left"
               >
-                <h2 className="text-sm font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide flex-1">
+                <h2 className="text-sm font-semibold text-muted uppercase tracking-wide flex-1">
                   Terminés ({grouped.finished.length})
                 </h2>
-                {collapsedFinished ? <ChevronDown className="w-4 h-4 text-dark-light/40 dark:text-neutral/40" /> : <ChevronUp className="w-4 h-4 text-dark-light/40 dark:text-neutral/40" />}
+                {collapsedFinished ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronUp className="w-4 h-4 text-muted" />}
               </button>
               {!collapsedFinished && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
