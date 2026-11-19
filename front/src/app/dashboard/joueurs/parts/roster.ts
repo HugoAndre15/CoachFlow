@@ -123,8 +123,8 @@ export function requestError(error: unknown, fallback: string): string {
 }
 
 export const fieldClass =
-  "min-h-11 w-full rounded-lg border border-white/15 bg-dark px-3 py-2 text-base text-white outline-none placeholder:text-slate-500 focus:border-accent-green focus:ring-2 focus:ring-accent-green/25 disabled:opacity-50";
+  "min-h-11 w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink outline-none placeholder:text-muted focus:border-accent-green focus:ring-2 focus:ring-accent-green/25 disabled:opacity-50";
 export const buttonClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-green disabled:cursor-wait disabled:opacity-50";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-green disabled:cursor-wait disabled:opacity-50";
 export const primaryClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent-green px-4 py-2 text-sm font-semibold text-dark transition-colors hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-green disabled:cursor-wait disabled:opacity-50";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-green disabled:cursor-wait disabled:opacity-50";

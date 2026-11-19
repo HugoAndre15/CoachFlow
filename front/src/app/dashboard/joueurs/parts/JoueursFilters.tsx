@@ -27,7 +27,7 @@ export default function JoueursFilters({
             Rechercher un joueur par nom ou numéro
           </label>
           <Search
-            className="pointer-events-none absolute left-3 top-3.5 text-slate-400"
+            className="pointer-events-none absolute left-3 top-3.5 text-muted"
             size={17}
             aria-hidden="true"
           />
@@ -43,7 +43,7 @@ export default function JoueursFilters({
             <button
               onClick={() => update({ search: "" })}
               aria-label="Effacer la recherche"
-              className="absolute right-0 top-0 flex size-11 items-center justify-center rounded-lg text-slate-400 hover:text-white focus-visible:outline-2 focus-visible:outline-accent-green"
+              className="absolute right-0 top-0 flex size-11 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-accent-green"
             >
               <X size={16} aria-hidden="true" />
             </button>
@@ -87,7 +87,7 @@ export default function JoueursFilters({
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <label htmlFor="roster-sort" className="mr-1 text-slate-400">
+        <label htmlFor="roster-sort" className="mr-1 text-muted">
           Trier par
         </label>
         <select
@@ -100,7 +100,7 @@ export default function JoueursFilters({
               direction: sort === "name" || sort === "number" ? "asc" : "desc",
             });
           }}
-          className="min-h-11 min-w-0 rounded-lg border border-white/10 bg-dark px-3 text-base text-slate-200 sm:text-sm focus-visible:outline-2 focus-visible:outline-accent-green"
+          className="min-h-11 min-w-0 rounded-lg border border-line bg-surface px-3 text-base text-ink sm:text-sm focus-visible:outline-2 focus-visible:outline-accent-green"
         >
           {Object.entries(SORTS).map(([value, label]) => (
             <option key={value} value={value}>

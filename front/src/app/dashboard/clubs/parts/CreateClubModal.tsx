@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import RosterDialog from '../../joueurs/parts/RosterDialog';
 import { clubService } from '@/services/clubService';
 
 interface CreateClubModalProps {
@@ -36,6 +37,7 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }: CreateCl
     } catch (err: any) {
       console.error('Error creating club:', err);
       setError(err.response?.data?.message || 'Erreur lors de la création du club');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -51,35 +53,8 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }: CreateCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-dark-lighter rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          disabled={isLoading}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-neutral-lightest transition-colors disabled:opacity-50"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        {/* Header */}
-        <div className="mb-6">
-          <div className="w-12 h-12 bg-accent-green/10 rounded-lg flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-neutral-lightest">
-            Créer un nouveau club
-          </h2>
-          <p className="text-gray-600 dark:text-neutral mt-2">
-            Vous serez automatiquement désigné comme président du club
-          </p>
-        </div>
-
-        {/* Form */}
+    <RosterDialog title="Créer un nouveau club" onClose={handleClose} busy={isLoading}>
+      <p className="mb-5 text-sm text-muted">Vous serez président de ce club dans CoachFlow.</p>
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
             <label htmlFor="clubName" className="block text-sm font-medium text-gray-700 dark:text-neutral mb-2">
@@ -120,7 +95,7 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }: CreateCl
             <button
               type="submit"
               disabled={isLoading || clubName.trim().length < 3}
-              className="flex-1 px-4 py-3 bg-accent-green hover:bg-accent-green/90 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 bg-action hover:bg-action-hover text-on-action rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -138,7 +113,6 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }: CreateCl
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </RosterDialog>
   );
 }

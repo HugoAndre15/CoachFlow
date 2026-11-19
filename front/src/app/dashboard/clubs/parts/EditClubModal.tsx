@@ -124,7 +124,7 @@ export default function EditClubModal({ isOpen, onClose, onSuccess, clubId, curr
             <button
               type="submit"
               disabled={isLoading || clubName.trim().length < 3}
-              className="flex-1 px-4 py-3 bg-accent-green text-white rounded-lg font-medium hover:bg-accent-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 bg-action text-on-action rounded-lg font-medium hover:bg-action-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>

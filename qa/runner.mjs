@@ -40,7 +40,7 @@ start('backend',['dist/src/main.js'],root+'/back',{
   JWT_SECRET:'coachflow-isolated-qa-only-20261016',JWT_EXPIRES_IN:'1d',NODE_ENV:'test',PORT:'4301',CORS_ORIGIN:'http://127.0.0.1:4300'
 });
 start('frontend',['node_modules/next/dist/bin/next','dev','-p','4300','-H','127.0.0.1'],root+'/front',{
-  NEXT_PUBLIC_API_URL:'http://127.0.0.1:4301/api',NEXT_TELEMETRY_DISABLED:'1'
+  COACHFLOW_QA:'1',NEXT_PUBLIC_API_URL:'http://127.0.0.1:4301/api',NEXT_TELEMETRY_DISABLED:'1'
 });
 async function ready(url) {
   for(let i=0;i<120;i++) {try {const res=await fetch(url);if(res.ok)return;}catch{} await new Promise(r=>setTimeout(r,500));}
@@ -56,7 +56,7 @@ async function close(code=0){if(closing)return;closing=true;for(const child of c
 process.on('SIGINT',()=>close(130));process.on('SIGTERM',()=>close(143));
 const all=process.argv.includes('--all');
 const demo=process.argv.includes('--demo');
-const names=demo?['seed','dashboard-seed']:['landing','seed','player-management','match-flow','roster-responsive','periods-history','dashboard','dashboard-states','dashboard-accessibility','offline','final-check'];
+const names=demo?['seed','dashboard-seed']:['landing','seed','interface','player-management','match-flow','roster-responsive','periods-history','dashboard','dashboard-states','dashboard-accessibility','offline','final-check'];
 const scripts=all||demo?names.map(s=>path.join(here,s+'.mjs')):readline.createInterface({input:process.stdin});
 for await(const line of scripts) {
   if(!line.trim())continue;

@@ -124,7 +124,7 @@ export default function MatchSummaryModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-dark-light/50 dark:text-neutral/50 hover:bg-neutral/10 dark:hover:bg-dark-secondary/30 transition-colors"
+            className="p-1.5 rounded-lg text-muted hover:bg-neutral/10 dark:hover:bg-dark-secondary/30 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -135,7 +135,7 @@ export default function MatchSummaryModal({
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="w-8 h-8 border-2 border-accent-green/30 border-t-accent-green rounded-full animate-spin" />
-              <p className="text-sm text-dark-light/60 dark:text-neutral/50 mt-3">Chargement des statistiques…</p>
+              <p className="text-sm text-muted mt-3">Chargement des statistiques…</p>
             </div>
           )}
 
@@ -167,7 +167,7 @@ export default function MatchSummaryModal({
                     <div className="text-3xl font-black text-dark dark:text-white">
                       {stats.totalGoals} - {stats.totalOpponentGoals}
                     </div>
-                    <span className="text-[10px] text-dark-light/50 dark:text-neutral/50 uppercase tracking-wide mt-1">
+                    <span className="text-[10px] text-muted uppercase tracking-wide mt-1">
                       Score
                     </span>
                   </div>
@@ -182,7 +182,7 @@ export default function MatchSummaryModal({
                 </div>
 
                 {/* Match meta */}
-                <div className="flex items-center justify-center gap-4 text-xs text-dark-light/60 dark:text-neutral/50">
+                <div className="flex items-center justify-center gap-4 text-xs text-muted">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
                     {formatDateFull(stats.matchDate)} à {formatTime(stats.matchDate)}
@@ -200,7 +200,7 @@ export default function MatchSummaryModal({
 
               {/* ── Key stats grid ─────────────────────────────────────── */}
               <div>
-                <h3 className="text-xs font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide mb-3">
+                <h3 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
                   Statistiques clés
                 </h3>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -214,7 +214,7 @@ export default function MatchSummaryModal({
                   ].map(stat => (
                     <div key={stat.label} className={`${stat.bg} rounded-xl p-3 text-center`}>
                       <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                      <p className="text-[10px] text-dark-light/60 dark:text-neutral/50 font-medium mt-0.5">{stat.label}</p>
+                      <p className="text-[10px] text-muted font-medium mt-0.5">{stat.label}</p>
                     </div>
                   ))}
                 </div>
@@ -223,7 +223,7 @@ export default function MatchSummaryModal({
               {/* ── Top performers ─────────────────────────────────────── */}
               {(stats.topScorer || stats.topAssister) && (
                 <div>
-                  <h3 className="text-xs font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide mb-3">
+                  <h3 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
                     Joueurs clés
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -264,7 +264,7 @@ export default function MatchSummaryModal({
               {/* ── Timeline ───────────────────────────────────────────── */}
               {stats.timeline.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide mb-3">
+                  <h3 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
                     Chronologie ({stats.timeline.length} événement{stats.timeline.length !== 1 ? 's' : ''})
                   </h3>
                   <div className="relative space-y-0">
@@ -291,7 +291,7 @@ export default function MatchSummaryModal({
                             <span className={cfg.color}>{cfg.icon}</span>
                             <span className="text-sm text-dark dark:text-white font-medium truncate">
                               {event.jerseyNumber != null && (
-                                <span className="text-dark-light/40 dark:text-neutral/40 mr-1">#{event.jerseyNumber}</span>
+                                <span className="text-muted mr-1">#{event.jerseyNumber}</span>
                               )}
                               {event.playerName}
                             </span>
@@ -310,7 +310,7 @@ export default function MatchSummaryModal({
               {stats.timeline.length === 0 && (
                 <div className="text-center py-6">
                   <Clock className="w-8 h-8 text-neutral mx-auto mb-2" />
-                  <p className="text-sm text-dark-light/60 dark:text-neutral/50">Aucun événement enregistré pour ce match</p>
+                  <p className="text-sm text-muted">Aucun événement enregistré pour ce match</p>
                 </div>
               )}
             </>

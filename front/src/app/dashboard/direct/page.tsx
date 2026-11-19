@@ -65,7 +65,7 @@ const EVENT_CONFIG: Record<MatchEventType, {
     label: 'Carton jaune',
     shortLabel: 'C. Jaune',
     icon: <AlertTriangle className="w-4 h-4" />,
-    color: 'text-yellow-500',
+    color: 'text-warning',
     bg: 'bg-yellow-500/10',
     border: 'border-yellow-500/30',
   },
@@ -89,7 +89,7 @@ const EVENT_CONFIG: Record<MatchEventType, {
     label: 'Perte de balle',
     shortLabel: 'Perte',
     icon: <TrendingDown className="w-4 h-4" />,
-    color: 'text-orange-500',
+    color: 'text-warning',
     bg: 'bg-orange-500/10',
     border: 'border-orange-500/30',
   },
@@ -97,7 +97,7 @@ const EVENT_CONFIG: Record<MatchEventType, {
     label: 'Changement',
     shortLabel: 'Chang.',
     icon: <ArrowLeftRight className="w-4 h-4" />,
-    color: 'text-purple-500',
+    color: 'text-violet-ink',
     bg: 'bg-purple-500/10',
     border: 'border-purple-500/30',
   },
@@ -172,7 +172,7 @@ function MatchSelector({
       <div className="text-center">
         <Radio className="w-10 h-10 text-accent-green mx-auto mb-3" />
         <h2 className="text-xl font-bold text-dark dark:text-white">Mode Direct</h2>
-        <p className="text-sm text-dark-light/60 dark:text-neutral/50 mt-1">
+        <p className="text-sm text-muted mt-1">
           Sélectionnez un match pour commencer le suivi en direct
         </p>
       </div>
@@ -212,7 +212,7 @@ function MatchSelector({
 
       {upcomingMatches.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide mb-3">
+          <h3 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
             À venir ({upcomingMatches.length})
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -229,13 +229,13 @@ function MatchSelector({
                   <p className="text-sm font-bold text-dark dark:text-white truncate">
                     {teamName} vs {m.opponent}
                   </p>
-                  <p className="text-xs text-dark-light/50 dark:text-neutral/50 mt-0.5">
+                  <p className="text-xs text-muted mt-0.5">
                     {new Date(m.match_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     {' · '}
                     {m.location === 'HOME' ? 'Domicile' : 'Extérieur'}
                   </p>
                 </div>
-                <Play className="w-4 h-4 text-dark-light/30 dark:text-neutral/30 group-hover:text-accent-green transition-colors" />
+                <Play className="w-4 h-4 text-muted group-hover:text-accent-green transition-colors" />
               </button>
             ))}
           </div>
@@ -244,7 +244,7 @@ function MatchSelector({
 
       {liveMatches.length === 0 && upcomingMatches.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-dark-light/60 dark:text-neutral/50 text-sm">
+          <p className="text-muted text-sm">
             Aucun match en direct ou à venir.
           </p>
         </div>
@@ -309,7 +309,7 @@ function PlayerPickerOverlay({
         }`}
       >
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
-          isExpelled ? 'bg-red-100 dark:bg-red-900/30 text-red-500' : 'bg-accent-green/10 text-accent-green'
+          isExpelled ? 'bg-red-100 dark:bg-red-900/30 text-accent-red' : 'bg-accent-green/10 text-accent-green'
         }`}>
           {mp.player.jersey_number ?? '–'}
         </div>
@@ -318,9 +318,9 @@ function PlayerPickerOverlay({
             {mp.player.first_name} {mp.player.last_name}
           </p>
           {isExpelled ? (
-            <span className="text-[10px] text-red-500 font-semibold uppercase">Expulsé</span>
+            <span className="text-[10px] text-accent-red font-semibold uppercase">Expulsé</span>
           ) : mp.player.position ? (
-            <span className="text-[10px] text-dark-light/50 dark:text-neutral/50 uppercase">
+            <span className="text-[10px] text-muted uppercase">
               {positionLabel(mp.player.position)}
             </span>
           ) : null}
@@ -360,14 +360,14 @@ function PlayerPickerOverlay({
           )}
           {!onlyStarters && filterBySearch(substitutes).length > 0 && (
             <div>
-              <p className="text-[11px] font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide mb-2">Remplaçants</p>
+              <p className="text-[11px] font-semibold text-muted uppercase tracking-wide mb-2">Remplaçants</p>
               <div className="grid grid-cols-2 gap-2">
                 {filterBySearch(substitutes).map(mp => <PlayerButton key={mp.player_id} mp={mp} />)}
               </div>
             </div>
           )}
           {filterBySearch(starters).length === 0 && (onlyStarters || filterBySearch(substitutes).length === 0) && (
-            <p className="text-center text-dark-light/50 dark:text-neutral/50 text-sm py-6">Aucun joueur trouvé</p>
+            <p className="text-center text-muted text-sm py-6">Aucun joueur trouvé</p>
           )}
         </div>
       </div>
@@ -406,7 +406,7 @@ function OpponentJerseyOverlay({
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="text-xs font-medium text-dark-light/60 dark:text-neutral/60 mb-1.5 block">
+            <label className="text-xs font-medium text-muted mb-1.5 block">
               N° du joueur adverse (optionnel)
             </label>
             <input
@@ -421,7 +421,7 @@ function OpponentJerseyOverlay({
           </div>
           <button
             onClick={() => onSubmit(jersey)}
-            className="w-full py-2.5 rounded-xl text-sm font-medium bg-accent-red text-white hover:bg-accent-red/90 transition-colors"
+            className="w-full py-2.5 rounded-xl text-sm font-medium bg-rose-700 text-white hover:bg-rose-800 transition-colors"
           >
             Valider
           </button>
@@ -493,7 +493,7 @@ function ZonePickerOverlay({
                   <span className={`text-[10px] font-semibold text-center leading-tight whitespace-pre-line transition-colors ${
                     hovered === zone.key
                       ? 'text-accent-green'
-                      : 'text-dark-light/45 dark:text-neutral/45'
+                      : 'text-muted'
                   }`}>
                     {zone.label}
                   </span>
@@ -531,7 +531,7 @@ function ZonePickerOverlay({
           {/* Skip */}
           <button
             onClick={onSkip}
-            className="w-full py-2 text-xs text-dark-light/40 dark:text-neutral/40 hover:text-dark-light dark:hover:text-neutral transition-colors"
+            className="w-full py-2 text-xs text-muted hover:text-dark-light dark:hover:text-neutral transition-colors"
           >
             Passer (pas de zone)
           </button>
@@ -697,7 +697,7 @@ function BodyPartPickerOverlay({
           {/* Skip */}
           <button
             onClick={onSkip}
-            className="w-full py-2 text-xs text-dark-light/40 dark:text-neutral/40 hover:text-dark-light dark:hover:text-neutral transition-colors"
+            className="w-full py-2 text-xs text-muted hover:text-dark-light dark:hover:text-neutral transition-colors"
           >
             Passer
           </button>
@@ -733,7 +733,7 @@ function AssistPickerOverlay({
         <div className="flex items-center justify-between p-5 border-b border-neutral/20 dark:border-dark-light">
           <div>
             <h3 className="text-base font-bold text-dark dark:text-white">Passe décisive ?</h3>
-            <p className="text-xs text-dark-light/50 dark:text-neutral/50 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Quel joueur a fait la passe décisive ?
             </p>
           </div>
@@ -757,7 +757,7 @@ function AssistPickerOverlay({
                   }`}
                 >
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
-                    isExpelled ? 'bg-red-100 dark:bg-red-900/30 text-red-500' : 'bg-accent-blue/10 text-accent-blue'
+                    isExpelled ? 'bg-red-100 dark:bg-red-900/30 text-accent-red' : 'bg-accent-blue/10 text-accent-blue'
                   }`}>
                     {mp.player.jersey_number ?? '–'}
                   </div>
@@ -766,7 +766,7 @@ function AssistPickerOverlay({
                       {mp.player.first_name} {mp.player.last_name}
                     </p>
                     {isExpelled && (
-                      <span className="text-[10px] text-red-500 font-semibold uppercase">Expulsé</span>
+                      <span className="text-[10px] text-accent-red font-semibold uppercase">Expulsé</span>
                     )}
                   </div>
                 </button>
@@ -1375,7 +1375,7 @@ export default function DirectPage() {
       <div className="flex flex-col items-center justify-center py-32 text-center">
         <Radio className="w-12 h-12 text-neutral mb-4" />
         <p className="text-dark-light dark:text-neutral font-medium">Aucune équipe sélectionnée</p>
-        <p className="text-sm text-dark-light/50 dark:text-neutral/50 mt-1">
+        <p className="text-sm text-muted mt-1">
           Sélectionnez une équipe dans la barre de navigation
         </p>
       </div>
@@ -1413,7 +1413,7 @@ export default function DirectPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-dark dark:text-white leading-tight">Direct</h1>
           {activeTeam && (
-            <p className="text-sm text-dark-light/70 dark:text-neutral mt-1">
+            <p className="text-sm text-muted mt-1">
               {activeTeam.name}
               {activeTeam.category && (
                 <span className="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent-green/10 text-accent-green">
@@ -1444,7 +1444,7 @@ export default function DirectPage() {
             <LivePulse />
             <h1 className="text-lg md:text-xl font-bold text-dark dark:text-white">Direct</h1>
           </div>
-          <p className="text-xs text-dark-light/50 dark:text-neutral/50 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             {selectedMatch.team?.name} vs {selectedMatch.opponent}
             {' · '}
             {selectedMatch.location === 'HOME' ? 'Domicile' : 'Extérieur'}
@@ -1478,7 +1478,7 @@ export default function DirectPage() {
             <div className="text-center">
               <div className="flex items-center gap-3">
                 <span className="text-4xl md:text-5xl font-black text-dark dark:text-white">{ourGoalCount}</span>
-                <span className="text-2xl md:text-3xl font-bold text-dark-light/25 dark:text-neutral/25">–</span>
+                <span className="text-2xl md:text-3xl font-bold text-muted">–</span>
                 <span className="text-4xl md:text-5xl font-black text-dark dark:text-white">{oppGoalCount}</span>
               </div>
             </div>
@@ -1496,7 +1496,7 @@ export default function DirectPage() {
           {/* Chrono */}
           <div className="flex items-center justify-center gap-3">
             <div className="flex items-center gap-2 bg-neutral-lighter/60 dark:bg-dark-secondary/60 rounded-xl px-5 py-2.5">
-              <Timer className="w-4 h-4 text-dark-light/60 dark:text-neutral/50" />
+              <Timer className="w-4 h-4 text-muted" />
               <span className="text-2xl md:text-3xl font-mono font-bold text-dark dark:text-white tracking-wider">
                 {formatChrono(chronoSeconds)}
               </span>
@@ -1508,7 +1508,7 @@ export default function DirectPage() {
             {!isChronoRunning ? (
               <button
                 onClick={startChrono}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium bg-accent-green text-white hover:bg-accent-green/90 transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium bg-action text-on-action hover:bg-action-hover transition-colors"
               >
                 <Play className="w-3.5 h-3.5" />
                 {chronoSeconds === 0 ? 'Démarrer' : 'Reprendre'}
@@ -1534,7 +1534,7 @@ export default function DirectPage() {
 
       {/* ── Quick actions ──────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-2xl p-5">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-dark-light/60 dark:text-neutral/60">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
           Actions principales
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -1557,7 +1557,7 @@ export default function DirectPage() {
           <button
             onClick={() => startEventFlow('SUBSTITUTION')}
             disabled={isSending}
-            className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 p-3 text-purple-500 transition-transform active:scale-[0.98] disabled:opacity-50"
+            className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 p-3 text-violet-ink transition-transform active:scale-[0.98] disabled:opacity-50"
           >
             <ArrowLeftRight className="h-5 w-5" />
             <span className="text-xs font-bold sm:text-sm">Changement</span>
@@ -1570,7 +1570,7 @@ export default function DirectPage() {
           </summary>
           <div className="space-y-3 border-t border-neutral/20 p-3 dark:border-dark-light">
             <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-dark-light/50 dark:text-neutral/50">Notre équipe</p>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">Notre équipe</p>
               <div className="grid grid-cols-4 gap-2">
                 {SECONDARY_TEAM_EVENTS.map(type => {
                   const cfg = EVENT_CONFIG[type];
@@ -1583,7 +1583,7 @@ export default function DirectPage() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-dark-light/50 dark:text-neutral/50">Adversaire</p>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">Adversaire</p>
               <div className="grid grid-cols-2 gap-2">
                 {SECONDARY_OPPONENT_EVENTS.map(type => {
                   const cfg = EVENT_CONFIG[type];
@@ -1602,10 +1602,10 @@ export default function DirectPage() {
       {/* ── Timeline ───────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-dark-lighter border border-neutral/20 dark:border-dark-light rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-[11px] font-semibold text-dark-light/60 dark:text-neutral/60 uppercase tracking-wide">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wide">
             Chronologie
           </p>
-          <span className="text-xs text-dark-light/40 dark:text-neutral/40">
+          <span className="text-xs text-muted">
             {timeline.length} événement{timeline.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -1613,7 +1613,7 @@ export default function DirectPage() {
         {timeline.length === 0 ? (
           <div className="text-center py-10">
             <Clock className="w-8 h-8 text-neutral/40 mx-auto mb-2" />
-            <p className="text-sm text-dark-light/40 dark:text-neutral/40">
+            <p className="text-sm text-muted">
               Aucun événement pour le moment
             </p>
           </div>
@@ -1645,7 +1645,7 @@ export default function DirectPage() {
                     </div>
                     <button
                       onClick={() => handleDeleteOpponentEvent(oppItem.id)}
-                      className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-dark-light/30 dark:text-neutral/30 hover:text-accent-red hover:bg-accent-red/10 transition-all"
+                      className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-muted hover:text-accent-red hover:bg-accent-red/10 transition-all"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1670,14 +1670,14 @@ export default function DirectPage() {
                     <p className="text-sm font-semibold text-dark dark:text-white truncate">
                       {teamItem.player.first_name} {teamItem.player.last_name}
                       {teamItem.player.jersey_number != null && (
-                        <span className="text-dark-light/40 dark:text-neutral/40 ml-1 font-normal">
+                        <span className="text-muted ml-1 font-normal">
                           #{teamItem.player.jersey_number}
                         </span>
                       )}
                       {teamItem.event_type === 'SUBSTITUTION' && teamItem.related_player_id && (() => {
                         const playerIn = matchPlayers.find(p => p.player_id === teamItem.related_player_id);
                         return playerIn ? (
-                          <span className="text-dark-light/60 dark:text-neutral/60 ml-1 font-normal text-xs">
+                          <span className="text-muted ml-1 font-normal text-xs">
                             ↔ {playerIn.player.first_name} {playerIn.player.last_name}
                             {playerIn.player.jersey_number != null && ` #${playerIn.player.jersey_number}`}
                           </span>
@@ -1687,12 +1687,12 @@ export default function DirectPage() {
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={`text-[11px] font-medium ${cfg.color}`}>{cfg.label}</span>
                       {teamItem.zone && (
-                        <span className="text-[10px] text-dark-light/40 dark:text-neutral/40">
+                        <span className="text-[10px] text-muted">
                           · {ZONE_CONFIG.find(z => z.key === teamItem.zone)?.label || teamItem.zone}
                         </span>
                       )}
                       {teamItem.body_part && (
-                        <span className="text-[10px] text-dark-light/40 dark:text-neutral/40">
+                        <span className="text-[10px] text-muted">
                           · {BODY_PART_CONFIG.find(b => b.key === teamItem.body_part)?.label || teamItem.body_part}
                         </span>
                       )}
@@ -1700,7 +1700,7 @@ export default function DirectPage() {
                   </div>
                   <button
                     onClick={() => handleDeleteEvent(teamItem.id)}
-                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-dark-light/30 dark:text-neutral/30 hover:text-accent-red hover:bg-accent-red/10 transition-all"
+                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-muted hover:text-accent-red hover:bg-accent-red/10 transition-all"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -1793,7 +1793,7 @@ export default function DirectPage() {
           />
           <div className="relative bg-white dark:bg-dark-secondary rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="flex items-start gap-4 p-6">
-              <div className="w-10 h-10 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-red-500/15 text-accent-red flex items-center justify-center flex-shrink-0">
                 <Square className="w-5 h-5" />
               </div>
               <div className="flex-1">
@@ -1825,7 +1825,7 @@ export default function DirectPage() {
 
       {/* ── Toast ──────────────────────────────────────────────────────── */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
+        <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] lg:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
           <div className="flex items-center gap-2 px-4 py-2.5 bg-dark dark:bg-white text-white dark:text-dark rounded-xl shadow-lg text-sm font-medium">
             <Check className="w-4 h-4 text-accent-green" />
             {toast}

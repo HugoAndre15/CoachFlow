@@ -50,13 +50,13 @@ export default function ClubsPage() {
     const mappedRole = mapRole(role);
     switch (mappedRole) {
       case 'Président':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+        return 'bg-violet-ink/10 text-violet-ink border-purple-500/30';
       case 'Responsable':
-        return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+        return 'bg-warning/10 text-warning border-orange-500/30';
       case 'Entraîneur':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+        return 'bg-accent-blue/10 text-accent-blue border-blue-500/30';
       default:
-        return 'bg-grey-light/20 text-grey-light border-grey-light/30';
+        return 'bg-subtle text-muted border-grey-light/30';
     }
   };
 
@@ -108,7 +108,7 @@ export default function ClubsPage() {
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-accent-green hover:bg-accent-green/90 text-white rounded-lg font-medium transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-action hover:bg-action-hover text-on-action rounded-lg font-medium transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Créer un club</span>
@@ -125,7 +125,7 @@ export default function ClubsPage() {
                 px-4 py-2 rounded-lg font-medium text-sm transition-colors
                 flex items-center gap-2 border
                 ${activeFilter === filter 
-                  ? 'bg-accent-green text-white border-accent-green' 
+                  ? 'bg-action text-on-action border-accent-green'
                   : 'bg-white dark:bg-dark-secondary text-grey-medium dark:text-grey-light border-grey-light/20 hover:border-accent-green/50 hover:text-accent-green dark:hover:text-accent-green'
                 }
               `}
@@ -168,7 +168,7 @@ export default function ClubsPage() {
             </p>
             <button 
               onClick={() => void refetchClubs()}
-              className="px-5 py-2.5 bg-accent-green hover:bg-accent-green/90 text-white rounded-lg font-medium transition-colors"
+              className="px-5 py-2.5 bg-action hover:bg-action-hover text-on-action rounded-lg font-medium transition-colors"
             >
               Réessayer
             </button>
@@ -266,7 +266,7 @@ export default function ClubsPage() {
             {activeFilter === 'Tous' && (
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className="px-5 py-2.5 bg-accent-green hover:bg-accent-green/90 text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                className="px-5 py-2.5 bg-action hover:bg-action-hover text-on-action rounded-lg font-medium transition-colors inline-flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 <span>Créer un club</span>

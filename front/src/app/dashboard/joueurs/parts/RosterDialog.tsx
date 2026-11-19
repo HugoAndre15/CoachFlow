@@ -51,7 +51,7 @@ export default function RosterDialog({
         )
           onClose();
       }}
-      className={`fixed border border-white/10 bg-dark-secondary p-0 text-white shadow-2xl backdrop:bg-black/65 backdrop:backdrop-blur-sm ${
+      className={`fixed border border-line bg-surface p-0 text-ink shadow-2xl backdrop:bg-black/65 backdrop:backdrop-blur-sm ${
         drawer
           ? "inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-none sm:w-[30rem] sm:rounded-l-2xl"
           : "inset-0 m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg rounded-2xl"
@@ -60,7 +60,7 @@ export default function RosterDialog({
       <div
         className={`flex min-h-0 flex-col ${drawer ? "h-full" : "max-h-[90dvh]"}`}
       >
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 p-5 sm:p-6">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-line p-5 sm:p-6">
           <div className="min-w-0">
             {subtitle && (
               <p className="mb-1 text-xs font-medium uppercase tracking-widest text-accent-green">
@@ -76,7 +76,7 @@ export default function RosterDialog({
             onClick={onClose}
             disabled={busy}
             aria-label="Fermer"
-            className="-mr-2 -mt-2 flex size-11 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-accent-green disabled:opacity-40"
+            className="-mr-2 -mt-2 flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-subtle hover:text-ink focus-visible:outline-2 focus-visible:outline-accent-green disabled:opacity-40"
           >
             <X size={21} aria-hidden="true" />
           </button>
@@ -85,7 +85,7 @@ export default function RosterDialog({
           {children}
         </div>
         {footer && (
-          <footer className="flex shrink-0 flex-wrap gap-3 border-t border-white/10 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
+          <footer className="flex shrink-0 flex-wrap gap-3 border-t border-line p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
             {footer}
           </footer>
         )}

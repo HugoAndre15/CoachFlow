@@ -29,8 +29,8 @@ const BODY_PARTS: Record<string, string> = {
 function StatLine({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="flex items-center justify-between gap-4 py-2.5 text-sm">
-      <dt className="text-slate-400">{label}</dt>
-      <dd className="font-medium tabular-nums text-white">{value}</dd>
+      <dt className="text-muted">{label}</dt>
+      <dd className="font-medium tabular-nums text-ink">{value}</dd>
     </div>
   );
 }
@@ -77,10 +77,10 @@ export default function PlayerDetailModal({
         <div className="flex items-center gap-4">
           <Jersey number={player.jersey_number} />
           <div>
-            <p className="text-sm text-slate-200">
+            <p className="text-sm text-ink">
               {POSITIONS[player.position ?? ""] ?? "Poste à renseigner"}{" "}
-              <span className="text-slate-600">/</span>{" "}
-              <span className="text-slate-400">
+              <span className="text-muted">/</span>{" "}
+              <span className="text-muted">
                 Pied : {FEET[player.strong_foot ?? ""] ?? "non renseigné"}
               </span>
             </p>
@@ -89,8 +89,8 @@ export default function PlayerDetailModal({
             </div>
           </div>
         </div>
-        <div className="rounded-lg border border-white/10 bg-dark px-4 py-3 text-xs text-slate-400">
-          {periodLabel} <span className="mx-1 text-slate-600">·</span> Matchs
+        <div className="rounded-lg border border-line bg-surface px-4 py-3 text-xs text-muted">
+          {periodLabel} <span className="mx-1 text-muted">·</span> Matchs
           terminés uniquement
         </div>
         <section aria-labelledby="presence-title">
@@ -98,12 +98,12 @@ export default function PlayerDetailModal({
             <h3 id="presence-title" className="font-semibold">
               Présences
             </h3>
-            <span className="text-xl font-semibold tabular-nums text-emerald-300">
+            <span className="text-xl font-semibold tabular-nums text-accent-green">
               {a.rate === null ? "—" : `${a.rate} %`}
             </span>
           </div>
           <div
-            className="mb-2 flex h-1.5 overflow-hidden rounded-full bg-white/10"
+            className="mb-2 flex h-1.5 overflow-hidden rounded-full bg-subtle"
             aria-hidden="true"
           >
             <div
@@ -115,13 +115,13 @@ export default function PlayerDetailModal({
               style={{ width: `${a.rate === null ? 0 : 100 - a.rate}%` }}
             />
           </div>
-          <dl className="divide-y divide-white/[0.06]">
+          <dl className="divide-y divide-line">
             <StatLine label="Présent" value={a.present} />
             <StatLine label="Absent" value={a.absent} />
             <StatLine label="Présence incertaine" value={a.uncertain} />
             <StatLine label="Non renseignée" value={a.unknown} />
           </dl>
-          <p className="mt-2 text-xs leading-relaxed text-slate-400">
+          <p className="mt-2 text-xs leading-relaxed text-muted">
             Taux calculé sur {a.recorded} présence{a.recorded > 1 ? "s" : ""}{" "}
             renseignée{a.recorded > 1 ? "s" : ""} : présent ou absent. Les
             feuilles où le joueur ne figure pas sont exclues.
@@ -131,7 +131,7 @@ export default function PlayerDetailModal({
           <h3 id="participation-title" className="mb-2 font-semibold">
             Participation
           </h3>
-          <dl className="divide-y divide-white/[0.06]">
+          <dl className="divide-y divide-line">
             <StatLine label="Matchs joués" value={s.total_matches} />
             <StatLine label="Titularisations" value={s.matches_as_starter} />
             <StatLine label="Entrées en jeu" value={s.matches_as_substitute} />
@@ -145,20 +145,20 @@ export default function PlayerDetailModal({
           <h3 id="contribution-title" className="mb-3 font-semibold">
             Avec le ballon
           </h3>
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10">
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-subtle">
             {[
               ["Buts", s.goals],
               ["Passes décisives", s.assists],
             ].map(([label, value]) => (
-              <div key={label} className="bg-dark p-4">
-                <dt className="text-xs text-slate-400">{label}</dt>
-                <dd className="mt-2 text-3xl font-semibold tabular-nums text-white">
+              <div key={label} className="bg-surface p-4">
+                <dt className="text-xs text-muted">{label}</dt>
+                <dd className="mt-2 text-3xl font-semibold tabular-nums text-ink">
                   {value}
                 </dd>
               </div>
             ))}
           </dl>
-          <dl className="mt-2 divide-y divide-white/[0.06]">
+          <dl className="mt-2 divide-y divide-line">
             <StatLine label="Récupérations" value={s.recoveries} />
             <StatLine label="Pertes de balle" value={s.ball_losses} />
           </dl>
@@ -167,14 +167,14 @@ export default function PlayerDetailModal({
           <h3 id="discipline-title" className="mb-2 font-semibold">
             Discipline
           </h3>
-          <dl className="divide-y divide-white/[0.06]">
+          <dl className="divide-y divide-line">
             <StatLine label="Cartons jaunes" value={s.yellow_cards} />
             <StatLine label="Cartons rouges" value={s.red_cards} />
           </dl>
         </section>
         {s.goals > 0 && (
-          <details className="rounded-lg border border-white/10 px-4">
-            <summary className="cursor-pointer py-4 text-sm font-medium text-slate-200 focus-visible:outline-2 focus-visible:outline-accent-green">
+          <details className="rounded-lg border border-line px-4">
+            <summary className="cursor-pointer py-4 text-sm font-medium text-ink focus-visible:outline-2 focus-visible:outline-accent-green">
               Détail des buts
             </summary>
             <div className="space-y-4 pb-4">
@@ -191,7 +191,7 @@ export default function PlayerDetailModal({
                   Object.values(counts).reduce((sum, value) => sum + value, 0);
                 return (
                   <div key={title}>
-                    <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted">
                       {title}
                     </p>
                     <dl>

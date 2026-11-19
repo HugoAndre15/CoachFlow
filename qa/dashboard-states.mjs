@@ -12,9 +12,13 @@ export default async function(q){
  const club=await q.call('POST','/clubs',{name:'Nouveau club QA'},account.access_token);
  await p.reload();await p.getByRole('heading',{name:'Place à votre première équipe',exact:true}).waitFor();
  const dims=await p.evaluate(()=>({body:document.body.scrollWidth,width:innerWidth}));assert.ok(dims.body<=dims.width);
- await p.getByRole('link',{name:'Créer mon équipe',exact:true}).click();await p.waitForURL('**/dashboard/teams');
- const team=await q.call('POST','/teams',{name:'Nouvelle équipe QA',category:'U15',club_id:club.id},account.access_token);
- await p.goto(q.base+'/dashboard');await p.getByRole('heading',{name:'Le prochain match commence ici.',exact:true}).waitFor();
+ await p.getByRole('button',{name:'Créer mon équipe',exact:true}).click();
+ const form=p.getByRole('dialog',{name:'Créer une équipe'});
+ await form.getByLabel(/Nom de l'équipe/).fill('Nouvelle équipe QA');
+ await form.getByLabel(/Catégorie/).selectOption('U15');
+ await form.getByRole('button',{name:'Créer',exact:true}).click();
+ await p.getByRole('heading',{name:'Le prochain match commence ici.',exact:true}).waitFor();
+ const team=(await q.call('GET','/teams?clubId='+club.id,null,account.access_token)).data[0];
  // A failed initial API read must display a retry, not a false empty season.
  const blocked=route=>route.fulfill({status:503,contentType:'application/json',body:'{}'});
  await p.route('**/teams/'+team.id+'/dashboard?*',blocked);await p.reload();

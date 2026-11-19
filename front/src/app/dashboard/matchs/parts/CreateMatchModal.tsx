@@ -85,7 +85,7 @@ function MatchForm({ onClose, onSuccess, teamId }: Props) {
         <div>
           <label
             htmlFor="match-opponent"
-            className="mb-2 block text-sm text-slate-300"
+            className="mb-2 block text-sm text-muted"
           >
             Adversaire
           </label>
@@ -104,7 +104,7 @@ function MatchForm({ onClose, onSuccess, teamId }: Props) {
           <div className="min-w-0">
             <label
               htmlFor="match-date"
-              className="mb-2 block text-sm text-slate-300"
+              className="mb-2 block text-sm text-muted"
             >
               Date
             </label>
@@ -121,7 +121,7 @@ function MatchForm({ onClose, onSuccess, teamId }: Props) {
           <div className="min-w-0">
             <label
               htmlFor="match-time"
-              className="mb-2 block text-sm text-slate-300"
+              className="mb-2 block text-sm text-muted"
             >
               Heure
             </label>
@@ -137,7 +137,7 @@ function MatchForm({ onClose, onSuccess, teamId }: Props) {
           </div>
         </div>
         <fieldset disabled={busy}>
-          <legend className="mb-2 text-sm text-slate-300">Lieu</legend>
+          <legend className="mb-2 text-sm text-muted">Lieu</legend>
           <div className="grid grid-cols-2 gap-3">
             {(
               [
@@ -147,7 +147,7 @@ function MatchForm({ onClose, onSuccess, teamId }: Props) {
             ).map(([value, label]) => (
               <label
                 key={value}
-                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-3 text-sm ${location === value ? "border-accent-green/60 bg-accent-green/10 text-emerald-300" : "border-white/15 text-slate-300"}`}
+                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-3 text-sm ${location === value ? "border-accent-green/60 bg-accent-green/10 text-accent-green" : "border-line text-muted"}`}
               >
                 <input
                   type="radio"
@@ -165,7 +165,7 @@ function MatchForm({ onClose, onSuccess, teamId }: Props) {
         {error && (
           <p
             role="alert"
-            className="rounded-lg bg-rose-400/10 p-3 text-sm text-rose-200"
+            className="rounded-lg bg-rose-400/10 p-3 text-sm text-accent-red"
           >
             {error}
           </p>

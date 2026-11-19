@@ -126,7 +126,7 @@ export default function PlayerForm({
         className="space-y-5"
         aria-busy={busy}
       >
-        <p className="text-sm leading-relaxed text-slate-400">
+        <p className="text-sm leading-relaxed text-muted">
           Le prénom et le nom suffisent pour commencer. Vous pourrez compléter
           la fiche plus tard.
         </p>
@@ -135,7 +135,7 @@ export default function PlayerForm({
             <div>
               <label
                 htmlFor="player-first-name"
-                className="mb-2 block text-sm text-slate-300"
+                className="mb-2 block text-sm text-muted"
               >
                 Prénom <span className="text-accent-green">*</span>
               </label>
@@ -153,7 +153,7 @@ export default function PlayerForm({
             <div>
               <label
                 htmlFor="player-last-name"
-                className="mb-2 block text-sm text-slate-300"
+                className="mb-2 block text-sm text-muted"
               >
                 Nom <span className="text-accent-green">*</span>
               </label>
@@ -171,7 +171,7 @@ export default function PlayerForm({
           <div>
             <label
               htmlFor="player-position"
-              className="mb-2 block text-sm text-slate-300"
+              className="mb-2 block text-sm text-muted"
             >
               Poste
             </label>
@@ -195,7 +195,7 @@ export default function PlayerForm({
             <div>
               <label
                 htmlFor="player-number"
-                className="mb-2 block text-sm text-slate-300"
+                className="mb-2 block text-sm text-muted"
               >
                 N° de maillot
               </label>
@@ -215,7 +215,7 @@ export default function PlayerForm({
             <div>
               <label
                 htmlFor="player-foot"
-                className="mb-2 block text-sm text-slate-300"
+                className="mb-2 block text-sm text-muted"
               >
                 Pied fort
               </label>
@@ -239,7 +239,7 @@ export default function PlayerForm({
           <div>
             <label
               htmlFor="player-status"
-              className="mb-2 block text-sm text-slate-300"
+              className="mb-2 block text-sm text-muted"
             >
               Disponibilité
             </label>
@@ -261,7 +261,7 @@ export default function PlayerForm({
                 ))}
             </select>
             {player?.status === "RETIRED" && (
-              <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              <p className="mt-2 text-xs leading-relaxed text-muted">
                 Choisissez « Disponible » pour réintégrer ce joueur à
                 l’effectif. Son historique est conservé.
               </p>
@@ -271,7 +271,7 @@ export default function PlayerForm({
         {error && (
           <p
             role="alert"
-            className="rounded-lg border border-rose-400/20 bg-rose-400/5 p-3 text-sm text-rose-300"
+            className="rounded-lg border border-rose-400/20 bg-rose-400/5 p-3 text-sm text-accent-red"
           >
             {error}
           </p>

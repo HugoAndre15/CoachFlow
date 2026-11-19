@@ -13,6 +13,7 @@ import {
   Users,
   WifiOff,
 } from "lucide-react";
+import ThemeToggle from "@/components/globals/ThemeToggle";
 import MatchPreview from "@/components/landing/MatchPreview";
 import styles from "@/components/landing/landing.module.css";
 
@@ -68,7 +69,7 @@ const questions = [
   },
   {
     title: "Comment commencer ?",
-    text: "Créez votre compte, connectez-vous, puis créez votre club et votre équipe. Ajoutez vos joueurs et programmez un premier match. Vous pourrez ensuite préparer les présences et la composition.",
+    text: "Créez votre compte, puis créez votre club et votre équipe. Ajoutez vos joueurs et programmez un premier match. Vous pourrez ensuite préparer les présences et la composition.",
   },
   {
     title: "Est-ce que je peux continuer sans réseau ?",
@@ -123,6 +124,7 @@ export default function Home() {
               Créer mon espace
             </a>
           </div>
+          <ThemeToggle />
           <details className={styles.mobileMenu}>
             <summary>
               <Menu size={18} aria-hidden="true" />
@@ -169,10 +171,6 @@ export default function Home() {
                     <ArrowDown size={16} aria-hidden="true" />
                   </a>
                 </div>
-                <p className={styles.heroNote}>
-                  <Check size={14} aria-hidden="true" />
-                  Une première version centrée sur votre quotidien.
-                </p>
               </div>
               <MatchPreview />
             </div>

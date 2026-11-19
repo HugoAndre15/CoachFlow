@@ -1,13 +1,12 @@
 :root {
-  color-scheme: dark;
   font-family:
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #0f172a;
-  color: #f1f5f9;
+  background: var(--cf-canvas);
+  color: var(--cf-ink);
   font-size: 16px;
 }
 * {
@@ -47,38 +46,38 @@ button,
   gap: 8px;
   min-height: 46px;
   padding: 11px 16px;
-  border: 1px solid #475569;
+  border: 1px solid var(--cf-line);
   border-radius: 10px;
-  background: #172133;
-  color: #f1f5f9;
+  background: var(--cf-surface);
+  color: var(--cf-ink);
   font-weight: 600;
 }
-button:hover:not(:disabled),
+button:not(.theme-toggle):hover:not(:disabled),
 .button:hover {
-  background: #233149;
+  background: var(--cf-subtle);
 }
 .primary {
-  background: #10b981;
-  color: #05251e;
-  border-color: #10b981;
+  background: var(--cf-action);
+  color: var(--cf-on-action);
+  border-color: var(--cf-action);
 }
 .primary:hover:not(:disabled) {
-  background: #34d399;
+  background: var(--cf-action-hover);
 }
 .danger {
-  color: #fecdd3;
-  border-color: #9f5264;
+  color: var(--cf-danger);
+  border-color: var(--cf-danger);
 }
 .muted,
 small {
-  color: #a9b7c9;
+  color: var(--cf-muted);
 }
 .top {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 16px 24px;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--cf-line);
   max-width: 1200px;
   margin: auto;
 }
@@ -86,7 +85,7 @@ small {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #34d399;
+  color: var(--cf-green);
   font-weight: 800;
 }
 .top a span {
@@ -96,7 +95,7 @@ small {
 .tag {
   font-size: 11px;
   letter-spacing: 0.15em;
-  color: #a9b7c9;
+  color: var(--cf-muted);
 }
 #network {
   margin-left: auto;
@@ -122,17 +121,17 @@ h3 {
 }
 .eyebrow {
   font-size: 12px;
-  color: #34d399;
+  color: var(--cf-green);
   letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 .hero {
   padding-bottom: 24px;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--cf-line);
   margin-bottom: 24px;
 }
 .hero p {
-  color: #a9b7c9;
+  color: var(--cf-muted);
   line-height: 1.6;
 }
 .score {
@@ -142,8 +141,8 @@ h3 {
   margin: 16px 0;
 }
 .panel {
-  background: #151b26;
-  border: 1px solid #334155;
+  background: var(--cf-surface);
+  border: 1px solid var(--cf-line);
   border-radius: 16px;
   padding: 22px;
   margin-bottom: 20px;
@@ -161,7 +160,7 @@ h3 {
 }
 .sync p {
   margin: 4px 0;
-  color: #a9b7c9;
+  color: var(--cf-muted);
   font-size: 13px;
 }
 .grid {
@@ -171,7 +170,7 @@ h3 {
 }
 .row {
   padding: 14px 0;
-  border-top: 1px solid #334155;
+  border-top: 1px solid var(--cf-line);
 }
 .player {
   display: grid;
@@ -194,18 +193,18 @@ h3 {
 label {
   display: block;
   font-size: 13px;
-  color: #cbd5e1;
+  color: var(--cf-ink);
 }
 input,
 select {
   width: 100%;
   min-height: 46px;
   margin-top: 7px;
-  border: 1px solid #475569;
+  border: 1px solid var(--cf-line);
   border-radius: 8px;
   padding: 10px;
-  background: #0f172a;
-  color: #f1f5f9;
+  background: var(--cf-canvas);
+  color: var(--cf-ink);
   min-width: 0;
 }
 form button[type="submit"] {
@@ -218,7 +217,7 @@ details {
 summary {
   cursor: pointer;
   padding: 14px 0;
-  color: #cbd5e1;
+  color: var(--cf-ink);
 }
 ul {
   list-style: none;
@@ -231,7 +230,7 @@ ul {
   gap: 12px;
   align-items: center;
   padding: 15px 0;
-  border-top: 1px solid #334155;
+  border-top: 1px solid var(--cf-line);
 }
 .event strong {
   display: block;
@@ -247,18 +246,18 @@ ul {
 }
 .time {
   font-variant-numeric: tabular-nums;
-  color: #34d399;
+  color: var(--cf-green);
 }
 .callout {
-  border-left: 3px solid #fbbf24;
+  border-left: 3px solid var(--cf-amber);
   padding: 12px 16px;
-  background: #27231d;
-  color: #fde68a;
+  background: color-mix(in srgb, var(--cf-amber) 10%, var(--cf-surface));
+  color: var(--cf-amber);
   line-height: 1.6;
 }
 .empty {
   padding: 32px 0;
-  color: #a9b7c9;
+  color: var(--cf-muted);
   line-height: 1.7;
 }
 #notice:not(:empty) {
@@ -266,10 +265,10 @@ ul {
   bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
-  background: #123d32;
-  color: #d1fae5;
+  background: var(--cf-wash);
+  color: var(--cf-green);
   padding: 12px 18px;
-  border: 1px solid #34d399;
+  border: 1px solid var(--cf-green);
   border-radius: 10px;
   max-width: calc(100% - 32px);
   z-index: 5;
@@ -278,14 +277,14 @@ ul {
   position: sticky;
   bottom: 0;
   margin: 0;
-  background: #4b1727;
-  color: #ffe4e6;
+  background: color-mix(in srgb, var(--cf-danger) 12%, var(--cf-surface));
+  color: var(--cf-danger);
   padding: 18px 24px;
   z-index: 6;
   line-height: 1.5;
 }
 :focus-visible {
-  outline: 3px solid #34d399;
+  outline: 3px solid var(--cf-green);
   outline-offset: 3px;
 }
 .wide {
@@ -303,7 +302,7 @@ ul {
 }
 .foot {
   font-size: 12px;
-  color: #a9b7c9;
+  color: var(--cf-muted);
   line-height: 1.6;
   margin-top: 20px;
 }
@@ -365,20 +364,20 @@ ul {
   flex-wrap: wrap;
   gap: 8px 18px;
   padding: 14px 0;
-  color: #a9b7c9;
+  color: var(--cf-muted);
 }
 .roster-counts strong {
-  color: #6ee7b7;
+  color: var(--cf-green);
 }
 .roster-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  border-top: 1px solid #334155;
+  border-top: 1px solid var(--cf-line);
   gap: 0 8px;
 }
 .roster-row.selected {
-  background: #14352e;
+  background: var(--cf-wash);
 }
 .roster-pick {
   display: flex;
@@ -395,7 +394,7 @@ ul {
   min-height: 24px;
   margin: 0;
   flex-shrink: 0;
-  accent-color: #34d399;
+  accent-color: var(--cf-green);
   cursor: pointer;
 }
 .roster-pick input:disabled {
@@ -406,7 +405,7 @@ ul {
   cursor: not-allowed;
 }
 .jersey {
-  color: #a9b7c9;
+  color: var(--cf-muted);
   width: 26px;
   text-align: center;
   flex-shrink: 0;
@@ -417,7 +416,7 @@ ul {
 }
 .player-identity strong {
   display: block;
-  color: #f1f5f9;
+  color: var(--cf-ink);
   font-size: 15px;
   overflow-wrap: anywhere;
 }
@@ -440,8 +439,8 @@ ul {
   margin: 8px 0 0;
 }
 .roster-start {
-  background: #151b26;
-  border-top: 1px solid #334155;
+  background: var(--cf-surface);
+  border-top: 1px solid var(--cf-line);
   margin-top: 16px;
   padding: 12px 0 max(12px, env(safe-area-inset-bottom));
   z-index: 2;

@@ -36,9 +36,9 @@ const PRESENCE_OPTIONS: {
   label: string;
   active: string;
 }[] = [
-  { value: 'PRESENT', label: 'Présent', active: 'border-accent-green bg-accent-green text-white' },
-  { value: 'UNCERTAIN', label: 'Incertain', active: 'border-amber-500 bg-amber-500 text-white' },
-  { value: 'ABSENT', label: 'Absent', active: 'border-accent-red bg-accent-red text-white' },
+  { value: 'PRESENT', label: 'Présent', active: 'border-accent-green bg-action text-on-action' },
+  { value: 'UNCERTAIN', label: 'Incertain', active: 'border-amber-500 bg-amber-300 text-dark' },
+  { value: 'ABSENT', label: 'Absent', active: 'border-accent-red bg-rose-700 text-white' },
 ];
 
 function formatMatchDate(value: string) {
@@ -62,7 +62,7 @@ function MatchHeader({ match, teamName }: { match: MatchDetail; teamName: string
         </div>
         <div className="shrink-0 text-center">
           {match.status === 'UPCOMING' ? (
-            <span className="text-xl font-black text-dark-light/30 dark:text-neutral/30">VS</span>
+            <span className="text-xl font-black text-muted">VS</span>
           ) : (
             <span className="text-3xl font-black text-dark dark:text-white">
               {match.score.home} – {match.score.away}
@@ -101,6 +101,15 @@ export default function MatchPreparationPage() {
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const loadRequestId = useRef(0);
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (!dirty && !isSaving) return;
+    const beforeTeamChange = (event: Event) => {
+      if (isSaving || !window.confirm("Quitter cette feuille sans enregistrer les modifications ?")) event.preventDefault();
+    };
+    window.addEventListener("coachflow:before-team-change", beforeTeamChange);
+    return () => window.removeEventListener("coachflow:before-team-change", beforeTeamChange);
+  }, [dirty, isSaving]);
 
   const loadMatch = useCallback(async () => {
     if (!activeTeam?.id || !matchId) return;
@@ -131,6 +140,7 @@ export default function MatchPreparationPage() {
         nextRoles[player.id] = entry?.status ?? 'SUBSTITUTE';
       });
 
+      setDirty(false);
       setMatch(matchData);
       setPlayers(roster);
       setPresences(nextPresences);
@@ -170,6 +180,7 @@ export default function MatchPreparationPage() {
     if (presence === 'PRESENT' && players.find(player => player.id === playerId)?.status !== 'ACTIVE') return;
     setError(null);
     setSavedMessage(null);
+    setDirty(true);
     setPresences(current => ({ ...current, [playerId]: presence }));
     if (presence !== 'PRESENT') {
       setRoles(current => ({ ...current, [playerId]: 'SUBSTITUTE' }));
@@ -179,6 +190,7 @@ export default function MatchPreparationPage() {
   const setEveryonePresent = () => {
     setSavedMessage(null);
     setError(null);
+    setDirty(true);
     setPresences(Object.fromEntries(players.map(player => [player.id, player.status === 'ACTIVE' ? 'PRESENT' : 'ABSENT'])));
     setRoles(current => Object.fromEntries(players.map(player => [player.id, player.status === 'ACTIVE' ? current[player.id] : 'SUBSTITUTE'])));
   };
@@ -190,6 +202,7 @@ export default function MatchPreparationPage() {
     }
     setError(null);
     setSavedMessage(null);
+    setDirty(true);
     setRoles(current => ({ ...current, [playerId]: role }));
   };
 
@@ -207,6 +220,7 @@ export default function MatchPreparationPage() {
           status: presences[player.id] === 'PRESENT' ? (roles[player.id] ?? 'SUBSTITUTE') : 'SUBSTITUTE',
         })),
       );
+      setDirty(false);
       if (showConfirmation) setSavedMessage('Préparation enregistrée');
       return true;
     } catch (requestError: any) {
@@ -274,13 +288,13 @@ export default function MatchPreparationPage() {
         </button>
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold text-dark dark:text-white sm:text-2xl">Feuille de match</h1>
-          <p className="text-xs text-dark-light/60 dark:text-neutral/60">Un parcours simple, dans l’ordre</p>
+          <p className="text-xs text-muted">Un parcours simple, dans l’ordre</p>
         </div>
       </div>
 
       <MatchHeader match={match} teamName={activeTeam.name} />
-      <a href={`/terrain/index.html#match=${matchId}`} className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm font-semibold text-emerald-300">
-        <span>Ouvrir le mode terrain <span className="block text-xs font-normal text-slate-300">Préparer ce match pour jouer sans réseau sur cet appareil</span></span>
+      <a href={`/terrain/index.html#match=${matchId}`} className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm font-semibold text-accent-green">
+        <span>Ouvrir le mode terrain <span className="block text-xs font-normal text-muted">Préparer ce match pour jouer sans réseau sur cet appareil</span></span>
         <ChevronRight aria-hidden="true" className="shrink-0" size={20} />
       </a>
 
@@ -289,8 +303,8 @@ export default function MatchPreparationPage() {
           <div className="rounded-2xl border border-accent-green/30 bg-accent-green/5 p-5 text-center">
             <Radio className="mx-auto mb-3 h-8 w-8 text-accent-green" />
             <h2 className="text-lg font-bold text-dark dark:text-white">Le match est en cours</h2>
-            <p className="mt-1 text-sm text-dark-light/60 dark:text-neutral/60">{statusPresenceCounts.present} joueur{statusPresenceCounts.present > 1 ? 's' : ''} présent{statusPresenceCounts.present > 1 ? 's' : ''} sur la feuille</p>
-            <button onClick={() => router.push(`/dashboard/direct?matchId=${matchId}`)} className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent-green px-6 py-3 text-sm font-bold text-white">
+            <p className="mt-1 text-sm text-muted">{statusPresenceCounts.present} joueur{statusPresenceCounts.present > 1 ? 's' : ''} présent{statusPresenceCounts.present > 1 ? 's' : ''} sur la feuille</p>
+            <button onClick={() => router.push(`/dashboard/direct?matchId=${matchId}`)} className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-bold text-on-action">
               <Play className="h-4 w-4" /> Reprendre le direct
             </button>
           </div>
@@ -300,9 +314,9 @@ export default function MatchPreparationPage() {
       {match.status === 'FINISHED' && (
         <div className="space-y-5">
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-xl border border-neutral/20 bg-white p-3 text-center dark:border-dark-light dark:bg-dark-lighter"><p className="text-xl font-black text-accent-green">{statusPresenceCounts.present}</p><p className="text-[11px] text-dark-light/60 dark:text-neutral/60">Présents</p></div>
-            <div className="rounded-xl border border-neutral/20 bg-white p-3 text-center dark:border-dark-light dark:bg-dark-lighter"><p className="text-xl font-black text-dark dark:text-white">{match.matchEvents.filter(event => event.event_type === 'GOAL').length}</p><p className="text-[11px] text-dark-light/60 dark:text-neutral/60">Buts</p></div>
-            <div className="rounded-xl border border-neutral/20 bg-white p-3 text-center dark:border-dark-light dark:bg-dark-lighter"><p className="text-xl font-black text-accent-blue">{match.matchEvents.filter(event => event.event_type === 'ASSIST').length}</p><p className="text-[11px] text-dark-light/60 dark:text-neutral/60">Passes dé.</p></div>
+            <div className="rounded-xl border border-neutral/20 bg-white p-3 text-center dark:border-dark-light dark:bg-dark-lighter"><p className="text-xl font-black text-accent-green">{statusPresenceCounts.present}</p><p className="text-[11px] text-muted">Présents</p></div>
+            <div className="rounded-xl border border-neutral/20 bg-white p-3 text-center dark:border-dark-light dark:bg-dark-lighter"><p className="text-xl font-black text-dark dark:text-white">{match.matchEvents.filter(event => event.event_type === 'GOAL').length}</p><p className="text-[11px] text-muted">Buts</p></div>
+            <div className="rounded-xl border border-neutral/20 bg-white p-3 text-center dark:border-dark-light dark:bg-dark-lighter"><p className="text-xl font-black text-accent-blue">{match.matchEvents.filter(event => event.event_type === 'ASSIST').length}</p><p className="text-[11px] text-muted">Passes dé.</p></div>
           </div>
           <MatchSummary match={match} />
         </div>
@@ -311,10 +325,10 @@ export default function MatchPreparationPage() {
       {match.status === 'UPCOMING' && (
         <>
           <div className="grid grid-cols-2 gap-2 rounded-2xl border border-neutral/20 bg-white p-2 dark:border-dark-light dark:bg-dark-lighter">
-            <button onClick={() => setStep('presence')} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold ${step === 'presence' ? 'bg-accent-green text-white' : 'text-dark-light dark:text-neutral'}`}>
+            <button onClick={() => setStep('presence')} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold ${step === 'presence' ? 'bg-action text-on-action' : 'text-dark-light dark:text-neutral'}`}>
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-xs">1</span> Présences
             </button>
-            <button onClick={() => setStep('lineup')} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold ${step === 'lineup' ? 'bg-accent-green text-white' : 'text-dark-light dark:text-neutral'}`}>
+            <button onClick={() => setStep('lineup')} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold ${step === 'lineup' ? 'bg-action text-on-action' : 'text-dark-light dark:text-neutral'}`}>
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-xs">2</span> Composition
             </button>
           </div>
@@ -325,14 +339,14 @@ export default function MatchPreparationPage() {
           {step === 'presence' && (
             <section className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div><h2 className="text-lg font-bold text-dark dark:text-white">Qui sera là ?</h2><p className="text-sm text-dark-light/60 dark:text-neutral/60">Une réponse par joueur. Vous pourrez la modifier avant le direct.</p></div>
+                <div><h2 className="text-lg font-bold text-dark dark:text-white">Qui sera là ?</h2><p className="text-sm text-muted">Une réponse par joueur. Vous pourrez la modifier avant le direct.</p></div>
                 {players.length > 0 && <button onClick={setEveryonePresent} className="min-h-11 rounded-xl border border-accent-green/30 px-4 text-sm font-semibold text-accent-green">Marquer les disponibles présents</button>}
               </div>
               <div className="grid grid-cols-4 gap-2">
                 <div className="rounded-xl bg-accent-green/10 p-2 text-center"><p className="font-black text-accent-green">{counts.present}</p><p className="text-[10px] text-accent-green">Présents</p></div>
-                <div className="rounded-xl bg-amber-500/10 p-2 text-center"><p className="font-black text-amber-500">{counts.uncertain}</p><p className="text-[10px] text-amber-600">Incertains</p></div>
+                <div className="rounded-xl bg-amber-500/10 p-2 text-center"><p className="font-black text-warning">{counts.uncertain}</p><p className="text-[10px] text-warning">Incertains</p></div>
                 <div className="rounded-xl bg-accent-red/10 p-2 text-center"><p className="font-black text-accent-red">{counts.absent}</p><p className="text-[10px] text-accent-red">Absents</p></div>
-                <div className="rounded-xl bg-neutral/10 p-2 text-center"><p className="font-black text-dark-light dark:text-neutral">{counts.unknown}</p><p className="text-[10px] text-dark-light/60 dark:text-neutral/60">À faire</p></div>
+                <div className="rounded-xl bg-neutral/10 p-2 text-center"><p className="font-black text-dark-light dark:text-neutral">{counts.unknown}</p><p className="text-[10px] text-muted">À faire</p></div>
               </div>
               {players.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-neutral/30 p-10 text-center"><Users className="mx-auto mb-3 h-8 w-8 text-neutral" /><p className="text-sm font-medium text-dark-light dark:text-neutral">Ajoutez d’abord des joueurs à cette équipe.</p></div>
@@ -344,7 +358,7 @@ export default function MatchPreparationPage() {
                       <div key={player.id} className="rounded-2xl border border-neutral/20 bg-white p-3 dark:border-dark-light dark:bg-dark-lighter sm:flex sm:items-center sm:gap-4">
                         <div className="mb-3 flex min-w-0 items-center gap-3 sm:mb-0 sm:flex-1">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral/10 text-sm font-black text-dark dark:text-white">{player.jersey_number ?? '–'}</div>
-                          <div className="min-w-0"><p className="truncate text-sm font-bold text-dark dark:text-white">{player.first_name} {player.last_name}</p><p className="text-xs text-dark-light/50 dark:text-neutral/50">{player.status === 'INJURED' ? 'Blessé · ' : player.status === 'SUSPENDED' ? 'Suspendu · ' : ''}{presence === 'UNKNOWN' ? 'Présence à renseigner' : PRESENCE_OPTIONS.find(option => option.value === presence)?.label}</p></div>
+                          <div className="min-w-0"><p className="truncate text-sm font-bold text-dark dark:text-white">{player.first_name} {player.last_name}</p><p className="text-xs text-muted">{player.status === 'INJURED' ? 'Blessé · ' : player.status === 'SUSPENDED' ? 'Suspendu · ' : ''}{presence === 'UNKNOWN' ? 'Présence à renseigner' : PRESENCE_OPTIONS.find(option => option.value === presence)?.label}</p></div>
                         </div>
                         <div className="grid grid-cols-3 gap-1.5 sm:w-[330px]">
                           {PRESENCE_OPTIONS.map(option => (
@@ -356,13 +370,13 @@ export default function MatchPreparationPage() {
                   })}
                 </div>
               )}
-              <button onClick={() => setStep('lineup')} disabled={counts.present === 0} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent-green px-4 text-sm font-bold text-white disabled:opacity-40">Passer à la composition <ChevronRight className="h-4 w-4" /></button>
+              <button onClick={() => setStep('lineup')} disabled={counts.present === 0} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-bold text-on-action disabled:opacity-40">Passer à la composition <ChevronRight className="h-4 w-4" /></button>
             </section>
           )}
 
           {step === 'lineup' && (
             <section className="space-y-4">
-              <div><h2 className="text-lg font-bold text-dark dark:text-white">Qui commence ?</h2><p className="text-sm text-dark-light/60 dark:text-neutral/60">Seuls les joueurs présents sont affichés. {startersCount}/11 titulaire{startersCount > 1 ? 's' : ''}.</p></div>
+              <div><h2 className="text-lg font-bold text-dark dark:text-white">Qui commence ?</h2><p className="text-sm text-muted">Seuls les joueurs présents sont affichés. {startersCount}/11 titulaire{startersCount > 1 ? 's' : ''}.</p></div>
               {presentPlayers.length === 0 ? (
                 <button onClick={() => setStep('presence')} className="flex w-full flex-col items-center rounded-2xl border border-dashed border-neutral/30 p-10 text-center"><CircleHelp className="mb-3 h-8 w-8 text-neutral" /><span className="text-sm font-medium text-dark-light dark:text-neutral">Renseignez au moins un joueur présent.</span><span className="mt-2 text-xs font-semibold text-accent-green">Retour aux présences</span></button>
               ) : (
@@ -371,11 +385,11 @@ export default function MatchPreparationPage() {
                     const isStarter = roles[player.id] === 'STARTER';
                     return (
                       <div key={player.id} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-neutral/20 bg-white p-3 dark:border-dark-light dark:bg-dark-lighter sm:flex">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black ${isStarter ? 'bg-accent-green text-white' : 'bg-neutral/10 text-dark dark:text-white'}`}>{player.jersey_number ?? '–'}</div>
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black ${isStarter ? 'bg-action text-on-action' : 'bg-subtle text-ink'}`}>{player.jersey_number ?? '–'}</div>
                         <p className="min-w-0 flex-1 truncate text-sm font-bold text-dark dark:text-white">{player.first_name} {player.last_name}</p>
                         <div className="col-span-2 grid grid-cols-2 gap-1.5 sm:w-52 sm:shrink-0">
-                          <button onClick={() => changeRole(player.id, 'STARTER')} aria-pressed={isStarter} className={`min-h-11 rounded-xl border px-2 text-xs font-bold ${isStarter ? 'border-accent-green bg-accent-green text-white' : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>Titulaire</button>
-                          <button onClick={() => changeRole(player.id, 'SUBSTITUTE')} aria-pressed={!isStarter} className={`min-h-11 rounded-xl border px-2 text-xs font-bold ${!isStarter ? 'border-accent-blue bg-accent-blue text-white' : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>Remplaçant</button>
+                          <button onClick={() => changeRole(player.id, 'STARTER')} aria-pressed={isStarter} className={`min-h-11 rounded-xl border px-2 text-xs font-bold ${isStarter ? 'border-accent-green bg-action text-on-action' : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>Titulaire</button>
+                          <button onClick={() => changeRole(player.id, 'SUBSTITUTE')} aria-pressed={!isStarter} className={`min-h-11 rounded-xl border px-2 text-xs font-bold ${!isStarter ? 'border-accent-blue bg-sky-700 text-white' : 'border-neutral/20 text-dark-light dark:border-dark-light dark:text-neutral'}`}>Remplaçant</button>
                         </div>
                       </div>
                     );
@@ -386,10 +400,10 @@ export default function MatchPreparationPage() {
             </section>
           )}
 
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral/20 bg-white/95 p-3 backdrop-blur dark:border-dark-light dark:bg-dark/95 sm:static sm:rounded-2xl sm:border">
+          <div className="sticky bottom-0 z-10 border-t border-neutral/20 bg-white/95 p-3 backdrop-blur dark:border-dark-light dark:bg-dark/95 sm:static sm:rounded-2xl sm:border">
             <div className="mx-auto flex max-w-4xl gap-2">
               <button onClick={() => void persistPreparation()} disabled={isSaving || isStarting || players.length === 0} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-neutral/20 px-4 text-sm font-bold text-dark-light disabled:opacity-40 dark:border-dark-light dark:text-neutral"><Save className="h-4 w-4" />{isSaving ? 'Enregistrement…' : 'Enregistrer'}</button>
-              <button onClick={() => void startMatch()} disabled={isSaving || isStarting || players.length === 0} className="flex min-h-12 flex-[1.4] items-center justify-center gap-2 rounded-xl bg-accent-green px-4 text-sm font-bold text-white disabled:opacity-40"><Play className="h-4 w-4" />{isStarting ? 'Lancement…' : 'Lancer le direct'}</button>
+              <button onClick={() => void startMatch()} disabled={isSaving || isStarting || players.length === 0} className="flex min-h-12 flex-[1.4] items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-bold text-on-action disabled:opacity-40"><Play className="h-4 w-4" />{isStarting ? 'Lancement…' : 'Lancer le direct'}</button>
             </div>
           </div>
         </>

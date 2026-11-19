@@ -9,13 +9,13 @@ const results = {
   WIN: {
     label: "Victoire",
     short: "V",
-    color: "bg-emerald-400/10 text-emerald-300",
+    color: "bg-emerald-400/10 text-accent-green",
   },
-  DRAW: { label: "Nul", short: "N", color: "bg-slate-400/10 text-slate-300" },
-  LOSS: { label: "Défaite", short: "D", color: "bg-rose-400/10 text-rose-300" },
+  DRAW: { label: "Nul", short: "N", color: "bg-slate-400/10 text-muted" },
+  LOSS: { label: "Défaite", short: "D", color: "bg-rose-400/10 text-accent-red" },
 };
 const linkClass =
-  "inline-flex min-h-11 items-center gap-2 text-sm text-emerald-300 hover:text-white focus-visible:outline-2 focus-visible:outline-accent-green";
+  "inline-flex min-h-11 items-center gap-2 text-sm text-accent-green hover:text-ink focus-visible:outline-2 focus-visible:outline-accent-green";
 
 function Leaders({
   title,
@@ -28,20 +28,20 @@ function Leaders({
 }) {
   return (
     <div className="min-w-0">
-      <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
+      <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
         {title}
       </h4>
       {rows.length ? (
-        <ol className="divide-y divide-white/5">
+        <ol className="divide-y divide-line">
           {rows.map((player) => (
             <li key={player.id} className="flex items-center gap-3 py-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-white/10 text-xs text-slate-400">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-line text-xs text-muted">
                 {player.number ?? "–"}
               </span>
               <span className="min-w-0 flex-1 break-words text-sm">
                 {player.name}
                 {player.archived && (
-                  <span className="ml-1 text-xs text-slate-400">(archivé)</span>
+                  <span className="ml-1 text-xs text-muted">(archivé)</span>
                 )}
               </span>
               <span
@@ -54,7 +54,7 @@ function Leaders({
           ))}
         </ol>
       ) : (
-        <p className="py-3 text-sm text-slate-400">
+        <p className="py-3 text-sm text-muted">
           Aucun{unit === "buts" ? " but" : "e passe décisive"} enregistré
           {unit === "buts" ? "" : "e"}.
         </p>
@@ -67,11 +67,11 @@ export default function TeamSeason({ data }: { data: TeamDashboardData }) {
   const { totals, attendance } = data;
   if (!totals.matches)
     return (
-      <div className="rounded-xl border border-dashed border-white/15 px-5 py-8 text-center">
+      <div className="rounded-xl border border-dashed border-line px-5 py-8 text-center">
         <h3 className="font-medium">
           Le bilan se construit au fil des matchs.
         </h3>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-400">
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
           Aucun match terminé sur cette période. Terminez votre premier match ou
           choisissez une autre période pour retrouver vos résultats.
         </p>
@@ -82,7 +82,7 @@ export default function TeamSeason({ data }: { data: TeamDashboardData }) {
     );
   return (
     <div className="space-y-6">
-      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-white/10 bg-dark-secondary lg:grid-cols-4">
+      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-line bg-surface lg:grid-cols-4">
         {[
           [
             "Matchs joués",
@@ -105,14 +105,14 @@ export default function TeamSeason({ data }: { data: TeamDashboardData }) {
         ].map(([label, value, note]) => (
           <div
             key={label}
-            className="min-w-0 border-b border-r border-white/5 p-4 sm:p-5"
+            className="min-w-0 border-b border-r border-line p-4 sm:p-5"
           >
-            <dt className="text-xs text-slate-400">{label}</dt>
+            <dt className="text-xs text-muted">{label}</dt>
             <dd className="mt-2">
               <span className="text-3xl font-semibold tabular-nums tracking-tight">
                 {value}
               </span>
-              <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              <p className="mt-2 text-xs leading-relaxed text-muted">
                 {note}
               </p>
             </dd>
@@ -125,11 +125,11 @@ export default function TeamSeason({ data }: { data: TeamDashboardData }) {
             <h3 id="results-title" className="font-semibold">
               Derniers résultats
             </h3>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-muted">
               {totals.wins} V · {totals.draws} N · {totals.losses} D
             </span>
           </div>
-          <ul className="mt-3 divide-y divide-white/10 border-y border-white/10">
+          <ul className="mt-3 divide-y divide-line border-y border-line">
             {data.recent.map((match) => {
               const result = results[match.result];
               return (
@@ -146,10 +146,10 @@ export default function TeamSeason({ data }: { data: TeamDashboardData }) {
                       {result.short}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="break-words text-sm font-medium group-hover:text-emerald-300">
+                      <p className="break-words text-sm font-medium group-hover:text-accent-green">
                         {match.opponent}
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-muted">
                         {new Date(match.date).toLocaleDateString("fr-FR", {
                           day: "numeric",
                           month: "short",
@@ -159,12 +159,12 @@ export default function TeamSeason({ data }: { data: TeamDashboardData }) {
                       </p>
                     </div>
                     <span className="shrink-0 whitespace-nowrap text-lg font-semibold tabular-nums">
-                      {match.scored} <span className="text-slate-600">–</span>{" "}
+                      {match.scored} <span className="text-muted">–</span>{" "}
                       {match.conceded}
                     </span>
                     <ArrowRight
                       size={15}
-                      className="shrink-0 text-slate-400"
+                      className="shrink-0 text-muted"
                       aria-hidden="true"
                     />
                   </Link>
@@ -172,7 +172,7 @@ export default function TeamSeason({ data }: { data: TeamDashboardData }) {
               );
             })}
           </ul>
-          <p className="mt-3 text-xs text-slate-400">
+          <p className="mt-3 text-xs text-muted">
             Score de votre équipe à gauche, à domicile comme à l’extérieur.
           </p>
           <Link href="/dashboard/matchs" className={`${linkClass} mt-2`}>
@@ -181,7 +181,7 @@ export default function TeamSeason({ data }: { data: TeamDashboardData }) {
         </section>
         <section
           aria-labelledby="contributions-title"
-          className="min-w-0 rounded-xl border border-white/10 bg-dark-secondary p-5"
+          className="min-w-0 rounded-xl border border-line bg-surface p-5"
         >
           <h3 id="contributions-title" className="mb-5 font-semibold">
             Les contributions du groupe
@@ -199,7 +199,7 @@ export default function TeamSeason({ data }: { data: TeamDashboardData }) {
           </Link>
         </section>
       </div>
-      <p className="text-xs leading-relaxed text-slate-400">
+      <p className="text-xs leading-relaxed text-muted">
         Présence : présents ÷ (présents + absents). Les présences incertaines et
         non renseignées sont exclues du taux. Les joueurs archivés restent
         inclus dans l’historique.

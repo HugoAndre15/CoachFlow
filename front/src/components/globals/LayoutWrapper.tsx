@@ -6,14 +6,12 @@ import FooterBar from "./footerBar";
 import DashboardHeader from "./DashboardHeader";
 import Sidebar from "./Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import "./workspace.css";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, mounted } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  // Pages without any header/footer (authentication)
+
   const authPages = ['/login', '/register'];
   const isAuthPage = authPages.includes(pathname);
   const isDashboard = pathname?.startsWith('/dashboard');
@@ -23,47 +21,33 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     return <>{children}</>;
   }
 
-  // Before mounted, render a neutral dark shell to avoid hydration mismatch
-  if (!mounted && isDashboard) {
-    return <div className="min-h-screen bg-dark" />;
+  // The auth provider restores the session or redirects to sign-in.
+  if (isDashboard && (!mounted || !user)) {
+    return <div className="min-h-screen bg-canvas" />;
   }
 
-  // Dashboard layout: DashboardHeader + Sidebar (fixed) + Content
-  if (isDashboard && user) {
+  if (isDashboard) {
     return (
-      <div className="h-screen flex flex-col bg-dark overflow-hidden">
-        <DashboardHeader onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <main className="min-w-0 flex-1 overflow-y-auto bg-dark p-4 sm:p-6 lg:p-8">
-            <div className="max-w-screen-xl mx-auto">
-              {children}
-            </div>
+      <div className="workspace">
+        <a href="#workspace-content" className="workspace-skip">Aller au contenu</a>
+        <Sidebar />
+        <div className="workspace-column">
+          <DashboardHeader />
+          <main id="workspace-content" tabIndex={-1} className="workspace-main">
+            <div className="mx-auto w-full max-w-screen-xl">{children}</div>
           </main>
         </div>
       </div>
     );
   }
 
-  const isHomePage = pathname === '/';
-
-  // Public layout: Header + Content + Footer
   return (
-    <div className={`min-h-screen flex flex-col ${isHomePage ? 'bg-dark' : 'bg-gray-50 dark:bg-dark'}`}>
+    <div className="flex min-h-screen flex-col bg-canvas">
       <HeaderBar />
-      {isHomePage ? (
-        <main className="flex-1 w-full">
-          {children}
-        </main>
-      ) : (
-        <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-6 md:py-8">
-          <div className="max-w-screen-xl mx-auto">
-            {children}
-          </div>
-        </main>
-      )}
+      <main className="w-full flex-1 px-4 py-6 sm:px-6 md:py-8 lg:px-10">
+        <div className="mx-auto max-w-screen-xl">{children}</div>
+      </main>
       <FooterBar />
     </div>
   );
 }
-
